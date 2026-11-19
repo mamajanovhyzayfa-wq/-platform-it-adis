@@ -1,0 +1,42 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# env
+.env
+.env.*
+!.env.example
+
+# expo
+.expo
+*.orig.*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+/freebuff-sites-build/
+
+# Локальный кластер PostgreSQL для разработки без Docker (см. DEVELOPMENT.md)
+backend/.pgdata
+.pgdata-local
+*.log
+
+# Ключи EAS Submit не должны попадать в репозиторий
+mobile/credentials/

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-label="IT Adis">
+  <title>IT Adis</title>
+  <rect width="96" height="96" rx="20" fill="#ffffff"/>
+  <g transform="translate(15 6) scale(0.33) translate(3 3)" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M96 10 33.7 158 83.9 140Z" fill="#6BE82F"/>
+    <path d="M33.7 158 83.9 140 66 238 0 238Z" fill="#35CF0C"/>
+    <path d="M82.1 150H97L98 205H72Z" fill="#46DD12"/>
+    <path d="M97 150H109.9L120 205H98Z" fill="#2438E8"/>
+    <path d="M96 10 158.3 158 108.1 140Z" fill="#2233D8"/>
+    <path d="M108.1 140 158.3 158 192 238 126 238Z" fill="#1A2AC0"/>
+  </g>
+</svg>

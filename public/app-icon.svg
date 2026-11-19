@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="IT Adis">
+  <title>IT Adis</title>
+  <rect width="512" height="512" rx="96" fill="#ffffff"/>
+  <g transform="translate(116 32) scale(1.46 1.27) translate(3 3)" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">
+    <!-- левая (зелёная) нога буквы A: два осколка со скошенным швом -->
+    <path d="M96 10 33.7 158 83.9 140Z" fill="#6BE82F"/>
+    <path d="M33.7 158 83.9 140 66 238 0 238Z" fill="#35CF0C"/>
+    <!-- перекладина: стык зелёной и синей частей -->
+    <path d="M82.1 150H97L98 205H72Z" fill="#46DD12"/>
+    <path d="M97 150H109.9L120 205H98Z" fill="#2438E8"/>
+    <!-- правая (синяя) нога буквы A -->
+    <path d="M96 10 158.3 158 108.1 140Z" fill="#2233D8"/>
+    <path d="M108.1 140 158.3 158 192 238 126 238Z" fill="#1A2AC0"/>
+  </g>
+  <text x="256" y="452" text-anchor="middle" font-family="Montserrat, Poppins, 'Nunito Sans', 'Segoe UI', Arial, sans-serif" font-size="102" font-weight="800" letter-spacing="-4"><tspan fill="#35D60A">IT</tspan><tspan fill="#1B2BCF">adis</tspan></text>
+</svg>

@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: itadis-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-itadis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-itadis}
+      POSTGRES_DB: ${POSTGRES_DB:-itadis}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U itadis -d itadis']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: itadis-redis
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+
+  # LiveKit для разработки: ключи devkey / secret, без записи.
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: itadis-livekit
+    restart: unless-stopped
+    command: --dev --bind 0.0.0.0
+    ports:
+      - '${LIVEKIT_PORT:-7880}:7880'
+      - '${LIVEKIT_RTC_PORT:-7881}:7881'
+      - '${LIVEKIT_UDP_PORT:-7882}:7882/udp'
+
+  backend:
+    build:
+      context: ./backend
+    container_name: itadis-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-itadis}:${POSTGRES_PASSWORD:-itadis}@postgres:5432/${POSTGRES_DB:-itadis}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-access-secret-please}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-secret-please}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8081}
+      LIVEKIT_URL: ${LIVEKIT_URL:-ws://livekit:7880}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-secret}
+    ports:
+      - '${BACKEND_PORT:-4000}:4000'
+
+volumes:
+  postgres_data:
+  redis_data:
