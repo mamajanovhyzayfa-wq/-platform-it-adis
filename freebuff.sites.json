@@ -5,9 +5,9 @@
     {
       "name": "worker.js",
       "type": "esm",
-      "path": "./freebuff-sites-build/worker.js"
+      "path": "./infrastructure/sites/worker.js"
     }
   ],
   "assetsDirectory": "./dist",
-  "spa": true
+  "spa": false
 }

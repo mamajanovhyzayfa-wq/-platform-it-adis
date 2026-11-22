@@ -3,11 +3,28 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "apps/mobile",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:site": "node scripts/build-site.mjs",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:mobile": "npm --prefix apps/mobile run start",
+    "build:api": "npm --prefix apps/api run build",
+    "build:web": "npm --prefix apps/web run build",
+    "typecheck:mobile": "cd apps/mobile && npx tsc --noEmit",
+    "test:api": "npm --prefix apps/api test",
+    "test:mobile": "npm --prefix apps/mobile test",
+    "test:e2e:api": "npm --prefix apps/api run test:e2e",
+    "prisma:validate": "npm --prefix apps/api run prisma:validate"
   },
   "dependencies": {
     "react": "^19.3.1",

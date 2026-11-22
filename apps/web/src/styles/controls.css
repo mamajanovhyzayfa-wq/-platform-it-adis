@@ -1,0 +1,195 @@
+/* ---------- кнопки и иконки ---------- */
+.icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.icon-button:hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+.nav-toggle {
+  display: none;
+}
+
+.sidebar-close {
+  display: none;
+  color: var(--sidebar-text);
+}
+
+.sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.scrim {
+  display: none;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 10px 16px;
+  min-height: 42px;
+  background: linear-gradient(120deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  text-decoration: none;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px -16px var(--primary);
+  text-decoration: none;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.button-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.button-ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  box-shadow: none;
+}
+
+.sidebar .button-ghost {
+  color: var(--sidebar-text);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: transparent;
+}
+
+.sidebar .button-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.button-small {
+  padding: 6px 11px;
+  min-height: 34px;
+  font-size: 0.78rem;
+  border-radius: 9px;
+}
+
+.link-button {
+  font: inherit;
+  font-size: 0.85rem;
+  border: none;
+  background: none;
+  color: var(--primary);
+  padding: 4px 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.link {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+/* ---------- формы ---------- */
+input,
+select,
+textarea {
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 10px 12px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  min-width: 180px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--ring);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.field input,
+.field select,
+.field textarea {
+  min-width: 0;
+  width: 100%;
+  color: var(--text);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+

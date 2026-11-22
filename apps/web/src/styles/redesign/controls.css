@@ -1,0 +1,202 @@
+/* ---------- controls ---------- */
+
+.button {
+  min-height: 42px;
+  padding: 10px 17px;
+  border-radius: 13px;
+  background: var(--text);
+  color: var(--card);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  box-shadow: 0 12px 24px -20px rgba(18, 23, 42, 0.75);
+}
+
+.button:hover:not(:disabled) {
+  box-shadow: 0 16px 30px -20px rgba(18, 23, 42, 0.7);
+  transform: translateY(-1px);
+}
+
+[data-theme='dark'] .button {
+  background: #f3f5fb;
+  color: #0b0d18;
+}
+
+.button-ghost {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.button-ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+  box-shadow: none;
+}
+
+.button-small {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 0.76rem;
+}
+
+.button-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.link {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.link:hover {
+  text-decoration: none;
+}
+
+input,
+select,
+textarea {
+  min-height: 42px;
+  border-color: var(--border);
+  border-radius: 12px;
+  background: var(--input-bg);
+  font-size: 0.88rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary);
+  box-shadow: var(--ring);
+}
+
+.field {
+  gap: 7px;
+}
+
+.field > span:first-child,
+.field label {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.filters {
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+}
+
+/* ---------- topbar search and menus ---------- */
+
+.search {
+  width: clamp(230px, 31vw, 440px);
+  height: 42px;
+  border-color: var(--border);
+  border-radius: 13px;
+  background: var(--card);
+  box-shadow: 0 10px 24px -28px rgba(18, 23, 42, 0.6);
+}
+
+.search kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.search input {
+  font-size: 0.84rem;
+}
+
+.menu {
+  margin-top: 9px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  box-shadow: 0 26px 60px -28px rgba(18, 23, 42, 0.45);
+  backdrop-filter: blur(22px);
+}
+
+.search-menu {
+  width: min(480px, calc(100vw - 28px));
+}
+
+.menu-head {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.menu-item {
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.menu-item:hover {
+  background: var(--surface-2);
+}
+
+.menu-item-type {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+
+.menu-item-title {
+  font-size: 0.85rem;
+}
+
+.menu-link {
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 0.82rem;
+}
+
+.menu-link:hover {
+  background: var(--surface-2);
+  text-decoration: none;
+}
+
+.segmented {
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface-2);
+}
+
+.segmented-item {
+  border-radius: 8px;
+  min-height: 30px;
+  color: var(--muted);
+}
+
+.segmented-active {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 4px 10px -8px rgba(18, 23, 42, 0.4);
+}
+
+.avatar {
+  background: linear-gradient(145deg, var(--primary-soft), var(--accent-soft));
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.avatar-button {
+  border-radius: 12px;
+}
+

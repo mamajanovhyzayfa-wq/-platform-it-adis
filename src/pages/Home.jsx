@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
-import { coinRules, features, plans, roles, stack } from '../data.js'
+import { coinRules, features, roles, stack } from '../data.js'
 import { Icon } from '../components/ui.jsx'
 
-/** Главная страница: продукт, роли, возможности, тарифы, IT Coins и стек. */
-export function Home({ onSelectPlan }) {
+/** Главная страница: продукт, роли, возможности, IT Coins и стек. */
+export function Home() {
   return (
     <main id="main">
       <section className="hero" id="top">
@@ -15,13 +15,22 @@ export function Home({ onSelectPlan }) {
             </h1>
             <p className="lead">
               ITadis собирает курсы, домашние задания, тесты, расписание и живые занятия в одном месте. Отдельные
-              кабинеты для ученика, преподавателя, родителя, администратора и менеджера — с общей базой данных и
-              понятной статистикой.
+              кабинеты для ученика, преподавателя, родителя, администратора и менеджера — в единой платформе, где у
+              каждого филиала свои защищённые данные и понятная статистика.
             </p>
+
+            <div className="hero-actions">
+              <Link className="button" to="/login">
+                Войти в свой кабинет
+              </Link>
+              <Link className="button button-outline" to="/#roles">
+                Выбрать роль
+              </Link>
+            </div>
 
             <ul className="hero-facts">
               <li>Android и iOS</li>
-              <li>Русский · Кыргызский · English</li>
+              <li>Интерфейс: русский · кыргызский · English</li>
               <li>Светлая и тёмная темы</li>
             </ul>
           </div>
@@ -86,59 +95,7 @@ export function Home({ onSelectPlan }) {
         </div>
       </section>
 
-      <section className="section" id="pricing">
-        <div className="container">
-          <header className="section-head section-head-center">
-            <p className="eyebrow">Тарифы и оплата</p>
-            <h2>Выберите свой формат обучения</h2>
-            <p className="section-text">
-              Начните с одного курса или откройте весь учебный процесс с проверкой работ и личным ментором. Оплата —
-              помесячно, без скрытых платежей.
-            </p>
-          </header>
-
-          <div className="pricing-grid">
-            {plans.map((plan) => (
-              <article className={`pricing-card${plan.popular ? ' pricing-card-popular' : ''}`} key={plan.slug}>
-                {plan.popular ? <span className="pricing-badge">Популярный</span> : null}
-
-                <div className="pricing-head">
-                  <h3>{plan.name}</h3>
-                  <p>{plan.summary}</p>
-                </div>
-
-                <p className="pricing-price">
-                  {plan.price} <span>{plan.period}</span>
-                </p>
-
-                <ul className="pricing-features">
-                  {plan.features.map((feature) => (
-                    <li key={feature}>
-                      <Icon name="check" className="pricing-check" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  type="button"
-                  className={`button${plan.popular ? ' button-accent' : ' button-outline'}`}
-                  onClick={() => onSelectPlan(plan)}
-                >
-                  Оплатить
-                </button>
-              </article>
-            ))}
-          </div>
-
-          <p className="pricing-note">
-            Цены указаны за месяц обучения одного человека. Для школ и учебных центров есть отдельные условия —
-            оставьте заявку, и мы подготовим расчёт.
-          </p>
-        </div>
-      </section>
-
-      <section className="section section-muted" id="coins">
+      <section className="section" id="coins">
         <div className="container coins-inner">
           <div className="coins-copy">
             <p className="eyebrow">Мотивация</p>
@@ -164,7 +121,7 @@ export function Home({ onSelectPlan }) {
         </div>
       </section>
 
-      <section className="section" id="stack">
+      <section className="section section-muted" id="stack">
         <div className="container">
           <header className="section-head">
             <p className="eyebrow">Технологии</p>

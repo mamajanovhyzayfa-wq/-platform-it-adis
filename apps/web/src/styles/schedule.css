@@ -1,0 +1,362 @@
+/* ---------- расписание ---------- */
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.schedule-day h3 {
+  font-size: 0.8rem;
+  margin: 0 0 8px;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.schedule-item {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 12px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: var(--surface-2);
+  margin-bottom: 8px;
+  font-size: 0.86rem;
+}
+
+.schedule-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-head {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 4px 6px;
+}
+
+.calendar-cell {
+  min-height: 92px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.68rem;
+}
+
+.calendar-cell-busy {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.calendar-cell-empty {
+  border-color: transparent;
+  background: transparent;
+}
+
+.calendar-date {
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.calendar-event {
+  display: block;
+  padding: 2px 5px;
+  border-radius: 6px;
+  background: var(--primary-soft);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- графики ---------- */
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 150px 1fr 72px;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+}
+
+.bar-label {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 3px;
+  transition: width 0.35s ease;
+}
+
+.bar-value {
+  text-align: right;
+  font-weight: 600;
+}
+
+.donut {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.donut-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  fill: var(--text);
+}
+
+.donut-label {
+  font-size: 0.56rem;
+  fill: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.82rem;
+  flex: 1;
+  min-width: 150px;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.legend-label {
+  color: var(--muted);
+  flex: 1;
+}
+
+/* ---------- адаптив ---------- */
+@media (max-width: 1100px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-aside {
+    padding: 28px 24px;
+  }
+
+  .auth-aside-body {
+    margin-top: 0;
+  }
+
+  .auth-aside-body h1 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 960px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 286px;
+    transform: translateX(-102%);
+    transition: transform 0.22s ease;
+    box-shadow: 30px 0 60px -30px rgba(0, 0, 0, 0.5);
+  }
+
+  .sidebar-open {
+    transform: none;
+  }
+
+  .sidebar-close {
+    display: inline-flex;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.55);
+    z-index: 35;
+    backdrop-filter: blur(2px);
+  }
+
+  .search {
+    width: 100%;
+  }
+
+  .search kbd {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .content {
+    padding: 16px 14px 48px;
+  }
+
+  .topbar {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+  }
+
+  .search-wrap {
+    order: 3;
+    flex: 1 1 100%;
+    display: block;
+  }
+
+  .search-menu {
+    left: 0;
+    right: 0;
+    width: auto;
+  }
+
+  .hero {
+    border-radius: 18px;
+  }
+
+  .grid.two {
+    grid-template-columns: 1fr;
+  }
+
+  .bar-row {
+    grid-template-columns: 100px 1fr 52px;
+  }
+
+  .schedule-item {
+    grid-template-columns: 84px 1fr;
+  }
+
+  .calendar {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .calendar-cell {
+    min-width: 110px;
+  }
+
+  .table th,
+  .table td {
+    padding: 10px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+  }
+
+  .menu {
+    right: 0;
+    width: min(92vw, 340px);
+  }
+
+  .child-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .quick-actions .button {
+    width: 100%;
+  }
+}
+
+/* Уважение к настройке «меньше движения». */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Печать: без навигации и теней. */
+@media print {
+  .sidebar,
+  .topbar,
+  .scrim,
+  .skip-link {
+    display: none !important;
+  }
+
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    box-shadow: none;
+    border-color: #999;
+  }
+}
+

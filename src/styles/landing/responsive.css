@@ -1,0 +1,64 @@
+/* Адаптивность новых блоков */
+
+@media (max-width: 1080px) {
+  .grid-roles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .grid-roles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .header-actions {
+    margin-left: auto;
+  }
+
+  .theme-toggle {
+    margin-left: 0;
+  }
+
+  .role-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .role-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+  }
+
+  .role-icon .icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .modal {
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .grid-roles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .header-cta {
+    padding: 9px 13px;
+    font-size: 13px;
+  }
+
+  .role-actions .button,
+  .role-cta .button {
+    width: 100%;
+  }
+}

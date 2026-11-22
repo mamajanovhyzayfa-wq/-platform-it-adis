@@ -1,0 +1,29 @@
+/* Единая точка входа стилей. Файлы идут в исходном порядке каскада:
+   сначала базовая дизайн-система, затем premium-слой redesign. */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap');
+
+@import './tokens.css';
+@import './layout.css';
+@import './controls.css';
+@import './navigation.css';
+@import './content.css';
+@import './data.css';
+@import './auth.css';
+@import './schedule.css';
+@import './lms.css';
+@import './video.css';
+@import './economy.css';
+@import './ai.css';
+@import './community.css';
+@import './legal.css';
+@import './files.css';
+
+@import './redesign/tokens.css';
+@import './redesign/shell.css';
+@import './redesign/controls.css';
+@import './redesign/dashboard.css';
+@import './redesign/students.css';
+@import './redesign/lists.css';
+@import './redesign/chrome.css';
+@import './redesign/pages.css';
+@import './redesign/responsive.css';

@@ -1,0 +1,145 @@
+/* ==========================================================================
+   ITadis — premium interface layer.
+   A calm, editorial EdTech workspace: deep ink, aurora accents, soft glass,
+   generous spacing and a single visual language for every branch.
+   ========================================================================== */
+:root {
+  --font-sans: 'Manrope', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: 'Unbounded', 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --primary: #5b4bdb;
+  --primary-dark: #4436c4;
+  --primary-soft: #eeecff;
+  --accent: #43dfa7;
+  --accent-soft: #e5fbf3;
+  --coral: #ff7a6b;
+  --gold: #f5b94c;
+
+  --bg: #f3f5fa;
+  --card: #ffffff;
+  --surface-2: #f7f8fc;
+  --input-bg: #ffffff;
+  --text: #12172a;
+  --muted: #667085;
+  --border: #e5e8f2;
+
+  --sidebar-bg: #0b0d18;
+  --sidebar-text: #f2f4fb;
+  --sidebar-muted: #929ab9;
+  --topbar: rgba(243, 245, 250, 0.82);
+
+  --success: #138a63;
+  --warning: #b36a0a;
+  --danger: #d14343;
+
+  --radius: 24px;
+  --radius-sm: 14px;
+  --shadow: 0 1px 2px rgba(18, 23, 42, 0.03), 0 28px 60px -42px rgba(18, 23, 42, 0.4);
+  --ring: 0 0 0 3px rgba(91, 75, 219, 0.24);
+}
+
+[data-theme='dark'] {
+  --primary: #a5a0ff;
+  --primary-dark: #8580fa;
+  --primary-soft: #211e43;
+  --accent: #62e7bc;
+  --accent-soft: #102a25;
+  --bg: #070a12;
+  --card: #0e1422;
+  --surface-2: #0a101c;
+  --input-bg: #0a101c;
+  --text: #f3f5fb;
+  --muted: #9ba6bd;
+  --border: #202b40;
+  --topbar: rgba(7, 10, 18, 0.8);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 30px 60px -42px rgba(0, 0, 0, 0.9);
+  --ring: 0 0 0 3px rgba(165, 160, 255, 0.32);
+}
+
+[data-contrast='high'] {
+  --bg: #ffffff;
+  --card: #ffffff;
+  --surface-2: #f1f5f9;
+  --input-bg: #ffffff;
+  --text: #000000;
+  --muted: #263247;
+  --border: #0f172a;
+  --primary: #312e81;
+  --primary-dark: #1e1b4b;
+  --primary-soft: #e0e7ff;
+  --shadow: none;
+}
+
+[data-theme='dark'][data-contrast='high'] {
+  --bg: #000000;
+  --card: #000000;
+  --surface-2: #111111;
+  --input-bg: #000000;
+  --text: #ffffff;
+  --muted: #e2e8f0;
+  --border: #ffffff;
+  --primary: #c7d2fe;
+  --primary-dark: #a5b4fc;
+  --primary-soft: #1e1b4b;
+  --shadow: none;
+}
+
+[data-contrast='high'] body {
+  background: var(--bg);
+}
+
+[data-contrast='high'] .hero.dashboard-hero {
+  border: 2px solid #ffffff;
+  background: #000000;
+}
+
+[data-contrast='high'] .hero .button {
+  border: 2px solid #000000;
+  background: #ffffff;
+  color: #000000;
+}
+
+[data-contrast='high'] .hero .button-ghost {
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  background: #000000;
+}
+
+html {
+  font-family: var(--font-sans);
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at 18% -10%, rgba(91, 75, 219, 0.07), transparent 34rem),
+    radial-gradient(circle at 96% 4%, rgba(67, 223, 167, 0.06), transparent 26rem),
+    var(--bg);
+  letter-spacing: -0.005em;
+}
+
+h1,
+h2,
+h3,
+.brand strong,
+.stat strong {
+  font-family: var(--font-sans);
+}
+
+h1 {
+  font-family: var(--font-display);
+  letter-spacing: -0.045em;
+  line-height: 1.12;
+}
+
+h2 {
+  font-size: 1.08rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+
+::selection {
+  color: #fff;
+  background: var(--primary);
+}
+

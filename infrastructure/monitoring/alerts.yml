@@ -1,0 +1,28 @@
+groups:
+  - name: itadis-api
+    rules:
+      - alert: ItadisApiDown
+        expr: up{job="itadis-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'ITadis API недоступен'
+          description: 'Prometheus не может scrape /metrics более 2 минут.'
+
+      - alert: ItadisHighErrorRate
+        expr: sum(rate(itadis_http_errors_total[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Рост ошибок API'
+          description: 'Более 1 ошибки в секунду за 5 минут. Проверьте логи и ALERT_WEBHOOK_URL.'
+
+      - alert: ItadisProcessRestarted
+        expr: resets(itadis_process_uptime_seconds[15m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Процесс API перезапускался'
+          description: 'Проверьте OOM, падения и журнал контейнера backend.'

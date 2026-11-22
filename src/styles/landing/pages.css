@@ -1,0 +1,191 @@
+/* Страница роли */
+
+.role-page {
+  padding-bottom: clamp(48px, 7vw, 80px);
+}
+
+.breadcrumbs {
+  padding-top: 28px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.breadcrumbs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  transition: color 150ms ease;
+}
+
+.breadcrumbs a:hover {
+  color: var(--text);
+}
+
+.breadcrumbs-icon {
+  width: 17px;
+  height: 17px;
+}
+
+
+.role-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(20px, 4vw, 40px);
+  align-items: start;
+  padding: clamp(32px, 5vw, 56px) 0 clamp(28px, 4vw, 44px);
+  border-bottom: 1px solid var(--border);
+}
+
+.role-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 24px;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.role-icon .icon {
+  width: 40px;
+  height: 40px;
+}
+
+.role-copy h1 {
+  font-size: clamp(30px, 4.5vw, 46px);
+}
+
+.role-copy .lead {
+  margin-top: 14px;
+  max-width: 62ch;
+}
+
+.role-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.role-body {
+  padding-top: clamp(28px, 4vw, 44px);
+}
+
+.role-body h2 {
+  margin-bottom: 20px;
+  font-size: clamp(22px, 3vw, 30px);
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.role-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: clamp(32px, 5vw, 52px);
+  padding: clamp(24px, 4vw, 36px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-muted);
+}
+
+.role-cta h2 {
+  font-size: clamp(20px, 2.6vw, 26px);
+}
+
+.role-cta p {
+  margin-top: 8px;
+  max-width: 60ch;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+/* Вход и 404 */
+
+.login-page {
+  padding: clamp(40px, 7vw, 80px) 0;
+}
+
+.login-inner {
+  display: flex;
+  justify-content: center;
+}
+
+.login-card {
+  width: min(100%, 440px);
+  gap: 20px;
+}
+
+.login-head h1 {
+  font-size: 26px;
+}
+
+.muted {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 14.5px;
+}
+
+.login-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.login-role-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.login-status {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  color: var(--text-muted);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.login-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.not-found {
+  padding: clamp(60px, 10vw, 120px) 0;
+  text-align: center;
+}
+
+.not-found-inner {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+
+.not-found h1 {
+  font-size: clamp(28px, 4vw, 40px);
+}
+
+.not-found .lead {
+  max-width: 46ch;
+  margin: 0;
+}
+

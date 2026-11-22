@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
+import { getBranding } from './api/branding.js'
+import { cabinetUrl } from './config.js'
 import { Header } from './components/Header.jsx'
 import { ApplicationModal } from './components/ApplicationModal.jsx'
-import { PaymentModal } from './components/PaymentModal.jsx'
 import { Brand } from './components/ui.jsx'
 import { Home } from './pages/Home.jsx'
 import { RolePage } from './pages/RolePage.jsx'
@@ -22,6 +23,25 @@ function readMode() {
 
 function prefersDark() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+}
+
+/** Кабинет живёт в отдельном приложении /app; короткие адреса ролей ведут туда. */
+function CabinetRedirect({ path }) {
+  useEffect(() => {
+    window.location.replace(cabinetUrl(path))
+  }, [path])
+
+  return (
+    <main id="main" className="login-page">
+      <div className="container login-inner">
+        <div className="card login-card">
+          <p className="login-status" role="status">
+            Открываем кабинет ITadis…
+          </p>
+        </div>
+      </div>
+    </main>
+  )
 }
 
 /** Прокрутка к якорю при переходе с другой страницы и наверх при смене маршрута. */
@@ -45,11 +65,27 @@ function ScrollManager() {
 }
 
 export default function App() {
+  const { pathname } = useLocation()
   const [mode, setMode] = useState(readMode)
   const [systemDark, setSystemDark] = useState(prefersDark)
   const [applyOpen, setApplyOpen] = useState(false)
-  const [payPlan, setPayPlan] = useState(null)
 
+  // На домене филиала главная сразу ведёт на его страницу входа с брендингом.
+  // Основной домен ITadis остаётся презентационным сайтом. На /login не
+  // перенаправляем, иначе получится цикл с самой страницей входа.
+  useEffect(() => {
+    if (pathname !== '/') return undefined
+    let active = true
+    void getBranding().then((branding) => {
+      if (active && branding?.isPrimary === false) {
+        // Остаёмся на домене филиала: страница входа сама откроет кабинет.
+        window.location.replace('/login')
+      }
+    })
+    return () => {
+      active = false
+    }
+  }, [pathname])
   useEffect(() => {
     const root = document.documentElement
     if (mode === 'system') {
@@ -89,8 +125,13 @@ export default function App() {
       />
 
       <Routes>
-        <Route path="/" element={<Home onSelectPlan={setPayPlan} />} />
+        <Route path="/" element={<Home />} />
         <Route path="/roles/:slug" element={<RolePage />} />
+        <Route path="/admin" element={<CabinetRedirect path="/admin" />} />
+        <Route path="/manager" element={<CabinetRedirect path="/manager" />} />
+        <Route path="/mentor" element={<CabinetRedirect path="/mentor" />} />
+        <Route path="/student" element={<CabinetRedirect path="/student" />} />
+        <Route path="/parent" element={<CabinetRedirect path="/parent" />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -105,7 +146,6 @@ export default function App() {
       </footer>
 
       <ApplicationModal open={applyOpen} onClose={() => setApplyOpen(false)} />
-      <PaymentModal plan={payPlan} onClose={() => setPayPlan(null)} />
     </>
   )
 }

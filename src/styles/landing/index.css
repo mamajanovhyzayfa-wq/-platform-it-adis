@@ -1,0 +1,9 @@
+/* Публичный лендинг: слои идут в исходном порядке каскада. */
+@import './base.css';
+@import './header.css';
+@import './hero.css';
+@import './sections.css';
+@import './commercial.css';
+@import './modals.css';
+@import './pages.css';
+@import './responsive.css';

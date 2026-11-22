@@ -4,7 +4,6 @@ import { Brand, Icon } from './ui.jsx'
 const navItems = [
   { href: '/#roles', label: 'Роли' },
   { href: '/#features', label: 'Возможности' },
-  { href: '/#pricing', label: 'Тарифы' },
   { href: '/#coins', label: 'IT Coins' },
   { href: '/#stack', label: 'Технологии' },
 ]
@@ -26,6 +25,10 @@ export function Header({ onApply, isDark, onToggleTheme }) {
         </nav>
 
         <div className="header-actions">
+          <Link className="button button-outline button-sm" to="/login">
+            Войти
+          </Link>
+
           <button type="button" className="button button-sm header-cta" onClick={onApply}>
             Подать заявку
           </button>

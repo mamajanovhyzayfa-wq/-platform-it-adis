@@ -1,0 +1,143 @@
+/* ---------- LMS ---------- */
+
+.cover-editor-row {
+  align-items: center;
+}
+
+.course-cover-preview {
+  width: 112px;
+  height: 72px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.upload-button {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.upload-button input[type='file'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.material-head .chip {
+  border-color: var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+/* ---------- sign-in ---------- */
+
+.auth-shell {
+  background: var(--bg);
+}
+
+.auth-aside {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 82% 2%, rgba(200, 255, 138, 0.24), transparent 38%),
+    radial-gradient(ellipse at 4% 92%, rgba(100, 210, 255, 0.2), transparent 46%),
+    radial-gradient(ellipse at 60% 40%, rgba(120, 99, 255, 0.32), transparent 54%),
+    linear-gradient(150deg, #121631, #090c18 78%);
+}
+
+.auth-aside::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(130deg, black, transparent 72%);
+}
+
+.auth-aside > * {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-aside-body h1 {
+  font-family: var(--font-display);
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+}
+
+.auth-aside .brand-sub {
+  color: #c8ff8a;
+}
+
+.auth-aside .chip {
+  color: #e6ecff;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.auth-card {
+  max-width: 470px;
+  padding: clamp(22px, 3vw, 34px);
+  border-radius: 26px;
+  box-shadow: 0 36px 80px -54px rgba(18, 23, 42, 0.6);
+}
+
+.auth-tabs {
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.auth-tab {
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.auth-tab-active {
+  color: var(--card);
+  background: var(--text);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .auth-tab-active {
+  color: #0b0d18;
+  background: #f3f5fb;
+}
+
+/* ---------- motion and focus ---------- */
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard > * {
+  animation: rise-in 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.dashboard > *:nth-child(2) {
+  animation-delay: 0.04s;
+}
+
+.dashboard > *:nth-child(3) {
+  animation-delay: 0.08s;
+}
+
+.focus-visible,
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+

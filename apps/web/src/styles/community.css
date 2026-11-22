@@ -1,0 +1,143 @@
+/* Сообщество: чаты, мероприятия, объявления */
+.community-chat-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.community-list,
+.community-thread {
+  min-width: 0;
+}
+
+.community-conversations {
+  display: grid;
+  gap: 8px;
+  max-height: 62vh;
+  overflow: auto;
+}
+
+.community-conversation {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.community-conversation:hover,
+.community-conversation-active {
+  border-color: var(--primary);
+  background: var(--accent-soft);
+}
+
+.community-conversation-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.community-thread {
+  min-height: 480px;
+}
+
+.community-messages {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  max-height: 55vh;
+  overflow: auto;
+  padding: 4px;
+}
+
+.community-message {
+  display: grid;
+  gap: 4px;
+  max-width: 82%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.community-message-mine {
+  justify-self: end;
+  border-color: var(--primary);
+  background: var(--accent-soft);
+}
+
+.community-message p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.community-message-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.community-compose {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.community-search {
+  max-width: 220px;
+}
+
+.community-create {
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.file-link {
+  display: inline-block;
+  color: var(--primary);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.announcement-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.event-card {
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.event-card h2 {
+  margin: 6px 0;
+  font-size: 1.05rem;
+}
+
+.event-card-active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+@media (max-width: 900px) {
+  .community-chat-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .community-search {
+    max-width: 100%;
+  }
+}
+

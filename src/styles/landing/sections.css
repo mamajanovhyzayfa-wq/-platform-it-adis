@@ -1,0 +1,238 @@
+/* Секции */
+
+.section {
+  padding: clamp(56px, 8vw, 96px) 0;
+  border-top: 1px solid var(--border);
+  /* чтобы якорная ссылка не уводила заголовок под закреплённую шапку */
+  scroll-margin-top: 84px;
+}
+
+.section-muted {
+  background: var(--bg-muted);
+}
+
+.section-head {
+  max-width: 720px;
+  margin-bottom: clamp(28px, 4vw, 44px);
+}
+
+.section-head h2 {
+  font-size: clamp(26px, 3.4vw, 38px);
+}
+
+.section-text {
+  margin-top: 16px;
+  color: var(--text-muted);
+  font-size: 16.5px;
+}
+
+.grid {
+  display: grid;
+  gap: 18px;
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 26px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--brand) 12%, transparent);
+}
+
+.card h3 {
+  font-size: 17.5px;
+}
+
+.card p {
+  color: var(--text-muted);
+  font-size: 14.8px;
+  line-height: 1.62;
+}
+
+.card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.card-compact {
+  padding: 24px 22px;
+}
+
+/* IT Coins */
+
+.coins-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: start;
+}
+
+.coins-copy h2 {
+  font-size: clamp(26px, 3.4vw, 38px);
+}
+
+.coin-rules {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: coin;
+}
+
+.coin-rules li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'amount label'
+    'amount note';
+  align-items: center;
+  gap: 2px 18px;
+  padding: 18px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.coin-amount {
+  grid-area: amount;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.coin-label {
+  grid-area: label;
+  font-weight: 700;
+}
+
+.coin-note {
+  grid-area: note;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* Чипы технологий */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips li {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface-strong);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Подвал */
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 34px 0;
+  background: var(--bg);
+}
+
+.footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.footer-note {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* Адаптивность */
+
+@media (max-width: 980px) {
+  .hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero-visual {
+    order: -1;
+    min-height: 240px;
+  }
+
+  .hero-logo {
+    width: clamp(168px, 38vw, 232px);
+  }
+
+  .grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coins-inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .site-nav {
+    display: none;
+  }
+
+  .theme-toggle {
+    margin-left: auto;
+  }
+
+  .grid-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .grid-4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card {
+    padding: 22px 20px;
+  }
+
+  .coin-rules li {
+    padding: 16px 18px;
+  }
+}
+

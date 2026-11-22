@@ -1,0 +1,178 @@
+/* ITadis — публичная страница продукта.
+   Токены, светлая и тёмная темы, сетки и типографика. */
+
+:root {
+  color-scheme: light;
+
+  --brand: #1b2bcf;
+  --brand-deep: #131f9e;
+  --brand-soft: #eceeff;
+  --accent: #35d60a;
+  --accent-deep: #229a06;
+  --accent-soft: #eafbe2;
+  --on-brand: #ffffff;
+  --danger: #d5393e;
+
+  --bg: #ffffff;
+  --bg-muted: #f6f7fb;
+  --surface: #ffffff;
+  --surface-strong: #f1f3fa;
+  --text: #101433;
+  --text-muted: #535a76;
+  --border: #e3e6f2;
+  --border-strong: #cdd2e6;
+
+  --shadow-sm: 0 1px 2px rgba(16, 20, 51, 0.06), 0 8px 24px rgba(16, 20, 51, 0.05);
+  --shadow-lg: 0 24px 60px rgba(27, 43, 207, 0.16);
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 999px;
+
+  --container: 1120px;
+  --gutter: clamp(20px, 5vw, 40px);
+
+  --font-sans: 'Montserrat', 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --brand: #8d9bff;
+  --brand-deep: #aab4ff;
+  --brand-soft: #1c2152;
+  --accent: #7bf04f;
+  --accent-deep: #4fd326;
+  --accent-soft: #16300f;
+  --on-brand: #0b0e1c;
+  --danger: #ff7a7f;
+
+  --bg: #0b0e1c;
+  --bg-muted: #0f1324;
+  --surface: #141930;
+  --surface-strong: #1a2040;
+  --text: #f2f4ff;
+  --text-muted: #a3abcd;
+  --border: #262d4d;
+  --border-strong: #354068;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 28px 70px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --brand: #8d9bff;
+    --brand-deep: #aab4ff;
+    --brand-soft: #1c2152;
+    --accent: #7bf04f;
+    --accent-deep: #4fd326;
+    --accent-soft: #16300f;
+  --on-brand: #0b0e1c;
+  --danger: #ff7a7f;
+
+    --bg: #0b0e1c;
+    --bg-muted: #0f1324;
+    --surface: #141930;
+    --surface-strong: #1a2040;
+    --text: #f2f4ff;
+    --text-muted: #a3abcd;
+    --border: #262d4d;
+    --border-strong: #354068;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 28px 70px rgba(0, 0, 0, 0.6);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+p {
+  margin: 0;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -80px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--brand);
+  color: #fff;
+  font-weight: 600;
+  transition: top 150ms ease;
+}
+
+.skip-link:focus-visible {
+  top: 12px;
+}
+

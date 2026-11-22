@@ -1,0 +1,145 @@
+import { existsSync } from 'node:fs'
+import { basename, resolve } from 'node:path'
+import type { RequestHandler } from 'express'
+import { env } from '../config/env.js'
+import { verifyAccessToken } from './security.js'
+import { writeFileAudit } from './file-audit.js'
+import { getPrimaryBranch, normalizeHost, resolveBranchByDomain } from './branch-registry.js'
+import { defaultPrisma } from './prisma.js'
+import { getBranchPrisma, getTenant, runWithTenant, tenantUploadsDir } from './tenant.js'
+
+/** Служебные маршруты, которым филиал не нужен. */
+function isTenantFree(path: string): boolean {
+  return path === '/healthz' || path.startsWith('/docs') || path.startsWith('/api/platform')
+}
+
+/**
+ * Филиал определяется только по Host. Заголовок проверяется на каждом запросе,
+ * параметры URL/тела в выборе БД не участвуют.
+ */
+export const tenantMiddleware: RequestHandler = (req, res, next) => {
+  if (isTenantFree(req.path)) {
+    next()
+    return
+  }
+
+  void (async () => {
+    const host = normalizeHost(req.hostname)
+    let branch = await resolveBranchByDomain(host)
+    let isPrimary = false
+    let client = defaultPrisma
+
+    // Домен занят филиалом, но он ещё не активирован: основная БД не подставляется.
+    if (branch && branch.status !== 'ACTIVE') {
+      res.status(404).json({
+        error: { code: 'BRANCH_NOT_ACTIVE', message: 'Филиал ещё не активирован' },
+      })
+      return
+    }
+
+    if (!branch && env.ALLOW_PRIMARY_FALLBACK) {
+      branch = await getPrimaryBranch()
+    }
+    isPrimary = branch?.isPrimary ?? false
+
+    if (!branch) {
+      res.status(404).json({
+        error: { code: 'BRANCH_NOT_FOUND', message: 'Филиал для этого домена не найден или не активирован' },
+      })
+      return
+    }
+
+    if (!isPrimary) {
+      client = getBranchPrisma(branch.id, branch.databaseName)
+    }
+
+    const context = {
+      branchId: branch.id,
+      branchSlug: branch.slug,
+      domain: branch.domain,
+      isPrimary,
+      prisma: client,
+      uploadsDir: tenantUploadsDir(branch.slug, isPrimary),
+    }
+
+    runWithTenant(context, () => {
+      // Токен, выданный в другом филиале, не должен работать на этом домене.
+      const header = req.headers.authorization
+      if (typeof header === 'string' && header.startsWith('Bearer ')) {
+        try {
+          const payload = verifyAccessToken(header.slice(7))
+          if (payload.role) {
+            if (payload.branchId && payload.branchId !== context.branchId) {
+              res.status(403).json({
+                error: { code: 'FOREIGN_BRANCH_TOKEN', message: 'Токен выдан для другого филиала' },
+              })
+              return
+            }
+            if (!payload.branchId && !isPrimary) {
+              res.status(403).json({
+                error: { code: 'TOKEN_WITHOUT_BRANCH', message: 'Токен не привязан к филиалу, войдите заново' },
+              })
+              return
+            }
+          }
+        } catch {
+          // Недействительный токен отклонит guard конкретного маршрута.
+        }
+      }
+      next()
+    })
+  })().catch(next)
+}
+
+/** Статика вложений из каталога текущего филиала. */
+export const tenantUploadsStatic: RequestHandler = (req, res, next) => {
+  const dir = getTenant()?.uploadsDir
+  if (!dir) {
+    next()
+    return
+  }
+  let name: string
+  try {
+    name = basename(decodeURIComponent(req.path))
+  } catch {
+    res.status(400).end()
+    return
+  }
+  const file = resolve(dir, name)
+  if (!name || name.startsWith('.') || !existsSync(file)) {
+    res.status(404).end()
+    return
+  }
+  // Вложения чата и решений не должны исполняться как HTML/SVG в браузере.
+  // Приватные документы (библиотека, сертификаты) идут только через API с ACL.
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'; sandbox")
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-site')
+  res.setHeader('Cache-Control', 'private, max-age=3600')
+  if (!/\.(jpe?g|png|webp|gif|heic|mp4|webm|mov|mkv|mp3|m4a|wav|ogg|pdf|txt|md|docx?|xlsx?|pptx?|zip)$/i.test(name)) {
+    res.setHeader('Content-Disposition', 'attachment')
+  }
+  let userId: string | undefined
+  const header = req.headers.authorization
+  if (header?.startsWith('Bearer ')) {
+    try {
+      userId = verifyAccessToken(header.slice(7)).sub
+    } catch {
+      // Скачивание публичное; просто не привязываем его к пользователю.
+    }
+  }
+
+  res.sendFile(file, { maxAge: '7d' }, (error) => {
+    if (!error) {
+      void writeFileAudit({
+        userId,
+        action: 'DOWNLOAD',
+        fileName: name,
+        url: req.originalUrl,
+        ip: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      })
+    }
+    if (error) next(error)
+  })
+}

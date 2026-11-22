@@ -1,0 +1,188 @@
+/* ==========================================================================
+   ITadis — дизайн-система платформы.
+   Светлая и тёмная темы, масштаб текста, повышенная контрастность, адаптив.
+   ========================================================================== */
+
+:root {
+  --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --primary-soft: #eef2ff;
+  --accent: #a3e635;
+
+  --bg: #f5f6fb;
+  --card: #ffffff;
+  --surface-2: #f8fafc;
+  --input-bg: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e6e8f2;
+
+  --sidebar-bg: #0b1020;
+  --sidebar-text: #e6eaf8;
+  --sidebar-muted: #93a0c4;
+  --topbar: rgba(255, 255, 255, 0.85);
+
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #dc2626;
+
+  --radius: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 18px 40px -24px rgba(15, 23, 42, 0.35);
+  --ring: 0 0 0 3px rgba(79, 70, 229, 0.35);
+
+  color-scheme: light;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-font='sm'] {
+  font-size: 14px;
+}
+
+[data-font='md'] {
+  font-size: 16px;
+}
+
+[data-font='lg'] {
+  font-size: 18px;
+}
+
+[data-theme='dark'] {
+  --primary: #8b8cf9;
+  --primary-dark: #6d6ef0;
+  --primary-soft: #1f1d47;
+  --accent: #bef264;
+
+  --bg: #080b14;
+  --card: #101827;
+  --surface-2: #0c1220;
+  --input-bg: #0c1220;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --border: #22304a;
+
+  --sidebar-bg: #060910;
+  --sidebar-text: #e2e8f0;
+  --sidebar-muted: #8b9bbd;
+  --topbar: rgba(8, 11, 20, 0.82);
+
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 24px 50px -30px rgba(0, 0, 0, 0.9);
+  --ring: 0 0 0 3px rgba(139, 140, 249, 0.45);
+  color-scheme: dark;
+}
+
+/* Повышенная контрастность: строгие рамки и тёмный текст. */
+[data-contrast='high'] {
+  --muted: #334155;
+  --border: #0f172a;
+  --text: #000000;
+  --bg: #ffffff;
+  --card: #ffffff;
+  --surface-2: #f1f5f9;
+  --primary: #3730a3;
+  --primary-dark: #1e1b4b;
+  --shadow: none;
+}
+
+[data-theme='dark'][data-contrast='high'] {
+  --muted: #e2e8f0;
+  --border: #cbd5e1;
+  --text: #ffffff;
+  --bg: #000000;
+  --card: #000000;
+  --surface-2: #111111;
+  --primary: #c7d2fe;
+  --primary-dark: #a5b4fc;
+  --shadow: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+h1 {
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 1.06rem;
+  font-weight: 650;
+}
+
+h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 12px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  left: 12px;
+}
+

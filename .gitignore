@@ -16,6 +16,7 @@ dist-ssr
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # expo
 .expo
@@ -32,11 +33,24 @@ dist-ssr
 *.sln
 *.sw?
 /freebuff-sites-build/
+# Локальный стенд и скриншоты проверок
+.tmp/
+artifacts/
+
+# Ключи для развёртывания (Render, внешний сканер): только локально, не в git
+.deploy/
 
 # Локальный кластер PostgreSQL для разработки без Docker (см. DEVELOPMENT.md)
-backend/.pgdata
+apps/api/.pgdata
 .pgdata-local
 *.log
 
 # Ключи EAS Submit не должны попадать в репозиторий
-mobile/credentials/
+apps/mobile/credentials/
+
+# Локальные файлы библиотеки и резервные копии
+apps/api/storage/
+apps/api/backups/
+apps/api/uploads/
+# Временные каталоги тестов (вложения, хранилище, бэкапы)
+apps/api/test/.tmp/

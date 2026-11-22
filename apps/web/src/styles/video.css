@@ -1,0 +1,178 @@
+/* ---------- расписание и LiveDigital ---------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.schedule-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(300px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.schedule-side {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.schedule-item-button,
+.calendar-event-button {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  border: 0;
+  border-left: 3px solid var(--primary);
+  cursor: pointer;
+  width: 100%;
+}
+
+.schedule-item-button:hover,
+.calendar-event-button:hover {
+  background: var(--primary-soft);
+}
+
+.button-small {
+  padding: 6px 10px;
+  font-size: 0.78rem;
+}
+
+.button-danger {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+.button-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.alert-info {
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
+}
+
+.alert-success {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #14532d;
+}
+
+[data-theme='dark'] .alert-success {
+  background: #052e16;
+  border-color: #166534;
+  color: #dcfce7;
+}
+
+.video-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.video-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.video-stage {
+  position: relative;
+  min-height: 320px;
+  border-radius: 16px;
+  background: #0b1120;
+  overflow: hidden;
+  padding: 8px;
+}
+
+.video-tile {
+  width: 100%;
+  max-height: 62vh;
+  border-radius: 12px;
+  background: #111827;
+  object-fit: contain;
+  display: block;
+}
+
+.video-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 280px;
+  color: #94a3b8;
+}
+
+.video-remote-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.video-remote {
+  position: relative;
+}
+
+.video-remote .video-tile {
+  max-height: 24vh;
+  min-height: 120px;
+}
+
+.video-name {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.75);
+  color: #e2e8f0;
+  font-size: 0.72rem;
+}
+
+.video-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.video-side {
+  position: sticky;
+  top: 16px;
+}
+
+.chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.chat-message p {
+  margin: 2px 0 0;
+  font-size: 0.86rem;
+}
+
+.recording-player {
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 12px;
+  background: #000;
+}
+
+@media (max-width: 1080px) {
+  .schedule-layout,
+  .video-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-side,
+  .video-side {
+    position: static;
+  }
+}
+

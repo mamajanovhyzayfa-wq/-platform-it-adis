@@ -1,0 +1,3111 @@
+// Схема базы данных IT Adis (PostgreSQL, Prisma ORM).
+// Миграции: npx prisma migrate dev --name init
+// Seed:     npx prisma db seed
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  ADMIN
+  MANAGER
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+/// Тип родственной связи родителя с учеником.
+enum ParentRelation {
+  MOTHER
+  FATHER
+  GUARDIAN
+  OTHER
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum CourseStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum EnrollmentStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum HomeworkStatus {
+  ASSIGNED
+  SUBMITTED
+  REVIEWED
+  RETURNED
+  EXPIRED
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  REVIEWED
+  RETURNED
+}
+
+enum QuestionType {
+  SINGLE
+  MULTIPLE
+  TEXT
+  MATCHING
+  NUMBER
+  BOOLEAN
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+}
+
+/// Источник движения IT Coins: ручное начисление или учебное действие.
+enum CoinSource {
+  MANUAL
+  HOMEWORK
+  TEST
+  ATTENDANCE
+  ACHIEVEMENT
+  COURSE
+  SHOP
+  QUEST
+  STREAK
+  SEASON
+  EVENT
+  PENALTY
+  REFUND
+  REVERSAL
+  LEVEL
+  ADJUSTMENT
+}
+
+/// Состояние операции: подозрительные начисления ждут подтверждения.
+enum CoinTransactionStatus {
+  POSTED
+  PENDING
+  REJECTED
+  REVERSED
+  APPEALED
+}
+
+enum CoinAppealStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CoinQuestPeriod {
+  DAILY
+  WEEKLY
+  SEASON
+}
+
+enum MaterialType {
+  VIDEO
+  AUDIO
+  DOCUMENT
+  PRESENTATION
+  PDF
+  FILE
+  IMAGE
+  LINK
+}
+
+/// Статус согласования курса: публикация возможна только после APPROVED.
+enum CourseApprovalStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum ScheduleStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum RoomStatus {
+  CREATED
+  LIVE
+  ENDED
+}
+
+/// Формат занятия: обычное по программе или дополнительное групповое.
+enum ScheduleKind {
+  REGULAR
+  EXTRA
+}
+
+enum DeliveryMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+/// Правило повторения серии занятий.
+enum RecurrenceRule {
+  DAILY
+  WEEKLY
+  SELECTED_DAYS
+  INTERVAL
+}
+
+enum ScheduleChangeType {
+  RESCHEDULE
+  CANCEL
+}
+
+enum ScheduleChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ExtraEnrollmentStatus {
+  REGISTERED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  LEFT_EARLY
+  ABSENT
+}
+
+enum AttendanceSource {
+  ONLINE
+  MANUAL
+}
+
+enum CalendarProvider {
+  GOOGLE
+  APPLE
+  OUTLOOK
+}
+
+enum NotificationType {
+  INVOICE_ISSUED
+  PAYMENT_RECEIVED
+  PAYMENT_DUE
+  REFUND_PROCESSED
+  HOMEWORK_ASSIGNED
+  HOMEWORK_DUE_SOON
+  HOMEWORK_REVIEWED
+  GRADE_RECEIVED
+  LESSON_PUBLISHED
+  SCHEDULE_CHANGED
+  LESSON_STARTING
+  ATTENDANCE_ABSENCE
+  VIDEO_STARTED
+  MESSAGE_RECEIVED
+  COINS_AWARDED
+  ACHIEVEMENT_UNLOCKED
+  SHOP_ORDER
+  CERTIFICATE_ISSUED
+  CERTIFICATE_REVOKED
+  EXAM_PUBLISHED
+  EXAM_REGISTERED
+  EXAM_RESULT
+  TEST_ASSIGNED
+  TEST_RESULT
+  LESSON_CANCELLED
+  LESSON_RESCHEDULED
+  EVENT_CANCELLED
+  SUSPICIOUS_LOGIN
+  ANNOUNCEMENT
+  EVENT
+  CONTEST
+  MEETING_REQUEST
+  MEETING_RESPONSE
+  DIGEST
+  SYSTEM
+}
+
+enum ConversationType {
+  DIRECT
+  COURSE
+  GROUP
+  TOPIC
+  LESSON
+  PARENT_TEACHER
+}
+
+enum ShopOrderStatus {
+  NEW
+  APPROVED
+  READY
+  REJECTED
+  ISSUED
+  CANCELLED
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ConsentType {
+  TERMS
+  PRIVACY
+  DATA_PROCESSING
+  MARKETING
+  COOKIES
+  COOKIE_ANALYTICS
+  COOKIE_FUNCTIONAL
+  COOKIE_MARKETING
+  GUARDIAN
+}
+
+enum AccountDeletionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum FileAuditAction {
+  UPLOAD
+  DOWNLOAD
+  UPDATE
+  DELETE
+}
+
+enum FileCategory {
+  DOCUMENT
+  IMAGE
+  AUDIO
+  VIDEO
+  PDF
+  PRESENTATION
+  ARCHIVE
+  OTHER
+}
+
+enum FileStorageAccess {
+  PRIVATE
+  STAFF
+  BRANCH
+}
+
+enum BackupKind {
+  DATABASE
+  FILES
+}
+
+enum BackupStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum RestoreStatus {
+  DETECTED
+  CHECKED
+  PLANNED
+  AWAITING_APPROVAL
+  APPROVED
+  RUNNING
+  VERIFIED
+  FAILED
+  CANCELLED
+}
+
+/// Состояние счёта. OVERDUE вычисляется при чтении, но хранится для отчётов.
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REFUNDED
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+}
+
+enum ExpenseCategory {
+  RENT
+  SALARY
+  EQUIPMENT
+  MARKETING
+  UTILITIES
+  SOFTWARE
+  OTHER
+}
+
+/// Модель оплаты курса: полностью, ежемесячно или по графику рассрочки.
+enum CourseBilling {
+  FULL
+  MONTHLY
+  INSTALLMENT
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  phone              String?   @unique
+  passwordHash       String
+  firstName          String
+  lastName           String
+  role               RoleName  @default(STUDENT)
+  avatarUrl          String?
+  locale             String    @default("ru")
+  birthDate          DateTime?
+  emailVerifiedAt    DateTime?
+  isActive           Boolean   @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+  /// Секрет TOTP. Пока twoFactorEnabledAt пуст, второй фактор не действует.
+  twoFactorSecret    String?
+  twoFactorEnabledAt DateTime?
+
+  profile               UserProfile?
+  studentProfile        Student?
+  teacherProfile        Teacher?
+  parentProfile         Parent?
+  roleRef               Role                      @relation(fields: [role], references: [code], onDelete: Restrict)
+  coinBalance           CoinBalance?
+  refreshSessions       RefreshSession[]
+  roleGrants            UserRoleGrant[]
+  devices               UserDevice[]
+  consents              ConsentRecord[]
+  deletionRequests      AccountDeletionRequest[] @relation("AccountDeletionUser")
+  reviewedDeletionRequests AccountDeletionRequest[] @relation("AccountDeletionReviewer")
+  deletionEvents        AccountDeletionEvent[] @relation("AccountDeletionActor")
+  fileAuditLogs         FileAuditLog[]
+  storageFiles          StorageFile[]
+  enrollments           CourseEnrollment[]
+  taughtCourses         Course[]                  @relation("CourseTeacher")
+  lessonProgress        LessonProgress[]
+  submissions           HomeworkSubmission[]      @relation("SubmissionStudent")
+  reviewedReviews       HomeworkReview[]
+  attempts              TestAttempt[]
+  notifications         Notification[]
+  coinTransactions      CoinTransaction[]
+  aiUserLimit           AiUserLimit?
+  coinAwardsMade        CoinTransaction[]         @relation("CoinAwardedBy")
+  coinReversalsMade     CoinTransaction[]         @relation("CoinReversedBy")
+  coinProfile           UserCoinProfile?
+  questProgress         UserQuestProgress[]
+  shopFavorites         ShopFavorite[]
+  seasonParticipations  CoinSeasonParticipant[]
+  achievements          UserAchievement[]
+  shopOrders            ShopOrder[]
+  sentMessages          Message[]
+  conversationLinks     ConversationParticipant[]
+  createdConversations  Conversation[]             @relation("ConversationCreator")
+  lessonComments        LessonComment[]            @relation("LessonCommentAuthor")
+  lessonQuestionsAsked  LessonQuestion[]           @relation("LessonQuestionStudent")
+  lessonQuestionsAnswered LessonQuestion[]         @relation("LessonQuestionAnswerer")
+  meetingRequests       MeetingRequest[]           @relation("MeetingRequester")
+  meetingsAsTeacher     MeetingRequest[]           @relation("MeetingTeacher")
+  meetingsAsStudent     MeetingRequest[]           @relation("MeetingStudent")
+  announcements         Announcement[]             @relation("AnnouncementCreator")
+  communityEvents       CommunityEvent[]           @relation("CommunityEventCreator")
+  eventRegistrations    EventRegistration[]        @relation("EventRegistrationUser")
+  eventResults          EventResult[]              @relation("EventResultUser")
+  eventResultsCreated   EventResult[]              @relation("EventResultCreator")
+  eventAwards           EventAward[]               @relation("EventAwardUser")
+  eventAwardsCreated    EventAward[]               @relation("EventAwardCreator")
+  notificationPreference NotificationPreference?
+  attendance            Attendance[]
+  auditLogs             AuditLog[]
+  feedbackGiven         Feedback[]                @relation("FeedbackTeacher")
+  feedbackReceived      Feedback[]                @relation("FeedbackStudent")
+  supportTickets        SupportTicket[]           @relation("SupportTicketRequester")
+  assignedSupportTickets SupportTicket[]          @relation("SupportTicketAssignee")
+  aiRequests            AiRequest[]
+  paymentAdjustments    PaymentAdjustment[]
+  invoiceDiscounts      InvoiceDiscount[]
+  createdRooms          VideoRoom[]
+  knowledgeAuthored     KnowledgeMaterial[]       @relation("KnowledgeAuthor")
+  knowledgeViews        KnowledgeView[]
+  knowledgeFavorites    KnowledgeFavorite[]
+  createdHomework       Homework[]
+  passwordResets        PasswordResetToken[]
+  assignedLeads         Lead[]                    @relation("LeadAssignee")
+  invoices              Invoice[]                 @relation("InvoiceStudent")
+  issuedInvoices        Invoice[]                 @relation("InvoiceIssuer")
+  registeredPayments    Payment[]                 @relation("PaymentRegistrar")
+  confirmedPayments     Payment[]                 @relation("PaymentConfirmer")
+  requestedRefunds      Refund[]                  @relation("RefundRequester")
+  reviewedRefunds       Refund[]                  @relation("RefundReviewer")
+  expenses              Expense[]
+  coursePriceChanges    CoursePriceHistory[]
+  certificates          Certificate[]             @relation("CertificateStudent")
+  issuedCertificates    Certificate[]             @relation("CertificateIssuer")
+  homeworkTargets       HomeworkTarget[]          @relation("HomeworkTargetStudent")
+  questionBanks         QuestionBank[]            @relation("QuestionBankTeacher")
+  authoredTests         Test[]                    @relation("TestTeacher")
+  gradedAttempts        TestAttempt[]             @relation("AttemptGrader")
+  reviewedAnswers       TestAnswer[]              @relation("AnswerReviewer")
+  examRegistrations     ExamRegistration[]
+  createdExams          Exam[]                    @relation("ExamCreator")
+  assessmentEvents      AssessmentEvent[]         @relation("AssessmentEventActor")
+  twoFactorBackupCodes  TwoFactorBackupCode[]
+  registrationRequests  RegistrationRequest[]     @relation("RegistrationDecider")
+  authoredCourses       Course[]                  @relation("CourseAuthor")
+  lessonNotes           LessonNote[]
+  materialBookmarks     MaterialBookmark[]
+  materialHighlights    MaterialHighlight[]
+  createdSchedules      Schedule[]                @relation("ScheduleCreator")
+  cancelledSchedules    Schedule[]                @relation("ScheduleCanceller")
+  requestedChanges      ScheduleChange[]          @relation("ScheduleChangeRequester")
+  decidedChanges        ScheduleChange[]          @relation("ScheduleChangeDecider")
+  createdSeries         ScheduleSeries[]          @relation("SeriesCreator")
+  seriesTeaching        ScheduleSeries[]          @relation("SeriesTeacher")
+  createdTemplates      ScheduleTemplate[]        @relation("TemplateCreator")
+  templateTeaching      ScheduleTemplate[]        @relation("TemplateTeacher")
+  scheduleEvents        ScheduleEvent[]           @relation("ScheduleEventActor")
+  extraEnrollments      ExtraSessionEnrollment[]
+  substitutionsFrom     TeacherSubstitution[]     @relation("SubstitutionFrom")
+  substitutionsTo       TeacherSubstitution[]     @relation("SubstitutionTo")
+  assignedSubstitutions TeacherSubstitution[]     @relation("SubstitutionAssigner")
+  attendanceSessions    AttendanceSession[]
+  markedAttendance      Attendance[]              @relation("AttendanceMarker")
+  scheduleMessages      ScheduleMessage[]
+  calendarTasks         CalendarTask[]
+  calendarConnections   CalendarConnection[]
+  proposedChanges       ScheduleChange[]          @relation("ScheduleChangeProposedTeacher")
+
+  @@index([role])
+  @@index([deletedAt])
+  @@index([createdAt])
+}
+
+model UserProfile {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  bio               String?
+  timezone          String    @default("Asia/Bishkek")
+  guardianName      String?
+  guardianPhone     String?
+  guardianConsentAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Каталог ролей: метаданные и права. Код роли совпадает с User.role (enum),
+/// поэтому роль пользователя хранится в одном поле и не дублируется.
+model Role {
+  id          String   @id @default(uuid())
+  code        RoleName @unique
+  name        String
+  description String?
+  isSystem    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  description String
+  createdAt   DateTime @default(now())
+
+  roleLinks RolePermission[]
+}
+
+model RolePermission {
+  role         RoleName
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  roleDef      Role       @relation(fields: [role], references: [code], onDelete: Cascade)
+
+  @@id([role, permissionId])
+  @@index([permissionId])
+}
+
+/// Профиль ученика. Создаётся автоматически при регистрации с ролью STUDENT.
+model Student {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  gradeLevel Int?
+  schoolName String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentLinks ParentStudentLink[]
+  linkCodes   ParentLinkCode[]
+
+  @@index([gradeLevel])
+}
+
+/// Профиль преподавателя: специализация и опыт для витрины курсов.
+model Teacher {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  specialization  String?
+  headline        String?
+  experienceYears Int?
+  /// Фиксированная ставка за проведённое занятие, в сомах.
+  lessonRateKgs   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([specialization])
+}
+
+/// Профиль родителя (законного представителя).
+model Parent {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  workplace String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  childLinks ParentStudentLink[]
+}
+
+/// Статус дополнительной роли: заявка ждёт подтверждения администратора филиала.
+enum RoleGrantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Дополнительная роль пользователя. Основная роль остаётся в User.role; дополнительная
+/// действует только после подтверждения администратором (approvedById).
+model UserRoleGrant {
+  id           String          @id @default(uuid())
+  userId       String
+  role         RoleName
+  status       RoleGrantStatus @default(PENDING)
+  reason       String?
+  requestedAt  DateTime        @default(now())
+  decidedAt    DateTime?
+  approvedById String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([status])
+}
+
+/// Одноразовый код, по которому родитель запрашивает привязку к ученику.
+/// Привязка создаётся только после подтверждения администратором (см. ParentStudentLink.verifiedAt).
+model ParentLinkCode {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  studentId   String
+  createdById String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+}
+
+/// Связь родителя и ученика. Уникальна в рамках пары, удаляется каскадом с обеих сторон.
+model ParentStudentLink {
+  id         String         @id @default(uuid())
+  parentId   String
+  studentId  String
+  relation   ParentRelation @default(GUARDIAN)
+  isPrimary  Boolean        @default(false)
+  verifiedAt DateTime?
+  createdAt  DateTime       @default(now())
+
+  parent  Parent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, studentId])
+  @@index([studentId])
+  @@index([parentId, isPrimary])
+}
+
+model RefreshSession {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  family    String
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([family])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model UserDevice {
+  id         String   @id @default(uuid())
+  userId     String
+  deviceId   String
+  platform   String
+  pushToken  String?
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@index([userId, lastSeenAt])
+  @@index([pushToken])
+}
+
+model ConsentRecord {
+  id              String      @id @default(uuid())
+  userId          String
+  type            ConsentType
+  documentVersion String
+  granted         Boolean
+  ip              String?
+  createdAt       DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([userId, createdAt])
+}
+
+model AccountDeletionRequest {
+  id            String                 @id @default(uuid())
+  userId        String
+  status        AccountDeletionStatus  @default(PENDING)
+  reason        String?
+  adminComment  String?
+  legalHold     Boolean                @default(false)
+  requestedAt   DateTime               @default(now())
+  reviewedAt    DateTime?
+  reviewedById  String?
+
+  user       User                   @relation("AccountDeletionUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User?                  @relation("AccountDeletionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  events     AccountDeletionEvent[]
+
+  @@index([status, requestedAt])
+  @@index([userId, requestedAt])
+}
+
+model AccountDeletionEvent {
+  id         String                @id @default(uuid())
+  requestId  String
+  status     AccountDeletionStatus
+  comment    String?
+  actorId    String?
+  createdAt  DateTime              @default(now())
+
+  request AccountDeletionRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  actor   User?                  @relation("AccountDeletionActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([requestId, createdAt])
+}
+
+/// Журнал загрузок и скачиваний. Содержит хеш файла и результат антивирусной проверки.
+model FileAuditLog {
+  id         String          @id @default(uuid())
+  userId     String?
+  fileId     String?
+  action     FileAuditAction
+  fileName   String
+  url        String?
+  mimeType   String?
+  sizeBytes  Int?
+  sha256     String?
+  scanStatus String          @default("CLEAN")
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime        @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  file StorageFile? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([sha256])
+  @@index([fileId, createdAt])
+}
+
+/// Файл облачной библиотеки филиала. Метаданные — в БД филиала, объект — в S3/локальном storage.
+model StorageFile {
+  id           String            @id @default(uuid())
+  ownerId      String
+  category     FileCategory      @default(OTHER)
+  title        String
+  originalName String
+  storageKey   String            @unique
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  scanStatus   String            @default("CLEAN")
+  access       FileStorageAccess @default(BRANCH)
+  description  String?
+  tags         String[]          @default([])
+  downloadCount Int              @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  deletedAt    DateTime?
+
+  owner User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  auditLogs FileAuditLog[]
+
+  @@index([ownerId, createdAt])
+  @@index([category, createdAt])
+  @@index([access, createdAt])
+  @@index([deletedAt, createdAt])
+  @@index([sha256])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entity, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action])
+}
+
+model CourseCategory {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  title     String
+  icon      String?
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  courses Course[]
+
+  @@index([position])
+}
+
+model Course {
+  id                String               @id @default(uuid())
+  title             String
+  slug              String               @unique
+  description       String
+  coverUrl          String?
+  level             CourseLevel          @default(BEGINNER)
+  status            CourseStatus         @default(DRAFT)
+  teacherId         String
+  categoryId        String?
+  startDate         DateTime?
+  endDate           DateTime?
+  /// Стоимость курса в сомах (KGS). Деньги хранятся целыми числами — без копеек.
+  priceKgs          Int                  @default(0)
+  billing           CourseBilling        @default(FULL)
+  /// Запись занятий группы: null — наследовать настройку филиала.
+  recordingEnabled  Boolean?
+  recordingAuto     Boolean?
+  installmentsCount Int                  @default(1)
+  /// Автор-создатель курса: им может быть администратор, менеджер или наставник.
+  authorId          String?
+  approvalStatus    CourseApprovalStatus @default(DRAFT)
+  submittedAt       DateTime?
+  approvedAt        DateTime?
+  approvedById      String?
+  rejectionReason   String?
+  /// Номер последней сохранённой версии содержимого.
+  version           Int                  @default(1)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  author            User?                @relation("CourseAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  versions          CourseVersion[]
+  teacher           User                 @relation("CourseTeacher", fields: [teacherId], references: [id])
+  category          CourseCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  modules           Module[]
+  enrollments       CourseEnrollment[]
+  homework          Homework[]
+  tests             Test[]
+  schedule          Schedule[]
+  conversations     Conversation[]
+  invoices          Invoice[]
+  priceHistory      CoursePriceHistory[]
+  certificates      Certificate[]
+  exams             Exam[]
+  scheduleSeries    ScheduleSeries[]
+  scheduleTemplates ScheduleTemplate[]
+  calendarTasks     CalendarTask[]
+  announcements     Announcement[]
+  meetingRequests   MeetingRequest[]
+  communityEvents   CommunityEvent[]
+
+  @@index([teacherId])
+  @@index([categoryId])
+  @@index([status])
+}
+
+model CourseEnrollment {
+  id         String           @id @default(uuid())
+  courseId   String
+  studentId  String
+  status     EnrollmentStatus @default(ACTIVE)
+  progress   Int              @default(0)
+  enrolledAt DateTime         @default(now())
+
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, studentId])
+  @@index([studentId])
+}
+
+model Module {
+  id          String  @id @default(uuid())
+  courseId    String
+  title       String
+  description String?
+  position    Int     @default(0)
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([courseId])
+}
+
+model Lesson {
+  id              String    @id @default(uuid())
+  moduleId        String
+  title           String
+  description     String?
+  content         String?
+  videoUrl        String?
+  /// Визуальный конструктор: массив блоков (текст, медиа, файлы, задания, тесты, интерактив).
+  blocks          Json?
+  version         Int       @default(1)
+  durationMinutes Int       @default(0)
+  position        Int       @default(0)
+  publishedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  module    Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  materials LessonMaterial[]
+  progress  LessonProgress[]
+  homework  Homework[]
+  tests     Test[]
+  versions  LessonVersion[]
+  notes     LessonNote[]
+  comments  LessonComment[]
+  questions LessonQuestion[]
+
+  @@index([moduleId])
+}
+
+model LessonMaterial {
+  id        String       @id @default(uuid())
+  lessonId  String
+  type      MaterialType
+  title     String
+  url       String
+  mimeType  String?
+  sizeBytes Int?
+  /// Разрешено ли ученику скачивать файл. Просмотр материала остаётся доступным.
+  allowDownload Boolean  @default(true)
+  createdAt DateTime     @default(now())
+
+  lesson     Lesson              @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  bookmarks  MaterialBookmark[]
+  highlights MaterialHighlight[]
+}
+
+model LessonProgress {
+  id                  String         @id @default(uuid())
+  lessonId            String
+  studentId           String
+  status              ProgressStatus @default(NOT_STARTED)
+  watchedSeconds      Int            @default(0)
+  lastPositionSeconds Int            @default(0)
+  completedAt         DateTime?
+  updatedAt           DateTime       @updatedAt
+
+  lesson  Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, studentId])
+  @@index([studentId])
+}
+
+model Homework {
+  id             String   @id @default(uuid())
+  courseId       String
+  lessonId       String?
+  teacherId      String
+  title          String
+  description    String
+  dueAt          DateTime
+  maxScore       Int      @default(10)
+  allowResubmit  Boolean  @default(false)
+  /// Прикреплённые материалы: ссылки и файлы преподавателя.
+  materials      Json?
+  /// Критерии оценивания: [{ title, weight, description }].
+  criteria       Json?
+  /// Максимум версий отправки (включая доработки после возврата).
+  maxAttempts    Int      @default(1)
+  /// Приём работ после срока и штраф в процентах от балла.
+  allowLate      Boolean  @default(false)
+  latePenalty    Int      @default(0)
+  /// true — задание для всей группы курса, false — только для выбранных учеников.
+  assignAll      Boolean  @default(true)
+  gradingScaleId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  course       Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson       Lesson?              @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  teacher      User                 @relation(fields: [teacherId], references: [id])
+  gradingScale GradingScale?        @relation(fields: [gradingScaleId], references: [id], onDelete: SetNull)
+  submissions  HomeworkSubmission[]
+  targets      HomeworkTarget[]
+
+  @@index([courseId])
+  @@index([dueAt])
+}
+
+/// Адресная выдача задания конкретным ученикам, когда assignAll = false.
+model HomeworkTarget {
+  id         String   @id @default(uuid())
+  homeworkId String
+  studentId  String
+  createdAt  DateTime @default(now())
+
+  homework Homework @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  student  User     @relation("HomeworkTargetStudent", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([homeworkId, studentId])
+  @@index([studentId])
+}
+
+model HomeworkSubmission {
+  id             String           @id @default(uuid())
+  homeworkId     String
+  studentId      String
+  attempt        Int              @default(1)
+  text           String?
+  projectUrl     String?
+  files          Json?
+  status         SubmissionStatus @default(SUBMITTED)
+  submittedAt    DateTime         @default(now())
+  reviewedAt     DateTime?
+  reviewerId     String?
+  score          Int?
+  /// Комментарии ученика к каждой версии.
+  comments       Json?
+  /// Сохранённый результат предварительной AI-проверки (не итоговая оценка).
+  aiFeedback     Json?
+  aiReviewedAt   DateTime?
+  idempotencyKey String?          @unique
+
+  homework Homework        @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  student  User            @relation("SubmissionStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  review   HomeworkReview?
+
+  @@unique([homeworkId, studentId, attempt])
+  @@index([studentId])
+}
+
+model HomeworkReview {
+  id                String   @id @default(uuid())
+  submissionId      String   @unique
+  reviewerId        String
+  score             Int
+  comment           String?
+  returnForRevision Boolean  @default(false)
+  /// Баллы по критериям: [{ title, score }].
+  criteriaScores    Json?
+  /// Предварительная проверка AI: предложение, а не выставленная оценка.
+  aiFeedback        Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  submission HomeworkSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewer   User               @relation(fields: [reviewerId], references: [id])
+}
+
+model Test {
+  id                       String   @id @default(uuid())
+  courseId                 String
+  /// Тест внутри урока (необязательно: бывают тесты на весь курс).
+  lessonId                 String?
+  /// Автор теста: у наставника собственный банк тестов и вопросов.
+  teacherId                String?
+  title                    String
+  description              String?
+  timeLimitMinutes         Int      @default(30)
+  /// Таймер на один вопрос в секундах; null — без отдельного таймера.
+  questionTimeLimitSeconds Int?
+  passingScore             Int      @default(60)
+  attemptsAllowed          Int      @default(3)
+  shuffleQuestions         Boolean  @default(false)
+  shuffleOptions           Boolean  @default(false)
+  showExplanations         Boolean  @default(true)
+  showCorrectAnswers       Boolean  @default(true)
+  gradingScaleId           String?
+  isPublished              Boolean  @default(false)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @default(now()) @updatedAt
+
+  course       Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson       Lesson?        @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  teacher      User?          @relation("TestTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  gradingScale GradingScale?  @relation(fields: [gradingScaleId], references: [id], onDelete: SetNull)
+  questions    TestQuestion[]
+  attempts     TestAttempt[]
+  exams        Exam[]
+
+  @@index([courseId])
+  @@index([teacherId])
+}
+
+model TestQuestion {
+  id               String       @id @default(uuid())
+  testId           String
+  type             QuestionType
+  prompt           String
+  points           Int          @default(1)
+  position         Int          @default(0)
+  matchPairs       Json?
+  correctNumber    Float?
+  correctBoolean   Boolean?
+  /// Эталонный текстовый ответ (если автоматическая проверка предусмотрена).
+  correctText      String?
+  /// Объяснение правильного ответа для страницы результатов.
+  explanation      String?
+  /// Тема вопроса — для рекомендаций по слабым темам.
+  topic            String?
+  /// Индивидуальный таймер вопроса в секундах.
+  timeLimitSeconds Int?
+
+  test    Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  options TestOption[]
+  answers TestAnswer[]
+
+  @@index([testId, position])
+}
+
+model TestOption {
+  id         String  @id @default(uuid())
+  questionId String
+  text       String
+  isCorrect  Boolean @default(false)
+  position   Int     @default(0)
+
+  question TestQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId, position])
+}
+
+model TestAttempt {
+  id                String        @id @default(uuid())
+  testId            String
+  studentId         String
+  /// Попытка в рамках экзамена (тогда ограничения берутся из Exam).
+  examId            String?
+  status            AttemptStatus @default(IN_PROGRESS)
+  startedAt         DateTime      @default(now())
+  expiresAt         DateTime
+  submittedAt       DateTime?
+  score             Int?
+  maxScore          Int?
+  percent           Int?
+  /// Есть текстовые ответы, которые должен проверить преподаватель.
+  needsManualReview Boolean       @default(false)
+  gradedById        String?
+  gradedAt          DateTime?
+  /// Текущий вопрос для серверного таймера на вопрос.
+  currentQuestionId String?
+  questionExpiresAt DateTime?
+  /// Дедлайны вопросов: не дают продлевать индивидуальный таймер возвратом к вопросу.
+  questionDeadlines Json?
+  /// Зафиксированный порядок вопросов и вариантов, чтобы перемешивание не менялось при возобновлении.
+  questionOrder     Json?
+  optionOrder       Json?
+
+  test     Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  student  User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  exam     Exam?        @relation(fields: [examId], references: [id], onDelete: SetNull)
+  gradedBy User?        @relation("AttemptGrader", fields: [gradedById], references: [id], onDelete: SetNull)
+  answers  TestAnswer[]
+
+  @@index([testId, studentId])
+  @@index([examId])
+  @@index([studentId, status])
+}
+
+model TestAnswer {
+  id            String    @id @default(uuid())
+  attemptId     String
+  questionId    String
+  answer        Json
+  isCorrect     Boolean?
+  pointsAwarded Int       @default(0)
+  /// Комментарий преподавателя к ответу (ручная проверка текста).
+  comment       String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+
+  attempt    TestAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question   TestQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  reviewedBy User?        @relation("AnswerReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([attemptId, questionId])
+}
+
+/// Банк вопросов наставника: переиспользование вопросов между тестами.
+model QuestionBank {
+  id          String   @id @default(uuid())
+  teacherId   String
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teacher   User           @relation("QuestionBankTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  questions BankQuestion[]
+
+  @@index([teacherId])
+}
+
+model BankQuestion {
+  id             String       @id @default(uuid())
+  bankId         String
+  type           QuestionType
+  prompt         String
+  points         Int          @default(1)
+  matchPairs     Json?
+  correctNumber  Float?
+  correctBoolean Boolean?
+  correctText    String?
+  explanation    String?
+  topic          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  bank    QuestionBank         @relation(fields: [bankId], references: [id], onDelete: Cascade)
+  options BankQuestionOption[]
+
+  @@index([bankId])
+}
+
+model BankQuestionOption {
+  id         String  @id @default(uuid())
+  questionId String
+  text       String
+  isCorrect  Boolean @default(false)
+  position   Int     @default(0)
+
+  question BankQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId, position])
+}
+
+/// Настраиваемая академическая шкала филиала. Не связана с IT Coins.
+enum ExamRegistrationStatus {
+  REGISTERED
+  CANCELLED
+}
+
+enum AssessmentEntityType {
+  HOMEWORK
+  TEST
+  EXAM
+}
+
+model GradingScale {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isDefault   Boolean  @default(false)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bands    GradingBand[]
+  homework Homework[]
+  tests    Test[]
+  exams    Exam[]
+}
+
+model GradingBand {
+  id          String  @id @default(uuid())
+  scaleId     String
+  minPercent  Int
+  maxPercent  Int
+  label       String
+  description String?
+  position    Int     @default(0)
+
+  scale GradingScale @relation(fields: [scaleId], references: [id], onDelete: Cascade)
+
+  @@index([scaleId, position])
+}
+
+/// Экзамен: расписание, регистрация и попытки на базе теста.
+model Exam {
+  id                    String   @id @default(uuid())
+  courseId              String?
+  testId                String
+  title                 String
+  description           String?
+  instructions          String?
+  startsAt              DateTime
+  endsAt                DateTime
+  durationMinutes       Int      @default(60)
+  maxAttempts           Int      @default(1)
+  passingScore          Int      @default(60)
+  allowLateRegistration Boolean  @default(false)
+  isPublished           Boolean  @default(false)
+  gradingScaleId        String?
+  createdById           String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  course        Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  test          Test               @relation(fields: [testId], references: [id], onDelete: Cascade)
+  gradingScale  GradingScale?      @relation(fields: [gradingScaleId], references: [id], onDelete: SetNull)
+  creator       User               @relation("ExamCreator", fields: [createdById], references: [id])
+  registrations ExamRegistration[]
+  attempts      TestAttempt[]
+
+  @@index([startsAt])
+  @@index([courseId])
+}
+
+model ExamRegistration {
+  id           String                 @id @default(uuid())
+  examId       String
+  studentId    String
+  status       ExamRegistrationStatus @default(REGISTERED)
+  registeredAt DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  exam    Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId])
+  @@index([studentId])
+}
+
+/// Единая история изменений заданий, тестов и экзаменов.
+model AssessmentEvent {
+  id         String               @id @default(uuid())
+  entityType AssessmentEntityType
+  entityId   String
+  actorId    String?
+  type       String
+  message    String?
+  data       Json?
+  createdAt  DateTime             @default(now())
+
+  actor User? @relation("AssessmentEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model Schedule {
+  id                  String         @id @default(uuid())
+  courseId            String
+  teacherId           String
+  title               String
+  description         String?
+  startsAt            DateTime
+  endsAt              DateTime
+  timezone            String         @default("Asia/Bishkek")
+  status              ScheduleStatus @default(SCHEDULED)
+  kind                ScheduleKind   @default(REGULAR)
+  deliveryMode        DeliveryMode   @default(ONLINE)
+  /// Физическая аудитория; для онлайн-занятия может быть не указана.
+  classroomId         String?
+  seriesId            String?
+  templateId          String?
+  /// Вместимость дополнительного занятия; для обычного берётся из аудитории.
+  capacity            Int?
+  allowSelfEnrollment Boolean        @default(false)
+  publishedAt         DateTime?
+  /// null — наследовать настройку курса, true/false — переопределить для урока.
+  recordingEnabled    Boolean?
+  autoRecord          Boolean?
+  createdById         String?
+  cancelledById       String?
+  cancelledAt         DateTime?
+  cancellationReason  String?
+  /// Предыдущий преподаватель сохраняется при замене.
+  originalTeacherId   String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  course             Course                   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  room               VideoRoom?
+  attendance         Attendance[]
+  classroom          Classroom?               @relation(fields: [classroomId], references: [id], onDelete: SetNull)
+  series             ScheduleSeries?          @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  template           ScheduleTemplate?        @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  createdBy          User?                    @relation("ScheduleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  cancelledBy        User?                    @relation("ScheduleCanceller", fields: [cancelledById], references: [id], onDelete: SetNull)
+  changes            ScheduleChange[]
+  events             ScheduleEvent[]
+  extraEnrollments   ExtraSessionEnrollment[]
+  substitutions      TeacherSubstitution[]
+  attendanceSessions AttendanceSession[]
+  messages           ScheduleMessage[]
+
+  @@index([courseId, startsAt])
+  // Проверка конфликтов: пересечение занятий одного преподавателя по времени.
+  @@index([teacherId, startsAt])
+  @@index([classroomId, startsAt])
+  @@index([seriesId, startsAt])
+}
+
+/// Аудитория: вместимость и оборудование учитываются при планировании.
+model Classroom {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  capacity  Int      @default(0)
+  equipment Json?
+  location  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  schedules       Schedule[]
+  templates       ScheduleTemplate[]
+  series          ScheduleSeries[]
+  proposedChanges ScheduleChange[]
+}
+
+/// Шаблон расписания: дни недели, время и параметры занятия.
+model ScheduleTemplate {
+  id                  String       @id @default(uuid())
+  courseId            String
+  teacherId           String
+  classroomId         String?
+  title               String
+  description         String?
+  weekdays            Int[]        @default([])
+  startTime           String       @default("18:00")
+  durationMinutes     Int          @default(90)
+  deliveryMode        DeliveryMode @default(ONLINE)
+  capacity            Int?
+  allowSelfEnrollment Boolean      @default(false)
+  recordingEnabled    Boolean?
+  autoRecord          Boolean?
+  createdById         String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher   User             @relation("TemplateTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  classroom Classroom?       @relation(fields: [classroomId], references: [id], onDelete: SetNull)
+  createdBy User?            @relation("TemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  series    ScheduleSeries[]
+  schedules Schedule[]
+}
+
+/// Серия повторяющихся занятий; materialized occurrences лежат в Schedule.
+model ScheduleSeries {
+  id                  String         @id @default(uuid())
+  courseId            String
+  templateId          String?
+  teacherId           String
+  classroomId         String?
+  title               String
+  description         String?
+  rule                RecurrenceRule
+  weekdays            Int[]          @default([])
+  interval            Int            @default(1)
+  startsOn            DateTime
+  endsOn              DateTime?
+  startTime           String
+  durationMinutes     Int
+  timezone            String         @default("Asia/Bishkek")
+  deliveryMode        DeliveryMode   @default(ONLINE)
+  capacity            Int?
+  allowSelfEnrollment Boolean        @default(false)
+  recordingEnabled    Boolean?
+  autoRecord          Boolean?
+  createdById         String?
+  createdAt           DateTime       @default(now())
+
+  course    Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  template  ScheduleTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  teacher   User              @relation("SeriesTeacher", fields: [teacherId], references: [id])
+  classroom Classroom?        @relation(fields: [classroomId], references: [id], onDelete: SetNull)
+  createdBy User?             @relation("SeriesCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  schedules Schedule[]
+}
+
+/// Заявка на перенос/отмену: наставник предлагает, менеджер или админ решает.
+model ScheduleChange {
+  id                  String               @id @default(uuid())
+  scheduleId          String
+  type                ScheduleChangeType
+  status              ScheduleChangeStatus @default(PENDING)
+  reason              String
+  requestedById       String
+  proposedStartsAt    DateTime?
+  proposedTeacherId   String?
+  proposedClassroomId String?
+  decidedById         String?
+  decidedAt           DateTime?
+  decisionComment     String?
+  createdAt           DateTime             @default(now())
+
+  schedule          Schedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  requestedBy       User       @relation("ScheduleChangeRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  decidedBy         User?      @relation("ScheduleChangeDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  proposedTeacher   User?      @relation("ScheduleChangeProposedTeacher", fields: [proposedTeacherId], references: [id], onDelete: SetNull)
+  proposedClassroom Classroom? @relation(fields: [proposedClassroomId], references: [id], onDelete: SetNull)
+
+  @@index([scheduleId, createdAt])
+  @@index([status, createdAt])
+}
+
+/// Полная история изменений занятия: кто, что и когда сделал.
+model ScheduleEvent {
+  id         String   @id @default(uuid())
+  scheduleId String
+  actorId    String?
+  action     String
+  message    String?
+  data       Json?
+  createdAt  DateTime @default(now())
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  actor    User?    @relation("ScheduleEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([scheduleId, createdAt])
+}
+
+/// Запись ученика на дополнительное занятие (только при allowSelfEnrollment).
+model ExtraSessionEnrollment {
+  id          String                @id @default(uuid())
+  scheduleId  String
+  userId      String
+  status      ExtraEnrollmentStatus @default(REGISTERED)
+  createdAt   DateTime              @default(now())
+  cancelledAt DateTime?
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, userId])
+  @@index([scheduleId, status])
+}
+
+/// История замены преподавателя.
+model TeacherSubstitution {
+  id            String   @id @default(uuid())
+  scheduleId    String
+  fromTeacherId String
+  toTeacherId   String
+  assignedById  String
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  schedule    Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  fromTeacher User     @relation("SubstitutionFrom", fields: [fromTeacherId], references: [id])
+  toTeacher   User     @relation("SubstitutionTo", fields: [toTeacherId], references: [id])
+  assignedBy  User     @relation("SubstitutionAssigner", fields: [assignedById], references: [id])
+
+  @@index([scheduleId, createdAt])
+}
+
+/// Один интервал подключения: переподключение создаёт новый интервал.
+model AttendanceSession {
+  id         String           @id @default(uuid())
+  scheduleId String
+  userId     String
+  joinedAt   DateTime         @default(now())
+  leftAt     DateTime?
+  source     AttendanceSource @default(ONLINE)
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, userId, joinedAt])
+}
+
+/// Задача в личном календаре.
+model CalendarTask {
+  id          String    @id @default(uuid())
+  userId      String
+  courseId    String?
+  title       String
+  description String?
+  dueAt       DateTime
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([userId, dueAt])
+}
+
+/// Подписка на ICS-календарь ITadis для Google/Apple/Outlook.
+/// Чат занятия в видеокомнате (сохраняется в ITadis, доступен участникам).
+model ScheduleMessage {
+  id         String   @id @default(uuid())
+  scheduleId String
+  userId     String
+  body       String
+  createdAt  DateTime @default(now())
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, createdAt])
+}
+
+model CalendarConnection {
+  id           String           @id @default(uuid())
+  userId       String
+  provider     CalendarProvider
+  feedToken    String           @unique
+  isActive     Boolean          @default(true)
+  lastSyncedAt DateTime?
+  createdAt    DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+/// Настройки филиала в его собственной БД.
+model BranchSettings {
+  id                String   @id @default("branch")
+  recordingEnabled  Boolean  @default(false)
+  recordingAuto     Boolean  @default(false)
+  /// Уведомления при пропуске занятия: кому отправлять автоматически.
+  notifyAbsenceStudent Boolean @default(true)
+  notifyAbsenceParent  Boolean @default(true)
+  notifyAbsenceTeacher Boolean @default(true)
+  notifyAbsenceManager Boolean @default(true)
+  workingHoursStart String   @default("08:00")
+  workingHoursEnd   String   @default("21:00")
+  slotStepMinutes   Int      @default(30)
+  updatedById       String?
+  updatedAt         DateTime @updatedAt
+}
+
+model VideoRoom {
+  id              String     @id @default(uuid())
+  scheduleId      String     @unique
+  provider        String     @default("livedigital")
+  roomName        String     @unique
+  /// Идентификатор комнаты и пространства LiveDigital (Moodhood API).
+  providerRoomId  String?    @unique
+  providerSpaceId String?
+  providerAlias   String?
+  settings        Json?
+  createdById     String
+  status          RoomStatus @default(CREATED)
+  startedAt       DateTime?
+  endedAt         DateTime?
+  recordingUrl    String?
+  createdAt       DateTime   @default(now())
+
+  schedule   Schedule         @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  createdBy  User             @relation(fields: [createdById], references: [id])
+  recordings VideoRecording[]
+}
+
+model VideoRecording {
+  id               String    @id @default(uuid())
+  roomId           String
+  /// Идентификатор записи у провайдера (для LiveKit исторически egressId).
+  egressId         String    @unique
+  providerRecordId String?
+  provider         String    @default("livedigital")
+  callId           String?
+  status           String    @default("STARTING")
+  /// PENDING → DOWNLOADING → STORED | FAILED; повторные попытки сохраняют статус.
+  transferStatus   String    @default("PENDING")
+  storageKey       String?
+  url              String?
+  durationSeconds  Int?
+  attempts         Int       @default(0)
+  error            String?
+  technicalReport  Json?
+  startedById      String
+  startedAt        DateTime  @default(now())
+  endedAt          DateTime?
+
+  room VideoRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, startedAt])
+  @@index([transferStatus, attempts])
+}
+
+model Attendance {
+  id                String           @id @default(uuid())
+  scheduleId        String
+  userId            String
+  joinedAt          DateTime         @default(now())
+  leftAt            DateTime?
+  durationSeconds   Int              @default(0)
+  status            AttendanceStatus @default(PRESENT)
+  source            AttendanceSource @default(ONLINE)
+  /// Число повторных подключений после первого.
+  reconnectCount    Int              @default(0)
+  lateMinutes       Int              @default(0)
+  earlyLeaveMinutes Int              @default(0)
+  note              String?
+  markedById        String?
+  updatedAt         DateTime         @updatedAt
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  markedBy User?    @relation("AttendanceMarker", fields: [markedById], references: [id], onDelete: SetNull)
+
+  @@unique([scheduleId, userId])
+  @@index([userId, scheduleId])
+}
+
+model Conversation {
+  id           String           @id @default(uuid())
+  type         ConversationType @default(DIRECT)
+  title        String?
+  description  String?
+  courseId     String?
+  createdById  String?
+  isArchived   Boolean          @default(false)
+  isPinned     Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  course       Course?                   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  createdBy    User?                     @relation("ConversationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([type, updatedAt])
+  @@index([courseId, type])
+}
+
+model ConversationParticipant {
+  conversationId String
+  userId         String
+  lastReadAt     DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  // Список диалогов пользователя фильтрует participants по userId.
+  @@index([userId])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  senderId       String
+  body           String
+  attachments    Json?
+  editedAt       DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+/// Пользовательские настройки каналов и периодических сводок. settings — карта
+/// уведомлений: { "MESSAGE_RECEIVED": { inApp, push, email, sms } }.
+model NotificationPreference {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  settings   Json     @default("{}")
+  digest     String   @default("NONE")
+  digestHour Int      @default(9)
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum LessonQuestionStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
+/// Комментарий под уроком. parentId превращает комментарии в обсуждение.
+model LessonComment {
+  id          String   @id @default(uuid())
+  lessonId    String
+  userId      String
+  parentId    String?
+  body        String
+  attachments Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lesson Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user   User           @relation("LessonCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  parent LessonComment?  @relation("LessonCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies LessonComment[] @relation("LessonCommentReplies")
+
+  @@index([lessonId, createdAt])
+  @@index([parentId, createdAt])
+}
+
+/// Вопрос по уроку: ученик задаёт, наставник отвечает.
+model LessonQuestion {
+  id           String               @id @default(uuid())
+  lessonId     String
+  studentId    String
+  title        String
+  body         String
+  status       LessonQuestionStatus @default(OPEN)
+  answer       String?
+  answeredById String?
+  answeredAt   DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  lesson     Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student    User   @relation("LessonQuestionStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  answeredBy User?  @relation("LessonQuestionAnswerer", fields: [answeredById], references: [id], onDelete: SetNull)
+
+  @@index([lessonId, status, createdAt])
+  @@index([studentId, createdAt])
+}
+
+enum MeetingRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+  COMPLETED
+}
+
+/// Запрос на встречу: ученик/родитель — наставнику или наставник — родителю.
+model MeetingRequest {
+  id              String               @id @default(uuid())
+  requesterId     String
+  teacherId       String
+  studentId       String?
+  courseId        String?
+  subject         String
+  message         String?
+  preferredAt     DateTime
+  durationMinutes Int                  @default(30)
+  status          MeetingRequestStatus @default(PENDING)
+  response        String?
+  respondedAt     DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  requester User    @relation("MeetingRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  teacher   User    @relation("MeetingTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  student   User?   @relation("MeetingStudent", fields: [studentId], references: [id], onDelete: SetNull)
+  course    Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([teacherId, status, preferredAt])
+  @@index([requesterId, createdAt])
+}
+
+enum AnnouncementAudience {
+  ALL
+  STUDENTS
+  PARENTS
+  TEACHERS
+  MANAGERS
+  COURSE
+}
+
+model Announcement {
+  id          String               @id @default(uuid())
+  title       String
+  body        String
+  audience    AnnouncementAudience @default(ALL)
+  courseId    String?
+  attachments Json?
+  isPinned    Boolean              @default(false)
+  publishedAt DateTime             @default(now())
+  expiresAt   DateTime?
+  createdById String
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  course    Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  createdBy User    @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([audience, publishedAt])
+  @@index([courseId, publishedAt])
+}
+
+enum CommunityEventType {
+  EVENT
+  CONTEST
+  OLYMPIAD
+  COMPETITION
+}
+
+enum CommunityEventStatus {
+  DRAFT
+  PUBLISHED
+  REGISTRATION
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum CommunityEventVisibility {
+  BRANCH
+  COURSE
+  PUBLIC
+}
+
+enum EventRegistrationStatus {
+  REGISTERED
+  WAITLIST
+  CANCELLED
+}
+
+/// Событие, конкурс, олимпиада или внутреннее соревнование.
+model CommunityEvent {
+  id                   String                 @id @default(uuid())
+  type                 CommunityEventType     @default(EVENT)
+  title                String
+  description          String
+  rules                String?
+  startsAt             DateTime
+  endsAt               DateTime
+  registrationDeadline DateTime?
+  location             String?
+  onlineUrl            String?
+  capacity             Int?
+  status               CommunityEventStatus @default(DRAFT)
+  visibility           CommunityEventVisibility @default(BRANCH)
+  courseId             String?
+  createdById          String
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  course        Course?             @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  createdBy     User                @relation("CommunityEventCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  registrations EventRegistration[]
+  tasks         EventTask[]
+  results       EventResult[]
+  awards        EventAward[]
+
+  @@index([type, status, startsAt])
+  @@index([courseId, startsAt])
+}
+
+model EventRegistration {
+  id           String                  @id @default(uuid())
+  eventId      String
+  userId       String
+  status       EventRegistrationStatus @default(REGISTERED)
+  note         String?
+  registeredAt DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  event CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User           @relation("EventRegistrationUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId, status])
+}
+
+model EventTask {
+  id          String    @id @default(uuid())
+  eventId     String
+  title       String
+  description String?
+  dueAt       DateTime?
+  maxScore    Int?
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  event   CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  results EventResult[]
+
+  @@index([eventId, position])
+}
+
+model EventResult {
+  id          String    @id @default(uuid())
+  eventId     String
+  userId      String
+  taskId      String?
+  score       Int?
+  place       Int?
+  comment     String?
+  publishedAt DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  event   CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User           @relation("EventResultUser", fields: [userId], references: [id], onDelete: Cascade)
+  task    EventTask?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  createdBy User?        @relation("EventResultCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, userId, taskId])
+  @@index([eventId, score])
+}
+
+model EventAward {
+  id          String   @id @default(uuid())
+  eventId     String
+  userId      String?
+  title       String
+  description String?
+  place       Int?
+  awardedAt   DateTime @default(now())
+  createdById String?
+
+  event     CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User?          @relation("EventAwardUser", fields: [userId], references: [id], onDelete: SetNull)
+  createdBy User?          @relation("EventAwardCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([eventId, awardedAt])
+}
+
+model CoinBalance {
+  userId    String   @id
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CoinTransaction {
+  id           String                @id @default(uuid())
+  userId       String
+  amount       Int
+  reason       String
+  awardedById  String?
+  /// Действие, за которое начислены монеты (повторное начисление исключено ключом).
+  sourceType   CoinSource?           @default(MANUAL)
+  /// Идентификатор действия: работа, попытка теста или занятие.
+  sourceId     String?
+  /// Баланс после операции: null у ожидающих подтверждения.
+  balanceAfter Int?
+  status       CoinTransactionStatus @default(POSTED)
+  reversedById String?
+  reversedAt   DateTime?
+  metadata     Json?
+  createdAt    DateTime              @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  awardedBy  User?       @relation("CoinAwardedBy", fields: [awardedById], references: [id], onDelete: SetNull)
+  reversedBy User?       @relation("CoinReversedBy", fields: [reversedById], references: [id], onDelete: SetNull)
+  appeal     CoinAppeal?
+
+  @@unique([userId, sourceType, sourceId])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+/// Обжалование списания: решение принимает администратор филиала.
+model CoinAppeal {
+  id            String           @id @default(uuid())
+  transactionId String           @unique
+  reason        String
+  status        CoinAppealStatus @default(PENDING)
+  resolution    String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime         @default(now())
+
+  transaction CoinTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+/// Настройки экономики филиала: лимиты, пороги и правила серий.
+model CoinRule {
+  id                       String   @id @default("branch")
+  dailyAwardLimit          Int      @default(200)
+  weeklyAwardLimit         Int      @default(800)
+  teacherDailyLimit        Int      @default(50)
+  maxManualAward           Int      @default(100)
+  suspiciousAmount         Int      @default(100)
+  penaltyApprovalThreshold Int      @default(50)
+  streakMinDailyActions    Int      @default(1)
+  streakBonusEvery         Int      @default(7)
+  streakBonusCoins         Int      @default(25)
+  updatedAt                DateTime @default(now()) @updatedAt
+}
+
+/// Игровой профиль: XP, уровень и серия активности.
+model UserCoinProfile {
+  userId           String    @id
+  xp               Int       @default(0)
+  level            Int       @default(1)
+  bonusXp          Int       @default(0)
+  streakCurrent    Int       @default(0)
+  streakBest       Int       @default(0)
+  lastActivityDate DateTime?
+  updatedAt        DateTime  @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CoinLevel {
+  id          String @id @default(uuid())
+  code        String @unique
+  title       String
+  description String
+  thresholdXp Int
+  position    Int    @default(0)
+  perks       Json?
+}
+
+/// Ежедневные, недельные и сезонные задания.
+model CoinQuest {
+  id          String          @id @default(uuid())
+  code        String          @unique
+  title       String
+  description String
+  period      CoinQuestPeriod @default(DAILY)
+  targetType  String
+  targetValue Int
+  rewardCoins Int             @default(0)
+  rewardXp    Int             @default(0)
+  isActive    Boolean         @default(true)
+  seasonId    String?
+
+  progress UserQuestProgress[]
+}
+
+model UserQuestProgress {
+  id          String    @id @default(uuid())
+  userId      String
+  questId     String
+  periodKey   String
+  progress    Int       @default(0)
+  completedAt DateTime?
+  claimedAt   DateTime?
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest CoinQuest @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId, periodKey])
+  @@index([userId, periodKey])
+}
+
+/// Сезонное событие и его тематические задания.
+model CoinSeason {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  theme       String
+  startsAt    DateTime
+  endsAt      DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  challenges   CoinSeasonChallenge[]
+  participants CoinSeasonParticipant[]
+}
+
+model CoinSeasonChallenge {
+  id          String @id @default(uuid())
+  seasonId    String
+  title       String
+  description String
+  targetType  String
+  targetValue Int
+  rewardCoins Int    @default(0)
+  rewardXp    Int    @default(0)
+
+  season CoinSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+}
+
+model CoinSeasonParticipant {
+  id       String   @id @default(uuid())
+  seasonId String
+  userId   String
+  points   Int      @default(0)
+  joinedAt DateTime @default(now())
+
+  season CoinSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, userId])
+  @@index([seasonId, points])
+}
+
+model Achievement {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  title       String
+  description String
+  iconUrl     String?
+  condition   Json?
+  rarity      String  @default("COMMON")
+  category    String  @default("GENERAL")
+  collection  String?
+  rewardCoins Int     @default(0)
+  isActive    Boolean @default(true)
+
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  userId        String
+  achievementId String
+  awardedAt     DateTime @default(now())
+  progress      Int      @default(0)
+  target        Int      @default(1)
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+}
+
+model ShopProduct {
+  id             String   @id @default(uuid())
+  title          String
+  description    String
+  imageUrl       String?
+  category       String
+  priceCoins     Int
+  stock          Int      @default(0)
+  /// Без обязательного лимита: новые награды по умолчанию не ограничены.
+  unlimitedStock Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  terms          String?
+  /// DIGITAL/PHYSICAL и AUTOMATIC/MANUAL определяют выдачу.
+  kind           String   @default("DIGITAL")
+  fulfillment    String   @default("AUTOMATIC")
+  deliveryUrl    String?
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  orders    ShopOrder[]
+  favorites ShopFavorite[]
+}
+
+model ShopFavorite {
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product ShopProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([userId, productId])
+  @@index([userId, createdAt])
+}
+
+model ShopOrder {
+  id              String          @id @default(uuid())
+  productId       String
+  userId          String
+  status          ShopOrderStatus @default(NEW)
+  comment         String?
+  priceCoins      Int?
+  deliveryDetails String?
+  rejectionReason String?
+  processedById   String?
+  issuedAt        DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  product ShopProduct @relation(fields: [productId], references: [id])
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status, createdAt])
+}
+
+model KnowledgeCategory {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  title     String
+  icon      String?
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  materials KnowledgeMaterial[]
+}
+
+model KnowledgeMaterial {
+  id              String       @id @default(uuid())
+  categoryId      String
+  authorId        String
+  title           String
+  description     String
+  coverUrl        String?
+  type            MaterialType @default(VIDEO)
+  videoUrl        String?
+  content         String?
+  fileUrl         String?
+  durationMinutes Int          @default(0)
+  isPublished     Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  category  KnowledgeCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  author    User                @relation("KnowledgeAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  views     KnowledgeView[]
+  favorites KnowledgeFavorite[]
+
+  @@index([categoryId, createdAt])
+  @@index([type])
+}
+
+model KnowledgeView {
+  id         String   @id @default(uuid())
+  materialId String
+  userId     String
+  viewedAt   DateTime @default(now())
+
+  material KnowledgeMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, userId])
+  @@index([userId, viewedAt])
+}
+
+model KnowledgeFavorite {
+  materialId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  material KnowledgeMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([materialId, userId])
+  @@index([userId])
+}
+
+/// Обращение в поддержку: пользователь создаёт, администратор/менеджер ведёт.
+model SupportTicket {
+  id           String               @id @default(uuid())
+  userId       String
+  subject      String
+  message      String
+  category     String               @default("OTHER")
+  status       SupportTicketStatus  @default(OPEN)
+  priority     SupportTicketPriority @default(NORMAL)
+  assignedToId String?
+  resolution   String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  user       User  @relation("SupportTicketRequester", fields: [userId], references: [id], onDelete: Cascade)
+  assignedTo User? @relation("SupportTicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@index([assignedToId, status])
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  teacherId String
+  studentId String
+  courseId  String?
+  message   String
+  score     Int?
+  createdAt DateTime @default(now())
+
+  teacher User @relation("FeedbackTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  student User @relation("FeedbackStudent", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+}
+
+/// История обращений к AI: пользователь управляет ею, администратор видит инциденты.
+model AiRequest {
+  id             String    @id @default(uuid())
+  userId         String
+  role           RoleName?
+  feature        String    @default("chat")
+  prompt         String
+  response       String?
+  model          String?
+  provider       String?
+  status         String    @default("SUCCESS")
+  sources        Json?
+  assumptions    Json?
+  confidence     Int?
+  durationMs     Int?
+  error          String?
+  feedback       String?
+  isFlagged      Boolean   @default(false)
+  reviewedAt     DateTime?
+  reviewedById   String?
+  conversationId String?
+  tokens         Int       @default(0)
+  createdAt      DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([feature, createdAt])
+  @@index([status, createdAt])
+}
+
+/// Лимиты и разрешения AI на уровне филиала.
+model AiSetting {
+  id                   String   @id @default("branch")
+  enabled              Boolean  @default(true)
+  provider             String   @default("openai")
+  model                String   @default("gpt-4o-mini")
+  dailyDefault         Int      @default(30)
+  maxTokens            Int      @default(900)
+  allowExternalSources Boolean  @default(false)
+  roleLimits           Json?
+  featurePermissions   Json?
+  updatedById          String?
+  updatedAt            DateTime @default(now()) @updatedAt
+}
+
+model AiRoleLimit {
+  id              String   @id @default(uuid())
+  role            RoleName @unique
+  dailyRequests   Int      @default(20)
+  monthlyTokens   Int      @default(100000)
+  allowedFeatures Json?
+  model           String?
+  updatedAt       DateTime @default(now()) @updatedAt
+}
+
+model AiUserLimit {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  dailyRequests   Int?
+  monthlyTokens   Int?
+  allowedFeatures Json?
+  model           String?
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Ошибка AI автоматически попадает ответственным сотрудникам.
+model AiErrorReport {
+  id           String    @id @default(uuid())
+  requestId    String?
+  userId       String
+  feature      String
+  message      String
+  status       String    @default("OPEN")
+  resolution   String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([status, createdAt])
+}
+
+/// Визуальный сценарий автоматизации: событие → условия → действия.
+model AiAutomation {
+  id               String    @id @default(uuid())
+  name             String
+  description      String?
+  enabled          Boolean   @default(true)
+  triggerType      String    @default("MANUAL")
+  triggerConfig    Json?
+  conditions       Json?
+  actions          Json?
+  schedule         String?
+  requiresApproval Boolean   @default(true)
+  createdById      String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lastRunAt        DateTime?
+
+  runs AiAutomationRun[]
+
+  @@index([enabled, createdAt])
+}
+
+model AiAutomationRun {
+  id           String    @id @default(uuid())
+  automationId String
+  status       String    @default("RUNNING")
+  input        Json?
+  result       Json?
+  error        String?
+  approvedById String?
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+
+  automation AiAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId, startedAt])
+  @@index([status, startedAt])
+}
+
+/// Статус обработки заявки менеджером.
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  REJECTED
+}
+
+/// Кем является заявитель: от этого зависит сценарий обработки.
+enum LeadAudience {
+  STUDENT
+  PARENT
+  PARTNER
+}
+
+enum LeadSource {
+  LANDING
+  PHONE
+  WALK_IN
+  REFERRAL
+  SOCIAL
+  OTHER
+}
+
+/// Заявка с публичного сайта или принятая менеджером по телефону.
+/// Хранит контакт, намерение и историю обработки; не создаёт пользователя
+/// автоматически — зачисление выполняет администратор.
+model Lead {
+  id           String       @id @default(uuid())
+  name         String
+  phone        String
+  email        String?
+  audience     LeadAudience @default(STUDENT)
+  message      String?
+  status       LeadStatus   @default(NEW)
+  source       LeadSource   @default(LANDING)
+  note         String?
+  assignedToId String?
+  consentAt    DateTime?
+  contactedAt  DateTime?
+  closedAt     DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  assignedTo User? @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([assignedToId, status])
+  @@index([phone])
+}
+
+/// Сквозной счётчик номеров счетов: отдельная строка на год.
+/// Инкремент выполняется в транзакции, поэтому два администратора не получат один номер.
+model InvoiceSequence {
+  year       Int @id
+  lastNumber Int @default(0)
+}
+
+/// Счёт за обучение. Суммы — в сомах (KGS), без дробной части.
+model Invoice {
+  id           String        @id @default(uuid())
+  /// Человекочитаемый номер вида INV-2026-000001.
+  number       String        @unique
+  studentId    String
+  courseId     String?
+  description  String
+  amount       Int
+  dueAt        DateTime
+  status       InvoiceStatus @default(ISSUED)
+  /// Месяц начисления для ежемесячной оплаты: YYYY-MM.
+  periodMonth  String?
+  issuedById   String?
+  cancelledAt  DateTime?
+  cancelReason String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  student  User      @relation("InvoiceStudent", fields: [studentId], references: [id])
+  course   Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  issuedBy User?     @relation("InvoiceIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+  payments  Payment[]
+  discounts InvoiceDiscount[]
+
+  @@index([studentId, status])
+  @@index([status, dueAt])
+  @@index([courseId])
+  @@index([createdAt])
+}
+
+/// Платёж по счёту. Наличный платёж регистрирует менеджер или администратор,
+/// онлайн-платёж создаётся провайдером и подтверждается вебхуком.
+model Payment {
+  id             String        @id @default(uuid())
+  invoiceId      String
+  amount         Int
+  method         PaymentMethod
+  status         PaymentStatus @default(CONFIRMED)
+  provider       String?
+  /// Идентификатор операции у платёжного провайдера — защита от повторной обработки.
+  externalId     String?       @unique
+  /// Ключ идемпотентности клиента: повторная отправка не создаёт второй платёж.
+  idempotencyKey String?       @unique
+  note           String?
+  registeredById String?
+  confirmedById  String?
+  paidAt         DateTime      @default(now())
+  confirmedAt    DateTime?
+  createdAt      DateTime      @default(now())
+
+  invoice      Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  registeredBy User?    @relation("PaymentRegistrar", fields: [registeredById], references: [id], onDelete: SetNull)
+  confirmedBy  User?    @relation("PaymentConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
+  refunds      Refund[]
+  adjustments  PaymentAdjustment[]
+
+  @@index([invoiceId, status])
+  @@index([paidAt])
+  @@index([status, paidAt])
+}
+
+/// Заявка на возврат. Деньги возвращает только администратор после рассмотрения.
+model Refund {
+  id            String       @id @default(uuid())
+  paymentId     String
+  amount        Int
+  reason        String
+  status        RefundStatus @default(REQUESTED)
+  requestedById String
+  reviewedById  String?
+  reviewedAt    DateTime?
+  reviewComment String?
+  createdAt     DateTime     @default(now())
+
+  payment     Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  requestedBy User    @relation("RefundRequester", fields: [requestedById], references: [id])
+  reviewedBy  User?   @relation("RefundReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([paymentId, status])
+  @@index([status, createdAt])
+}
+
+/// Расход филиала: аренда, зарплаты, оборудование и т.д.
+model Expense {
+  id          String          @id @default(uuid())
+  category    ExpenseCategory @default(OTHER)
+  amount      Int
+  spentAt     DateTime        @default(now())
+  description String
+  documentUrl String?
+  /// Несколько подтверждающих документов (ссылки на загруженные файлы).
+  documentUrls Json?
+  createdById String
+  createdAt   DateTime        @default(now())
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([spentAt])
+  @@index([category, spentAt])
+}
+
+/// История изменения цены курса: кто и когда поменял стоимость.
+model CoursePriceHistory {
+  id            String   @id @default(uuid())
+  courseId      String
+  previousPrice Int
+  newPrice      Int
+  /// Причина изменения тарифа, если указана администратором.
+  reason        String?
+  changedById   String
+  createdAt     DateTime @default(now())
+
+  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  changedBy User   @relation(fields: [changedById], references: [id])
+
+  @@index([courseId, createdAt])
+}
+
+/// Ручная скидка администратора по счёту. Сумма счёта уменьшается,
+/// а скидка сохраняется отдельной записью для истории и отчётности.
+model InvoiceDiscount {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  amount      Int
+  reason      String
+  createdById String
+  createdAt   DateTime @default(now())
+
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id])
+
+  @@index([invoiceId, createdAt])
+}
+
+/// Ручная корректировка платежа администратором: сумма, статус и причина.
+model PaymentAdjustment {
+  id             String        @id @default(uuid())
+  paymentId      String
+  previousAmount Int
+  newAmount      Int
+  previousStatus PaymentStatus
+  newStatus      PaymentStatus
+  reason         String
+  adjustedById   String
+  createdAt      DateTime      @default(now())
+
+  payment    Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  adjustedBy User    @relation(fields: [adjustedById], references: [id])
+
+  @@index([paymentId, createdAt])
+}
+
+/// Платёжный аккаунт филиала. Секреты не хранятся в БД: поле secretEnvVar
+/// указывает имя переменной окружения, которую задаёт администратор сервера.
+/// Каждый филиал использует собственную БД, поэтому аккаунт относится к филиалу.
+model PaymentProviderAccount {
+  id                  String   @id @default(uuid())
+  provider            String
+  label               String
+  merchantId          String
+  tenantId            String?
+  secretEnvVar        String
+  webhookSecretEnvVar String?
+  baseUrl             String?
+  enabled             Boolean  @default(true)
+  isDefault           Boolean  @default(false)
+  settings            Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([provider, merchantId])
+  @@index([enabled, isDefault])
+}
+
+/// Настройка внешней интеграции. Секретов здесь нет: secretEnvVars содержит
+/// только имена переменных окружения сервера, значения задаёт администратор
+/// сервера (переменные окружения или секреты платформы).
+model IntegrationConfig {
+  id            String   @id @default(uuid())
+  provider      String   @unique
+  enabled       Boolean  @default(true)
+  settings      Json?
+  secretEnvVars Json?
+  lastCheckedAt DateTime?
+  lastStatus    String?
+  lastMessage   String?
+  updatedById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum IntegrationEventStatus {
+  OK
+  FAILED
+  SKIPPED
+}
+
+/// Журнал обращений к внешним сервисам. Только метаданные: провайдер,
+/// действие, результат, длительность и очищенное сообщение без токенов.
+model IntegrationEvent {
+  id         String                 @id @default(uuid())
+  provider   String
+  action     String
+  status     IntegrationEventStatus
+  attempts   Int                    @default(1)
+  durationMs Int?
+  message    String?
+  metadata   Json?
+  actorId    String?
+  createdAt  DateTime               @default(now())
+
+  @@index([provider, createdAt])
+  @@index([status, createdAt])
+  @@index([action, createdAt])
+}
+
+enum CertificateStatus {
+  ISSUED
+  REVOKED
+}
+
+/// Выданный сертификат об окончании курса. Код проверки — публичный идентификатор.
+model Certificate {
+  id               String            @id @default(uuid())
+  number           String            @unique
+  verificationCode String            @unique
+  studentId        String
+  courseId         String
+  issuedById       String
+  grade            Int?
+  status           CertificateStatus @default(ISSUED)
+  issuedAt         DateTime          @default(now())
+  expiresAt        DateTime?
+  revokedAt        DateTime?
+  revokeReason     String?
+  /// Готовый файл сертификата, загруженный администратором.
+  fileUrl          String?
+  fileName         String?
+  mimeType         String?
+  fileSize         Int?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  student  User   @relation("CertificateStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  issuedBy User   @relation("CertificateIssuer", fields: [issuedById], references: [id])
+
+  @@unique([studentId, courseId])
+  @@index([status, issuedAt])
+  @@index([courseId])
+  @@index([issuedById])
+}
+
+/// Счётчик номеров сертификатов по годам: CERT-2026-00001.
+model CertificateSequence {
+  year  Int @id
+  value Int @default(0)
+}
+
+enum BranchStatus {
+  PROVISIONING
+  PROVISIONED
+  ACTIVE
+  FAILED
+}
+
+/// Реестр филиалов (control plane). Хранится в управляющей БД; данные филиалов — в отдельных БД.
+/// Пароли БД здесь не хранятся: подключение собирается из CONTROL_DATABASE_URL.
+model Branch {
+  id            String       @id @default(uuid())
+  name          String
+  slug          String       @unique
+  domain        String       @unique
+  databaseName  String       @unique
+  storagePrefix String
+  /// Лимит одного файла и общая квота библиотеки филиала, МБ.
+  fileMaxSizeMb Int          @default(50)
+  fileQuotaMb   Int          @default(10240)
+  /// Автоматическое резервное копирование: частота и срок хранения задаются филиально.
+  backupEnabled        Boolean   @default(true)
+  backupFrequencyHours Int       @default(24)
+  backupRetentionDays  Int       @default(30)
+  backupIncludeFiles  Boolean   @default(true)
+  lastBackupAt        DateTime?
+  lastBackupStatus    String?
+  status        BranchStatus @default(PROVISIONING)
+  isPrimary     Boolean      @default(false)
+  adminEmail    String
+  adminName     String?
+  config        Json?
+  steps         Json?
+  lastError     String?
+  provisionedAt DateTime?
+  activatedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  backupRuns      BackupRun[]
+  restoreRequests RestoreRequest[]
+
+  @@index([status])
+}
+
+/// Запуск резервного копирования филиала. Хранится в управляющей БД.
+model BackupRun {
+  id          String       @id @default(uuid())
+  branchId    String
+  kind        BackupKind
+  status      BackupStatus @default(RUNNING)
+  storageKey  String?
+  sizeBytes   BigInt?
+  sha256      String?
+  startedAt   DateTime     @default(now())
+  finishedAt  DateTime?
+  verifiedAt  DateTime?
+  error       String?
+  metadata    Json?
+
+  branch   Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  restores RestoreRequest[]
+
+  @@index([branchId, kind, startedAt])
+  @@index([status, startedAt])
+}
+
+/// Пошаговое восстановление. Ни один шаг не запускает восстановление сам по себе.
+model RestoreRequest {
+  id                 String        @id @default(uuid())
+  branchId           String
+  backupId           String
+  status             RestoreStatus @default(DETECTED)
+  reason             String?
+  requestedBy        String
+  approvedBy         String?
+  confirmationPhrase String?
+  plan               Json?
+  report             Json?
+  error              String?
+  detectedAt         DateTime      @default(now())
+  checkedAt          DateTime?
+  plannedAt          DateTime?
+  approvedAt         DateTime?
+  executedAt         DateTime?
+  verifiedAt         DateTime?
+
+  branch Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  backup BackupRun @relation(fields: [backupId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, status, detectedAt])
+}
+
+/// Заявка на регистрацию: аккаунт создаётся только после решения администратора.
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model RegistrationRequest {
+  id            String             @id @default(uuid())
+  firstName     String
+  lastName      String
+  email         String
+  phone         String?
+  passwordHash  String
+  requestedRole RoleName           @default(STUDENT)
+  message       String?
+  /// Данные несовершеннолетнего заявителя: переносятся в профиль при одобрении.
+  birthDate     DateTime?
+  guardianName  String?
+  guardianPhone String?
+  locale        String             @default("ru")
+  status        RegistrationStatus @default(PENDING)
+  /// Приглашение, по которому пришла заявка (если было).
+  inviteId      String?
+  decidedById   String?
+  decidedAt     DateTime?
+  rejectReason  String?
+  /// Версии согласий, принятых при отправке заявки, и время принятия.
+  consentAcceptedAt DateTime?
+  consentVersions   Json?
+  marketingOptIn    Boolean            @default(false)
+  ip            String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  decidedBy User? @relation("RegistrationDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([email])
+}
+
+enum InvitationChannel {
+  LINK
+  CODE
+  EMAIL
+  PHONE
+}
+
+/// Приглашение от администратора филиала: ссылкой, кодом, на email или телефон.
+model Invitation {
+  id          String            @id @default(uuid())
+  /// Токен для ссылки приглашения.
+  token       String            @unique
+  /// Короткий код для ручного ввода.
+  code        String            @unique
+  channel     InvitationChannel @default(LINK)
+  role        RoleName          @default(STUDENT)
+  email       String?
+  phone       String?
+  note        String?
+  createdById String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  usedById    String?
+  createdAt   DateTime          @default(now())
+
+  @@index([code])
+  @@index([email])
+  @@index([phone])
+  @@index([createdAt])
+}
+
+/// Резервные коды двухфакторной аутентификации: хранятся только хэши.
+model TwoFactorBackupCode {
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Снимок содержимого курса для истории версий и восстановления.
+model CourseVersion {
+  id          String   @id @default(uuid())
+  courseId    String
+  version     Int
+  snapshot    Json
+  note        String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, version])
+  @@index([courseId, createdAt])
+}
+
+/// Снимок урока: блоки, материалы и метаданные на момент ручного сохранения.
+model LessonVersion {
+  id          String   @id @default(uuid())
+  lessonId    String
+  version     Int
+  snapshot    Json
+  note        String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, version])
+  @@index([lessonId, createdAt])
+}
+
+/// Личная заметка ученика к уроку: видна только автору.
+model LessonNote {
+  id        String   @id @default(uuid())
+  userId    String
+  lessonId  String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId, updatedAt])
+}
+
+/// Закладка на материал урока: быстрый возврат к сохранённому.
+model MaterialBookmark {
+  id         String   @id @default(uuid())
+  userId     String
+  materialId String
+  createdAt  DateTime @default(now())
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  material LessonMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, materialId])
+  @@index([userId, createdAt])
+}
+
+/// Выделенный учеником фрагмент материала с комментарием.
+model MaterialHighlight {
+  id         String   @id @default(uuid())
+  userId     String
+  materialId String
+  quote      String
+  note       String?
+  color      String   @default("yellow")
+  createdAt  DateTime @default(now())
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  material LessonMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([materialId])
+}

@@ -1,0 +1,15 @@
+:root {
+  --itadis-brand: #2563eb;
+  --itadis-brand-strong: #1d4ed8;
+  --itadis-success: #15803d;
+  --itadis-warning: #b45309;
+  --itadis-danger: #b91c1c;
+  --itadis-ink: #111827;
+  --itadis-muted: #6b7280;
+  --itadis-surface: #ffffff;
+  --itadis-canvas: #f8fafc;
+  --itadis-border: #e5e7eb;
+  --itadis-radius-sm: 6px;
+  --itadis-radius-md: 10px;
+  --itadis-radius-lg: 16px;
+}

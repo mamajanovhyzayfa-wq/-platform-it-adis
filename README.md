@@ -4,22 +4,33 @@
 
 ```
 .
-├── index.html, src/, public/      # лендинг (Vite) + иконка приложения
-├── mobile/                        # Expo-приложение (Android / iOS), Expo Router
-│   ├── src/app/                   # маршруты: (auth), (student), (teacher), (admin)
-│   ├── src/components/ui/         # библиотека компонентов дизайн-системы
-│   └── src/theme/                 # токены, светлая и тёмная палитры
-├── backend/                       # REST API: NestJS, Prisma, PostgreSQL, Socket.IO
-│   ├── src/nest/                  # ядро Nest: модули, guards, RBAC, фильтры
-│   └── prisma/                    # схема (49 моделей), миграции, seed
-├── admin-web/                     # административная панель: React + Vite
-├── infrastructure/                # целевая production-топология и чек-лист запуска
-├── docker-compose.yml             # PostgreSQL + Redis + LiveKit + backend
-├── .env.example                   # переменные для docker-compose
-├── ARCHITECTURE.md                # архитектура и статус по этапам ТЗ
-├── API_STRUCTURE.md               # справочник всех маршрутов и Socket.IO
-├── DATABASE_STRUCTURE.md          # модели, связи, индексы, правила удаления
-├── DEVELOPMENT.md                 # установка, запуск, проверки, типовые проблемы
+├── apps/
+│   ├── api/                    # NestJS + Prisma: REST, Socket.IO, jobs, integrations
+│   │   ├── src/modules/        # 64 каталога модулей; 41 обязательный из ТЗ
+│   │   ├── src/nest/           # guards, filters, RBAC, Prisma, config
+│   │   ├── src/lib/            # серверные утилиты
+│   │   └── prisma/             # схема, миграции, seed
+│   ├── web/                    # административная панель: React + Vite
+│   │   ├── src/app/            # маршруты и навигация
+│   │   ├── src/features/       # доменные панели: community, scheduling
+│   │   ├── src/layouts/        # AppLayout и каркас
+│   │   ├── src/locales/        # ru/ky/en
+│   │   ├── src/styles/         # CSS по слоям
+│   │   └── src/pages/          # route-level страницы
+│   └── mobile/                 # Expo / React Native
+├── packages/
+│   ├── shared-types/           # общие типы ролей, API и модулей
+│   ├── validation/             # общие zod-схемы
+│   ├── api-client/             # типизированный fetch-клиент
+│   ├── ui/                     # дизайн-токены
+│   └── config/                 # общий strict tsconfig
+├── infrastructure/             # docker, deployment, monitoring, scripts
+├── docs/                       # architecture, api, database, deployment
+├── index.html, src/, public/   # лендинг (Vite), отдельный Sites-деплой
+├── docker-compose.yml          # PostgreSQL + Redis + API
+├── docker-compose.prod.yml     # production-топология
+├── package.json                # workspace root
+├── .env.example
 └── README.md
 ```
 
@@ -27,10 +38,18 @@
 
 | Документ | О чём |
 | --- | --- |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Слои, модули, авторизация, realtime, видео, дизайн-система, **статус по этапам ТЗ и пробелы** |
-| [API_STRUCTURE.md](API_STRUCTURE.md) | Все HTTP-маршруты, роли, тела запросов, ошибки, события Socket.IO, вебхуки |
-| [DATABASE_STRUCTURE.md](DATABASE_STRUCTURE.md) | 49 моделей Prisma, enum, уникальные ключи, индексы, каскады, транзакции |
-| [DEVELOPMENT.md](DEVELOPMENT.md) | Требования, переменные окружения, миграции, seed, проверки, troubleshooting |
+| [docs/architecture/blueprint.md](docs/architecture/blueprint.md) | Итоговая архитектура, структура, модель данных, план модулей, внешние API и команды PowerShell |
+| [docs/architecture/monorepo.md](docs/architecture/monorepo.md) | Структура монорепозитория и правила зависимостей |
+| [docs/architecture/overview.md](docs/architecture/overview.md) | Слои, модули, авторизация, realtime, видео, статус по этапам ТЗ |
+| [docs/technology-stack.md](docs/technology-stack.md) | Обязательный стек раздела 24, обоснование LiveDigital и офлайна, БД филиалов, инфраструктура |
+| [docs/api/modules.md](docs/api/modules.md) | 41 обязательный backend-модуль: маршруты, доступ, DTO и read-модели |
+| [docs/api/endpoints.md](docs/api/endpoints.md) | Все HTTP-маршруты, роли, тела запросов, ошибки, Socket.IO, вебхуки |
+| [docs/database/schema.md](docs/database/schema.md) | Модели Prisma, enum, индексы, каскады, транзакции |
+| [docs/deployment/development.md](docs/deployment/development.md) | Требования, переменные окружения, миграции, seed, проверки |
+| [docs/integrations/README.md](docs/integrations/README.md) | Адаптеры внешних сервисов, хранение секретов, health-check, повторы, журнал |
+| [docs/testing/strategy.md](docs/testing/strategy.md) | Уровни тестов, покрытие требований, изоляция филиалов, e2e на стенде |
+| [docs/architecture/delivery-plan.md](docs/architecture/delivery-plan.md) | Этапы A–G и артефакты каждого этапа |
+| [docs/architecture/final-result.md](docs/architecture/final-result.md) | Матрица 30 систем, связность, проверки и внешние ограничения |
 | [infrastructure/README.md](infrastructure/README.md) | Production-топология и чек-лист перед публикацией |
 
 ## Стек
@@ -40,7 +59,7 @@
 | Mobile | React Native, Expo SDK 58, TypeScript, Expo Router, TanStack Query, Zustand, React Hook Form, Zod, Axios, Expo SecureStore |
 | Backend | Node.js, NestJS 12, TypeScript, Prisma 6, PostgreSQL, JWT + refresh rotation, RBAC (guards), Zod, Swagger, helmet, rate-limit, bcrypt |
 | Админ-панель | React 19, TypeScript, Vite 7, React Router 7, TanStack Query, Axios |
-| Инфраструктура | Docker Compose (PostgreSQL 16, Redis 7, LiveKit, backend), Vitest |
+| Инфраструктура | Docker Compose (PostgreSQL 16, Redis 7, MinIO, API, admin, nginx, Prometheus), GitHub Actions, Vitest |
 
 ## Требования
 
@@ -54,24 +73,24 @@
 
 ```bash
 cp .env.example .env
-cp backend/.env.example backend/.env
+cp apps/api/.env.example apps/api/.env
 docker compose up -d postgres redis
-cd backend
+cd apps/api
 npm install
 npx prisma migrate deploy            # применить миграции из prisma/migrations
-npm run prisma:seed                  # демо-данные (4 роли)
+npm run prisma:seed                  # демо-данные (5 ролей)
 npm run dev                          # http://localhost:4000, Swagger: /docs
 ```
 
-Без Docker: поднимите PostgreSQL 16 (или локальный кластер, см. DEVELOPMENT.md), создайте базу `itadis`
-и укажите строку подключения в `backend/.env` (`DATABASE_URL`), затем выполните тот же набор команд.
+Без Docker: поднимите PostgreSQL 16 (или локальный кластер, см. docs/deployment/development.md), создайте базу `itadis`
+и укажите строку подключения в `apps/api/.env` (`DATABASE_URL`), затем выполните тот же набор команд.
 
 ### 2. Мобильное приложение
 
 ```bash
-cd mobile
+cd apps/mobile
 npm install
-# в mobile/.env или через переменную окружения:
+# в apps/mobile/.env или через переменную окружения:
 # EXPO_PUBLIC_API_URL=http://<IP-компьютера>:4000/api
 npx expo start
 ```
@@ -81,10 +100,10 @@ npx expo start
 Если в оболочке уже задана переменная `PORT` (например, `PORT=0`), backend её унаследует и не стартует —
 перекройте значение при запуске: `PORT=4000 npm run dev`.
 
-### 3. Админ-панель (`admin-web/`)
+### 3. Админ-панель (`apps/web/`)
 
 ```bash
-cd admin-web
+cd apps/web
 npm install
 npm run dev        # http://localhost:5174, /api проксируется на http://localhost:4000
 npm run build      # tsc --noEmit + vite build в dist/
@@ -99,6 +118,7 @@ npm run preview    # локальный просмотр production-сборки
 | Роль | Email | Телефон | Пароль |
 | --- | --- | --- | --- |
 | Администратор | admin@itadis.kg | — | `ITadis2026` |
+| Менеджер | manager@itadis.kg | — | `ITadis2026` |
 | Преподаватель | teacher@itadis.kg | +996700000001 | `ITadis2026` |
 | Ученик | student@itadis.kg | +996700000002 | `ITadis2026` |
 | Родитель | parent@itadis.kg | +996700000003 | `ITadis2026` |
@@ -107,8 +127,13 @@ npm run preview    # локальный просмотр production-сборки
 
 ## Переменные окружения
 
-Все секреты хранятся только в `backend/.env` (файл в `.gitignore`) и не попадают в мобильное приложение
-или админ-панель. Шаблон — [`backend/.env.example`](backend/.env.example).
+Все секреты хранятся только в `apps/api/.env` (файл в `.gitignore`) и не попадают в мобильное приложение
+или админ-панель. Шаблон — [`apps/api/.env.example`](apps/api/.env.example).
+
+Production-окружение: скопируйте [`.env.production.example`](.env.production.example) в
+`.env.production`, заполните домены и секреты и запустите `docker compose` по инструкции из
+[`infrastructure/deployment/README.md`](infrastructure/deployment/README.md). Шаблон уже содержит
+все серверные ключи интеграций; TLS завершается балансировщиком.
 
 ### Обязательные
 
@@ -126,39 +151,51 @@ npm run preview    # локальный просмотр production-сборки
 
 | Переменные | Без них |
 | --- | --- |
-| `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | Видеозанятия отвечают 503 с инструкцией; для разработки — `docker compose up -d livekit` (`devkey` / `secret`) |
-| `RECORDING_S3_ACCESS_KEY`, `RECORDING_S3_SECRET`, `RECORDING_S3_BUCKET`, `RECORDING_S3_REGION`, `RECORDING_S3_ENDPOINT`, `RECORDING_S3_FORCE_PATH_STYLE` | Запись занятий недоступна (503), просмотр занятий работает |
 | `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`, `AI_DAILY_REQUEST_LIMIT` | AI-помощник показывает инструкцию; `/api/ai/status` возвращает `configured: false` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Письма подтверждения и сброса пароля пишутся в лог; в dev ссылка доступна в ответе |
 | `EXPO_ACCESS_TOKEN` | Работает и без него, но с меньшими лимитами Expo Push API |
-| `UPLOADS_DIR` | Вложения чата сохраняются в `backend/uploads` |
+| `APY_TOKEN` | Серверная проверка email в заявке через ApyHub (формат, домен, одноразовые адреса) пропускается; локальная проверка формата остаётся |
+| `UPLOADS_DIR` | Вложения чата сохраняются в `apps/api/uploads` |
+| `LIVEDIGITAL_API_URL`, `LIVEDIGITAL_API_TOKEN`, `LIVEDIGITAL_SPACE_ID`, `LIVEDIGITAL_WEBHOOK_SECRET` | Видеозанятия отвечают 503 с инструкцией; ключи видны только серверу |
+| `GOOGLE_CLIENT_ID`/`APPLE_CLIENT_ID` | Вход через Google/Apple отвечает 503 и не имитирует успех |
+| `GOOGLE_CALENDAR_*`, `APPLE_CALDAV_*`, `OUTLOOK_*` | Синхронизация календарей выключена, адаптер показывает `not_configured` |
+| `ACCOUNTING_BASE_URL`, `ACCOUNTING_API_KEY` | Экспорт в бухгалтерию отвечает 503 с перечнем недостающих переменных |
+| `FREEDOMPAY_*`, `ELSOM_*` | Онлайн-оплата выключена; наличные и банковский перевод работают |
 
-`REDIS_URL` указан в `docker-compose.yml` и `.env.example` как зарезервированный: текущий код его не читает и
-не требует — кеш и rate limit работают в памяти процесса. Для горизонтального масштабирования Redis
-понадобится подключить (общий rate limit и Socket.IO adapter).
+Полный список адаптеров, их переменных и проверок — в
+[`docs/integrations/README.md`](docs/integrations/README.md). Секреты задаёт
+администратор сервера (в production — секреты платформы); в админ-панель и
+мобильное приложение они не попадают.
 
-Проект использует **LiveKit**, а не LiveDigital: отдельные ключи LiveDigital не нужны. Если видеосвязь
-будет переведена на LiveDigital, потребуются его API URL, ключ и секрет на сервере — клиент ключей не видит.
+`REDIS_URL` используется для общего кеша филиалов, распределённых блокировок фоновых задач и
+Socket.IO Redis adapter. Без Redis один процесс работает с кешем и блокировками в памяти; для
+нескольких реплик API Redis обязателен. Rate limit Express остаётся в памяти процесса.
+
+Видеопровайдер — **LiveDigital** (Moodhood API): комнаты, запись, аналитика и вебхуки. Записи
+переносятся в файловое хранилище ITadis. Переменные `LIVEKIT_*` оставлены только для чтения
+старых записей, новые занятия идут через LiveDigital.
 
 ### Мобильное приложение
 
 | Переменная | Назначение |
 | --- | --- |
 | `EXPO_PUBLIC_API_URL` | Базовый URL API, например `http://192.168.1.10:4000/api` |
+| `EXPO_PUBLIC_WEB_URL` | Origin веб-кабинета для видеокомнаты, например `https://itadis.kg`; путь `/app` добавляется автоматически |
 | `EXPO_PUBLIC_EAS_PROJECT_ID` | Project ID EAS для push-токенов (альтернатива `extra.eas.projectId` в `app.json`) |
 
-`mobile/.env` можно создать вручную; переменные с префиксом `EXPO_PUBLIC_` попадают в клиентский бандл,
+`apps/mobile/.env` можно создать вручную; переменные с префиксом `EXPO_PUBLIC_` попадают в клиентский бандл,
 поэтому там не должно быть секретов.
 
 ## Сборка мобильного приложения (EAS)
 
-Профили описаны в [`mobile/eas.json`](mobile/eas.json):
+Профили описаны в [`apps/mobile/eas.json`](apps/mobile/eas.json):
 
 | Профиль | Что собирает | Команда |
 | --- | --- | --- |
-| `development` | Dev client с нативными модулями (LiveKit, пуши), APK / iOS simulator | `eas build -p android --profile development` |
+| `development` | Dev client с нативными модулями (WebView, пуши), APK / iOS simulator | `eas build -p android --profile development` |
 | `preview` | Внутренний APK для тестировщиков | `npm run build:android:apk` |
 | `production` | AAB для Google Play и сборка для App Store | `npm run build:android:aab`, `npm run build:ios` |
+| `submit` | Загрузка собранной версии в Play Console / App Store Connect | `npm run submit:android`, `npm run submit:ios` |
 
 ```bash
 npm i -g eas-cli
@@ -168,35 +205,39 @@ eas build --platform android --profile preview     # APK
 eas build --platform android --profile production  # AAB для Google Play
 eas build --platform ios --profile production      # IPA для App Store
 eas submit --platform android --profile production # загрузка в Play (нужен service account)
+eas submit --platform ios --profile production     # загрузка в App Store Connect
 ```
 
-Перед первой сборкой: `bundleIdentifier` (`kg.itadis.app`) и `package` уже заданы в `mobile/app.json`.
-Для `eas submit` заполните `mobile/credentials/play-service-account.json` и параметры Apple в `eas.json`
-(в файле стоят заглушки `REPLACE_WITH_*`). Ключи LiveKit и API URL задаются на сервере; для сборки
-можно передать `EXPO_PUBLIC_API_URL` через `eas env:create` или EAS secrets.
+Перед первой сборкой: `bundleIdentifier` (`kg.itadis.app`) и `package` уже заданы в `apps/mobile/app.json`.
+Для `eas submit` заполните `apps/mobile/credentials/play-service-account.json` и параметры Apple в `eas.json`
+(в файле стоят заглушки `REPLACE_WITH_*`). Android-профиль загружает AAB в production-трек Play Console;
+для первого релиза можно временно поставить `track: internal`, проверить сборку и переключить обратно.
+Apple-сборка загружается в App Store Connect и публикуется после проверки вручную. Ключи LiveDigital
+задаются только на сервере; для сборки можно передать `EXPO_PUBLIC_API_URL` и `EXPO_PUBLIC_WEB_URL`
+через `eas env:create` или EAS secrets.
 
 ## Что реализовано
 
 **Этап 1–3 — каркас, backend, авторизация**
 
-- Prisma-схема на 40+ моделей: пользователи, роли, профили, согласия, устройства, курсы, модули, уроки, материалы, прогресс, ДЗ и сдачи, тесты/вопросы/попытки, расписание, видеокомнаты и записи, посещаемость, чаты и сообщения, уведомления, изикоины и транзакции, товары и заказы, достижения, обратная связь, AI-запросы, аудит.
+- Prisma-схема на 128 моделей: пользователи, роли, профили, согласия, устройства, курсы, модули, уроки, материалы, прогресс, ДЗ и сдачи, тесты/вопросы/попытки, расписание, видеокомнаты и записи, посещаемость, чаты и сообщения, уведомления, изикоины и транзакции, товары и заказы, достижения, обратная связь, AI-запросы, аудит.
 - Регистрация с валидацией пароля, согласиями, полем законного представителя для несовершеннолетних; вход по email/телефону; refresh-rotation с детекцией повторного использования токена и отзывом всей семьи сессий; выход и выход со всех устройств; сброс пароля.
 - `GET/PATCH /api/users/me`, смена пароля, `GET /api/users/me/courses`, `GET /api/users/me/students`, `GET /api/users/:id`, удаление аккаунта с обезличиванием.
 - Курсы (каталог, карточка с модулями и уроками), уроки (материалы, отметка о завершении, пересчёт прогресса курса, сохранение позиции видео), расписание, домашние задания (список, детали, отправка с `idempotencyKey`), уведомления, изикоины.
 - Кабинет преподавателя (`/api/teacher`): сводка, свои курсы, программа с модулями и уроками, создание/переименование/удаление модулей и уроков с публикацией, создание и редактирование домашних заданий (дедлайн, максимальный балл, повторная сдача), очередь работ, оценка, комментарий и возврат на доработку с уведомлением ученика и пересчётом достижений. Доступ к чужим курсам и работам закрыт на сервере.
 - Движок тестов: 6 типов вопросов, попытки с лимитом и таймером, серверная проверка ответов и подсчёт баллов (`modules/tests/grading.ts`), разбор ошибок, результаты для преподавателя. Клиент не получает правильные ответы до отправки.
-- Видеозанятия (`/api/video`): комнаты LiveKit, короткоживущие токены участников, окно входа для учеников, аудит-вход в комнату, посещаемость с длительностью, запись через LiveKit Egress, вебхуки с проверкой подписи и хеша тела, защищённые ссылки на записи.
-- Магазин наград (`/api/shop`): каталог, заявка ученика с атомарным списанием изикоинов и остатка, история заявок, подтверждение/выдача/отклонение администратором с автоматическим возвратом монет и остатка.
+- Видеозанятия LiveDigital (`/api/scheduling/schedules/:id/video/*`): комнаты, короткоживущие signaling-токены, окно входа для учеников, посещаемость с переподключениями, запись по настройкам филиала/группы/занятия, перенос в хранилище ITadis, вебхуки с HMAC-подписью и защищённые ссылки на записи.
+- IT Coins (`/api/economy`): баланс и полная история, автоматические начисления за учёбу и мероприятия, магазин филиала с автоматической выдачей цифровых наград, уровни, достижения, задания, серии, сезоны, рейтинг внутри группы, антифрод-подтверждения, обжалования и родительский просмотр.
 - Сообщения (`/api/messages` + Socket.IO): личные диалоги и чаты курсов, история с пагинацией, отметка прочтения и счётчик непрочитанных, уведомления, жалоба на сообщение в аудит.
 - База знаний (`/api/knowledge`): категории, материалы (видео, документы, презентации, ссылки), поиск, фильтр и сортировка, избранное, история просмотров и персональные рекомендации; создание и публикация материалов преподавателями и администраторами.
-- Достижения (`/api/achievements`): условия на сервере (`lessons_completed`, `homework_reviewed`, `tests_completed`, `courses_completed`, `attendance`, `coins_earned`), выдача после урока/теста и из экрана достижений, награда изикоинами и уведомление.
+- Достижения (`/api/economy/achievements`): условия на сервере (`lessons_completed`, `homework_reviewed`, `tests_completed`, `perfect_tests`, `courses_completed`, `attendance`, `coins_earned`, `active_days`, `event_participations`, `contest_podiums`, `teacher_lessons`, `teacher_reviews`), редкость, коллекции, прогресс, дата получения, награда изикоинами и уведомление.
 - Администрирование (`/api/admin`, только роль ADMIN): сводка платформы, пользователи с поиском/фильтрами/пагинацией, смена роли и блокировка с записью в аудит, список курсов, аналитика (записи, сдачи, тесты, посещаемость, популярные курсы), журнал аудита.
 - Безопасность: bcrypt, JWT, rate limiting, helmet, zod-валидация всех входных данных, единый формат ошибок, аудит критических действий, Swagger `/docs`.
 
 **Мобильное приложение**
 
 - Экран приветствия с анимацией и переключателем языка (ru/ky/en), вход, регистрация (RHF + Zod), восстановление пароля.
-- Определение роли после входа и отдельные навигации: ученик (Главная, Курсы, Расписание, Задания, Профиль), преподаватель (Главная, Ученики, Расписание, Задания, Профиль), администратор.
+- Определение роли после входа и отдельные навигации: ученик (Главная, Курсы, Расписание, Задания, Профиль), преподаватель (Главная, Ученики, Расписание, Задания, Профиль), менеджер (сводка филиала и заявки), родитель (дети, успеваемость, задания и платежи), администратор. Группы `(manager)` и `(parent)` защищены `RoleGate` и используют те же API, что и веб-кабинеты.
 - Кабинет преподавателя: «Мои курсы», редактор программы курса (создание модулей и уроков, публикация, удаление), конструктор заданий с календарём дедлайна, максимальным баллом и повторной сдачей, экран урока с конспектом и видео, очередь работ с фильтрами и экран проверки (балл, комментарий, возврат на доработку).
 - Экран курса (модули → уроки), экран урока с материалами, отметкой о завершении и переходами между уроками, список тестов и прохождение теста с таймером, навигацией по вопросам и экраном результата.
 - Онлайн-занятие: подключение из расписания, плитки участников, микрофон/камера/смена камеры, завершение занятия и запись для преподавателя; при отсутствии настроек или нативной сборки экран показывает понятное объяснение.
@@ -207,7 +248,10 @@ eas submit --platform android --profile production # загрузка в Play (�
 - Токены в SecureStore, автоматический refresh по 401; локализация вынесена в JSON (`src/i18n/locales/ru.json`, `ky.json`, `en.json`), язык переключается в настройках и сохраняется. Новые экраны (чат, магазин, достижения, уведомления, AI, приватность) полностью на ключах; часть старых экранов (профиль, база знаний, курсы) ещё содержит встроенные строки — их перевод продолжается.
 - Мессенджер: личные диалоги и чаты курсов, текст/фото/файлы, отметки прочтения и живые обновления по Socket.IO.
 - Push-уведомления на новые задания, сообщения, начало занятий и проверку работ; нажатие открывает нужный экран.
-- Магазин наград и достижения: каталог, оформление заявки, история и статусы, прогресс достижений.
+- Офлайн-режим: учебные GET-ответы кешируются, материалы урока скачиваются в `documentDirectory`, черновики решений сохраняются автоматически, а отправка решения, прогресс урока и сообщения ставятся в очередь. После восстановления сети очередь уходит автоматически.
+- Разбор конфликтов: серверный отказ не удаляет локальную копию. На экране «Офлайн-очередь» видно сохранённый текст и причину отказа; решение можно вернуть в черновик и отправить заново, сообщение — передать через «Поделиться», действие — повторить или удалить вручную. Для ДЗ используется `idempotencyKey`, поэтому повтор после обрыва ответа не создаёт вторую работу.
+- Смартфоны и планшеты: адаптивная ширина контента, поворот экрана и полноэкранное видео; `supportsTablet` включён для iOS.
+- IT Coins и достижения: баланс, уровень, серия, задания, история, магазин с поиском/категориями/избранным, оформление заявки, статусы и прогресс коллекций.
 - База знаний с поиском и избранным, AI-помощник по коду (серверный ключ, лимит запросов) без выдачи готовых решений.
 - Приватность: политика конфиденциальности и удаление аккаунта с обезличиванием данных на сервере.
 - Дизайн-система: токены (отступы, радиусы, типографика), светлая и тёмная палитры в `src/theme`, библиотека компонентов в `src/components/ui` (Button, Input, Card, Modal, BottomSheet, Toast, DatePicker и др.). Перевод существующих экранов на активную тему продолжается: сейчас экраны используют светлую палитру через совместимый экспорт `colors`.
@@ -216,24 +260,32 @@ eas submit --platform android --profile production # загрузка в Play (�
 
 | Функция | Статус |
 | --- | --- |
-| Сервер LiveKit | Нужны `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`; для разработки поднимается `docker compose up -d livekit` (ключи `devkey`/`secret`) |
-| Запись занятий | LiveKit Egress + S3-совместимый бакет (`RECORDING_S3_*`); без них запись возвращает 503 с инструкцией |
+| Видеосвязь LiveDigital | Нужны `LIVEDIGITAL_API_TOKEN` и `LIVEDIGITAL_SPACE_ID`; без них видео отвечает 503 с инструкцией. Веб-комната открывается в браузере, мобильная — в WebView с официальным Web SDK |
+| Запись занятий | Облачная запись LiveDigital и S3-совместимый бакет (`S3_*`); при недоступности провайдера запись возвращает 503 |
 | Встроенный видеоплеер урока | ✔ `expo-video`: управление, полноэкранный режим, сохранение позиции просмотра |
-| AI-помощник | ✔ серверный `/api/ai/chat` с наставническим промптом и дневным лимитом. Нужен `OPENAI_API_KEY` в `backend/.env`; без ключа экран показывает инструкцию |
+| AI-помощник | ✔ серверный `/api/ai/chat` с наставническим промптом и дневным лимитом. Нужен `OPENAI_API_KEY` в `apps/api/.env`; без ключа экран показывает инструкцию |
 | Push-уведомления | ✔ `expo-notifications`, токен устройства в `UserDevice`, рассылка через Expo Push API. Реальная доставка требует EAS-проекта и проверяется на физическом устройстве |
-| Родительский доступ | Следующий этап: роль `PARENT`, связь с учеником и отдельные экраны |
-| Сборки в сторах | ✔ `mobile/eas.json`: development / preview (APK) / production (AAB и iOS), скрипты `build:android:apk`, `build:android:aab`, `build:ios` |
-| CI/CD-пайплайн | Следующий этап: автоматические сборки по тегу (сейчас — ручной `eas build`) |
+| Родительский доступ | ✔ роль `PARENT`, привязка к ученику с подтверждением администратором, веб- и мобильный кабинет, просмотр успеваемости, заданий и платежей |
+| Сборки в сторах | ✔ `apps/mobile/eas.json`: development / preview (APK) / production (AAB и iOS), скрипты `build:android:apk`, `build:android:aab`, `build:ios`, `submit:android`, `submit:ios`; для публикации нужны EAS-аккаунт и credentials |
+| CI/CD | ✔ GitHub Actions: миграции и тесты API, e2e с PostgreSQL/Redis, сборка admin, `tsc`/тесты mobile; по тегу `v*` публикуются образы API/admin в GHCR и выполняется CD по SSH при заданных `DEPLOY_*` secrets. Мобильные сборки в магазины — EAS |
 
 ## Проверки
 
 ```bash
-cd backend && npm run typecheck && npm test && npx prisma validate   # prisma validate требует backend/.env
-cd mobile && npx tsc --noEmit
-cd admin-web && npm run typecheck && npm run build
+cd apps/api && npm run typecheck && npm test && npx prisma validate   # prisma validate требует apps/api/.env
+cd apps/mobile && npx tsc --noEmit && npm test
+cd apps/web && npm run typecheck && npm run build
+
+# e2e против запущенного API, PostgreSQL и seed (в CI — отдельная job e2e)
+cd apps/api
+E2E_BASE_URL=http://localhost:4000 \
+E2E_ADMIN_EMAIL=admin@itadis.kg \
+E2E_ADMIN_PASSWORD='ITadis2026' \
+E2E_BRANCH_B_URL=http://branch-b.example.com \
+npm run test:e2e
 
 # сквозные проверки на запущенном API (:4000) и прогружённом seed
-cd backend && node scripts/verify-security-api.mjs
+cd apps/api && node scripts/verify-security-api.mjs
 node scripts/verify-learning-api.mjs
 node scripts/verify-teacher-api.mjs
 ```
@@ -250,7 +302,7 @@ node scripts/verify-teacher-api.mjs
 - Пагинация: `/api/admin/users?page=…`, `/api/notifications?offset=…`, `/api/coins/history?offset=…`,
   `/api/teacher/submissions?offset=…` возвращают корректные `items`, `total` и следующую страницу.
 
-Проверено локально: `tsc` без ошибок в мобильном и backend-пакетах, `npm run build` в `admin-web` (tsc + Vite) без ошибок, 28 unit-тестов (политика паролей, хеширование, JWT, refresh-токены, схемы валидации, проверка ответов всех 6 типов вопросов, подсчёт баллов, права и срок жизни токенов LiveKit, подпись вебхуков), Prisma-схема валидна. Миграции и seed применены на локальном PostgreSQL 16; сквозные сценарии `backend/scripts/verify-teacher-api.mjs` (курсы, модули, уроки, задания, очередь, оценка, возврат, RBAC) и `backend/scripts/verify-learning-flow-api.mjs` (расписание с проверкой конфликтов, сдача ДЗ с текстом/ссылкой/файлом, повторная сдача, IT Coins за ДЗ и тест без повторных начислений, история монет) проходят без ошибок. Дополнительно проверены на живом API: админские разделы (`submissions`, `test-attempts`, `coin-transactions`, `schedule`, `shop-orders`), личный и курсовой чаты с отметкой прочтения, а также полный цикл магазина — списание при заявке и автоматический возврат монет и остатка при отклонении. Панель администратора проверена в браузере: вход только с ролью `ADMIN`, все разделы открываются, запросы возвращают 200, ошибок в консоли нет.
+Проверено локально: `tsc` без ошибок в мобильном и backend-пакетах, `vite build` в `apps/web` без ошибок, 263 API-теста и 20 мобильных тестов: политика паролей, хеширование, JWT и refresh-токены, схемы валидации auth/поддержки/групп/отчётов, ответы всех 6 типов вопросов, подсчёт баллов, права и срок жизни видеотокенов, подпись вебхуков, расчёты счетов и возвратов, каналы уведомлений, повторы внешних вызовов, реестр интеграций и отсутствие утечки секретов, подпись вебхуков LiveDigital, награды IT Coins, ключи файлового хранилища с префиксом филиала, область видимости обращений поддержки, RBAC и изоляция филиалов на HTTP, WebSocket и уровне Prisma-прокси, доступ по чужому ID, HTTP-контракт `/api/integrations`, матрица доступа к курсам/урокам/ДЗ/тестам/экзаменам/магазину/аналитике, восстановление пароля и защита ключа AI от попадания в лог; Prisma-схема валидна. Миграции и seed применены на локальном PostgreSQL 16; сквозные сценарии `apps/api/scripts/verify-teacher-api.mjs` (курсы, модули, уроки, задания, очередь, оценка, возврат, RBAC) и `apps/api/scripts/verify-learning-flow-api.mjs` (расписание с проверкой конфликтов, сдача ДЗ с текстом/ссылкой/файлом, повторная сдача, IT Coins за ДЗ и тест без повторных начислений, история монет) проходят без ошибок. Дополнительно проверены на живом API: админские разделы (`submissions`, `test-attempts`, `coin-transactions`, `schedule`, `shop-orders`), личный и курсовой чаты с отметкой прочтения, а также полный цикл магазина — списание при заявке и автоматический возврат монет и остатка при отклонении. Панель администратора проверена в браузере: вход только с ролью `ADMIN`, все разделы открываются, запросы возвращают 200, ошибок в консоли нет.
 
 ## Сообщения и реальное время
 
@@ -275,7 +327,7 @@ Socket.IO подключается на том же хосте, что и API, �
 ## AI-помощник
 
 `GET /api/ai/status` и `POST /api/ai/chat` — диалог с моделью на сервере. Ключ провайдера читается
-только из `backend/.env` (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`), в приложение не попадает.
+только из `apps/api/.env` (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`), в приложение не попадает.
 Системный промпт разрешает объяснять ошибки и задавать наводящие вопросы, но запрещает выдавать
 готовое решение; дневной лимит запросов (`AI_DAILY_REQUEST_LIMIT`) защищает ключ от исчерпания.
 Экран `app/ai.tsx` открывается из профиля, показывает модель и остаток лимита, хранит историю диалога
@@ -289,57 +341,69 @@ Socket.IO подключается на том же хосте, что и API, �
 
 В приложении: раздел открывается из профиля; в списке доступны поиск, категории и сортировка, на карточке — избранное, внутри материала — конспект, видео/файл и добавление в избранное.
 
-## Магазин и достижения
+## IT Coins, магазин и достижения
 
-Маршруты: `GET /api/shop/products`, `POST /api/shop/orders`, `GET /api/shop/orders`, `PATCH /api/shop/orders/:id` (админ), `POST/PATCH /api/shop/products` (админ), `GET /api/achievements`, `POST /api/achievements/check`.
+Единый API экономики: `GET /api/economy/overview`, `GET /api/economy/transactions`, `POST /api/economy/awards`, `POST /api/economy/penalties`, `POST /api/economy/transactions/:id/{approve,reject,reverse,appeal}`, `GET/PATCH /api/economy/rules`, `GET /api/economy/levels`, `GET /api/economy/achievements`, `GET/POST /api/economy/quests*`, `GET /api/economy/season`, `GET /api/economy/leaderboard`, `GET /api/economy/parent/:studentId`, `GET/POST/PATCH /api/economy/shop/*`. Легаси-маршруты `/api/coins`, `/api/shop` и `/api/achievements` сохранены для старых клиентов.
 
-Покупка — одна транзакция: проверка остатка и баланса, списание монет, уменьшение остатка и заявка `NEW`. При `REJECTED` администратор возвращает монеты и остаток автоматически, ученик получает уведомление. Баланс меняется только на сервере.
+IT Coins — виртуальная валюта без вывода и переводов между учениками; академические баллы она не меняет. Начисления идут через одну транзакцию `CoinTransaction` + `CoinBalance`: посещение занятия, проверенная домашняя работа, тест, завершение курса, участие и призовые места в мероприятиях, задания, серии, достижения и сезон. Для учебных действий используется `sourceId`, поэтому повторная проверка, пересдача или повторный запрос не создают вторую награду. Правила начислений, дневные/недельные лимиты, порог подозрительной суммы, подтверждение крупных списаний и параметры серий настраивает администратор филиала.
 
-Достижения проверяются после завершения урока, сдачи теста и при открытии экрана достижений. Условие и награда хранятся в `achievements.condition`, повторная выдача исключена уникальным ключом `user_achievements`.
+Магазин изолирован уровнем базы данных филиала: у каждого филиала собственный каталог, заказы и избранное, поэтому главный администратор ITadis не управляет магазинами других филиалов. Категории: цифровые награды, скидки, учебные материалы, привилегии и физические подарки. Новые награды по умолчанию без ограничения запасов. Цифровые награды выдаются автоматически; физический подарок создаётся только с ручным согласованием получения. Покупка атомарно списывает монеты и остаток, при отклонении или отмене возвращает и то, и другое; ученик получает уведомление.
 
-В приложении: `Магазин наград` и `Достижения` открываются из профиля ученика.
+Достижения проверяются после учебных действий и из экрана достижений. Условие, редкость, коллекция и награда хранятся в `achievements.condition`; прогресс и дата получения — в `user_achievements`, повторная выдача исключена уникальным ключом. Уровни считаются из учебного прогресса, активности, достижений и заданий. Ежедневные, недельные и сезонные задания выдают награду после подтверждения выполнения; серии активности настраиваются правилами филиала. Рейтинг показывается только по курсу/группе ученика. Наставники получают собственные достижения за проведённые занятия и проверенные работы.
 
-## Административная панель (`admin-web/`)
+В веб-панели раздел «IT Coins» объединяет обзор, журнал операций, начисления, подтверждения, списания и обжалования, правила, достижения и рейтинг групп. В мобильном приложении доступны баланс, уровень, серия, задания, история и магазин с поиском, категориями и избранным.
+
+## Административная панель (`apps/web/`)
 
 Отдельное веб-приложение на React + Vite, работает с тем же backend.
 
 ```bash
-cd admin-web
+cd apps/web
 npm install
 npm run dev        # http://localhost:5174, /api проксируется на :4000
 npm run build      # tsc --noEmit + vite build в dist/
 ```
 
-Вход — аккаунт с ролью `ADMIN` (демо: `admin@itadis.kg` / `ITadis2026`); аккаунты других ролей в панель не пускаются. Разделы: обзор с графиками (доли записей, очередь ДЗ, популярные курсы), пользователи (поиск, смена роли, блокировка), курсы, расписание (день/неделя/месяц), проверка домашних работ и тестов, модерация магазина, транзакции IT Coins, журнал аудита.
+Вход — любой аккаунт платформы (демо-администратор: `admin@itadis.kg` / `ITadis2026`); после входа открывается кабинет роли: `ADMIN`, `MANAGER`, `TEACHER`, `STUDENT` или `PARENT`. Разделы администратора: обзор с графиками (доли записей, очередь ДЗ, популярные курсы), пользователи (поиск, смена роли, блокировка), курсы, расписание (день/неделя/месяц), проверка домашних работ и тестов, модерация магазина, транзакции IT Coins, отчёты, интеграции, резервное копирование, поддержка и журнал аудита. Ученик, родитель и наставник видят в разделе «Поддержка» только свои обращения и могут создать новое; администратор и менеджер обрабатывают все обращения филиала.
 
 API панели: `GET /api/admin/dashboard`, `GET /api/admin/users`, `PATCH /api/admin/users/:id`, `GET /api/admin/courses`, `GET /api/admin/submissions`, `GET /api/admin/test-attempts`, `GET /api/admin/coin-transactions`, `GET /api/admin/schedule`, `GET /api/admin/shop-orders`, `GET /api/admin/analytics`, `GET /api/admin/audit-logs`; модерация заявки — `PATCH /api/shop/orders/:id`. Все маршруты требуют access-токен администратора; изменения ролей и блокировки пишутся в `audit_logs`, отклонение заявки возвращает монеты и остаток.
 
+Поддержка: `GET/POST /api/support/tickets`, `PATCH /api/support/tickets/:id` (только ADMIN/MANAGER). Резервное копирование: `GET /api/backups/overview`, `POST /api/backups/runs` (`DATABASE`/`FILES`), `POST /api/backups/runs/:id/verify`, `PATCH /api/backups/branches/:id/settings`, `GET/POST /api/backups/restores`; подтверждение и запуск восстановления требуют step-up токен в `X-Step-Up-Token` и точную фразу `RESTORE {slug}`.
+
 Для деплоя за другим доменом задайте `VITE_API_URL` (например, `https://api.itadis.kg/api`) при сборке.
 
-## Видеозанятия (LiveKit)
+## Видеозанятия (LiveDigital)
 
-Локальный сервер для разработки (ключи `devkey` / `secret`, адрес `ws://localhost:7880`):
-
-```bash
-docker compose up -d livekit
-```
-
-`backend/.env`:
+Единственный видеопровайдер — LiveDigital. Ключи создаются в личном кабинете LiveDigital и задаются
+только на сервере (`apps/api/.env`):
 
 ```
-LIVEKIT_URL=ws://localhost:7880
-LIVEKIT_API_KEY=devkey
-LIVEKIT_API_SECRET=secret
+LIVEDIGITAL_API_URL=https://moodhood-api.livedigital.space/v1
+LIVEDIGITAL_API_TOKEN=<персональный токен владельца space>
+LIVEDIGITAL_SPACE_ID=<идентификатор space>
+LIVEDIGITAL_WEBHOOK_SECRET=<секрет вебхука из кабинета LiveDigital>
 ```
 
-Маршруты: `POST /api/video/rooms`, `POST /api/video/rooms/join`, `POST /api/video/rooms/:id/leave`, `POST /api/video/rooms/:id/end`, `POST /api/video/rooms/:id/recording/start|stop`, `GET /api/video/rooms/:id/attendance`, `GET /api/video/recordings`, `POST /api/video/webhooks/livekit`.
+Вебхук указывает на `https://<api>/api/scheduling/livedigital/webhook`; подпись проверяется по HMAC-SHA256
+от тела события. Комната создаётся автоматически при добавлении онлайн-занятия (`POST /api/scheduling/schedules`,
+серии и изменения расписания тоже вызывают `ensureRoom`).
 
-Запись идёт через LiveKit Egress и требует S3-совместимого хранилища: `RECORDING_S3_ACCESS_KEY`, `RECORDING_S3_SECRET`, `RECORDING_S3_BUCKET`, `RECORDING_S3_REGION` (опционально `RECORDING_S3_ENDPOINT`, `RECORDING_S3_FORCE_PATH_STYLE`). Ссылка на запись появляется после вебхука `egress_ended`.
+Маршруты: `POST /api/scheduling/schedules/:id/video/room|join|leave|end`,
+`POST /api/scheduling/schedules/:id/recording/start|stop`, `GET /api/scheduling/schedules/:id/video/analytics`,
+`GET /api/scheduling/recordings`, `GET /api/scheduling/recordings/:id/file`,
+`POST /api/scheduling/recordings/:id/transfer/retry`.
 
-Мобильная часть использует `@livekit/react-native` — это нативные WebRTC-модули: видеозвонки работают в development-сборке (`npx expo run:android`, `npx expo run:ios` или EAS development build), но не в Expo Go. В Expo Go экран занятия показывает объяснение вместо подключения.
+Запись настраивается на уровне филиала, группы (курса) и занятия; при входе наставника LiveDigital запускает
+её автоматически, если включён флаг `isAutoRecordingAllowed`. После `record_finished` сервер скачивает файл
+в `UPLOADS_DIR/recordings` с тремя повторами; при ошибке сохраняется технический отчёт и уведомляются
+наставник и администраторы. Срок хранения — до `Course.endDate`, затем файл и запись у провайдера удаляются.
+
+Веб-кабинет использует официальный Web SDK `@livedigital/client` (Chrome 90+, Safari 15+). Мобильное
+приложение открывает тот же Web SDK в нативном `react-native-webview`: у LiveDigital нет React Native-пакета,
+а официальные iOS/Android SDK требуют отдельного нативного экрана. Токены передаются в WebView и
+синхронизируются обратно в SecureStore при refresh; камера и микрофон разрешены в `app.json`.
 
 ## Переименование приложения
 
-Название задаётся в `mobile/app.json` (`expo.name`, `extra.appName`, `slug`, `scheme`) и в текстах `mobile/src/i18n/index.ts`; иконка и splash — `mobile/assets/images/`.
-#   - p l a t f o r m - i t - a d i s  
- 
+Название задаётся в `apps/mobile/app.json` (`expo.name`, `extra.appName`, `slug`, `scheme`) и в текстах `apps/mobile/src/i18n/index.ts`; иконка и splash — `apps/mobile/assets/images/`.
+# -platform-it-adis

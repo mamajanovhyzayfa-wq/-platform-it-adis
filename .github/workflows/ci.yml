@@ -1,0 +1,252 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'release/**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: itadis
+          POSTGRES_PASSWORD: itadis
+          POSTGRES_DB: itadis
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U itadis -d itadis"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public
+      CONTROL_DATABASE_URL: postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public
+      REDIS_URL: redis://127.0.0.1:6379
+      JWT_ACCESS_SECRET: ci-access-secret-not-for-production-1234
+      JWT_REFRESH_SECRET: ci-refresh-secret-not-for-production-5678
+      NODE_ENV: test
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run build
+      - run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: itadis
+          POSTGRES_PASSWORD: itadis
+          POSTGRES_DB: itadis
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U itadis -d itadis"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public
+      CONTROL_DATABASE_URL: postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public
+      REDIS_URL: redis://127.0.0.1:6379
+      JWT_ACCESS_SECRET: ci-access-secret-not-for-production-1234
+      JWT_REFRESH_SECRET: ci-refresh-secret-not-for-production-5678
+      NODE_ENV: test
+      E2E_BASE_URL: http://primary.local:4000
+      E2E_ADMIN_EMAIL: admin@itadis.kg
+      E2E_ADMIN_PASSWORD: ITadis2026
+      E2E_BRANCH_B_URL: http://branch-b.itadis.test:4000
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run prisma:seed
+      - name: Создать филиал B для проверки изоляции
+        run: |
+          npx prisma db execute --schema prisma/schema.prisma --stdin <<'SQL'
+          INSERT INTO "Branch" (
+            "id", "name", "slug", "domain", "databaseName", "storagePrefix", "status",
+            "isPrimary", "adminEmail", "updatedAt"
+          ) VALUES (
+            '00000000-0000-0000-0000-0000000000b2',
+            'E2E филиал B',
+            'e2e-branch-b',
+            'branch-b.itadis.test',
+            'itadis_branch_e2e_b',
+            'e2e-branch-b',
+            'ACTIVE',
+            false,
+            'admin@itadis.kg',
+            CURRENT_TIMESTAMP
+          ) ON CONFLICT ("domain") DO NOTHING;
+          SQL
+      - name: Создать БД филиала B и применить миграции
+        run: |
+          node --input-type=module <<'NODE'
+          import { PrismaClient } from '@prisma/client'
+
+          const databaseName = 'itadis_branch_e2e_b'
+          const url = new URL(process.env.DATABASE_URL)
+          const adminUrl = new URL(url)
+          adminUrl.pathname = '/postgres'
+          adminUrl.searchParams.delete('schema')
+
+          const admin = new PrismaClient({ datasourceUrl: adminUrl.toString() })
+          try {
+            const exists = await admin.$queryRawUnsafe(
+              'SELECT 1 FROM pg_database WHERE datname = $1',
+              databaseName,
+            )
+            if (exists.length === 0) {
+              await admin.$executeRawUnsafe(`CREATE DATABASE "${databaseName}"`)
+            }
+          } finally {
+            await admin.$disconnect()
+          }
+          NODE
+
+          BRANCH_B_DATABASE_URL="${DATABASE_URL%/*}/itadis_branch_e2e_b"
+          DATABASE_URL="$BRANCH_B_DATABASE_URL" npx prisma migrate deploy
+      - name: Направить домены филиалов на локальный API
+        run: echo '127.0.0.1 primary.local branch-b.itadis.test' | sudo tee -a /etc/hosts
+      - name: Собрать и запустить API
+        run: |
+          npm run build
+          nohup node dist/src/main.js > /tmp/itadis-e2e-api.log 2>&1 &
+          echo $! > /tmp/itadis-e2e-api.pid
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4000/healthz | grep -q '"status":"ok"'; then
+              echo "API готов к e2e"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API не поднялся за 120 секунд"
+          cat /tmp/itadis-e2e-api.log
+          exit 1
+      - name: E2E (9 сценариев, без пропусков)
+        env:
+          E2E_BASE_URL: http://primary.local:4000
+          E2E_ADMIN_EMAIL: admin@itadis.kg
+          E2E_ADMIN_PASSWORD: ITadis2026
+          E2E_BRANCH_B_URL: http://branch-b.itadis.test:4000
+        run: |
+          rm -f /tmp/itadis-e2e.json
+          set +e
+          npm run test:e2e -- --reporter=json --outputFile=/tmp/itadis-e2e.json
+          status=$?
+          set -e
+
+          node <<'NODE'
+          const fs = require('node:fs')
+          const reportPath = '/tmp/itadis-e2e.json'
+          if (!fs.existsSync(reportPath)) {
+            console.error(`E2E: отчёт не создан (${reportPath})`)
+            process.exit(1)
+          }
+
+          const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'))
+          const total = report.numTotalTests ?? 0
+          const passed = report.numPassedTests ?? 0
+          const failed = report.numFailedTests ?? 0
+          const skipped = report.numPendingTests ?? 0
+          console.log(`E2E: passed=${passed}, failed=${failed}, skipped=${skipped}, total=${total}`)
+
+          if (skipped !== 0) {
+            console.error('E2E: есть пропущенные сценарии. Проверьте E2E_BASE_URL и обязательные E2E_* переменные.')
+            process.exit(1)
+          }
+          if (failed !== 0 || passed < 9) {
+            console.error('E2E: ожидалось не менее 9 успешных сценариев.')
+            process.exit(1)
+          }
+          NODE
+
+          exit "$status"
+      - name: Журнал API при ошибке
+        if: failure()
+        run: cat /tmp/itadis-e2e-api.log
+      - name: Остановить API
+        if: always()
+        run: |
+          if [ -f /tmp/itadis-e2e-api.pid ]; then
+            kill "$(cat /tmp/itadis-e2e-api.pid)" 2>/dev/null || true
+          fi
+
+  admin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test

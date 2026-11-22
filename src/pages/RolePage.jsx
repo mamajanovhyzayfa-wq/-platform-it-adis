@@ -34,9 +34,6 @@ export function RolePage() {
               <Link className="button" to={`/login?role=${role.slug}`}>
                 Перейти в кабинет
               </Link>
-              <Link className="button button-outline" to="/#pricing">
-                Посмотреть тарифы
-              </Link>
             </div>
           </div>
         </header>
@@ -59,7 +56,7 @@ export function RolePage() {
         <section className="role-cta">
           <div>
             <h2>Готовы попробовать?</h2>
-            <p>Оставьте заявку — менеджер поможет выбрать тариф и подключит нужный кабинет.</p>
+            <p>Оставьте заявку — менеджер поможет подключить нужный кабинет.</p>
           </div>
           <Link className="button button-accent" to="/#roles">
             Выбрать другую роль
