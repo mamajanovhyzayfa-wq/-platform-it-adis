@@ -8,6 +8,7 @@ import { requireAuth } from '../../middleware/auth.js'
 import { getTenant } from '../../lib/tenant.js'
 import { scanFile } from '../../lib/file-scan.js'
 import { writeFileAudit } from '../../lib/file-audit.js'
+import { signFileToken } from '../../lib/security.js'
 
 /**
  * Загрузка вложений: фото и документы для чата и решений домашних заданий.
@@ -148,7 +149,7 @@ uploadsRouter.post('/', requireAuth, (req, res, next) => {
       const origin = `${req.protocol}://${req.get('host')}`
       res.status(201).json({
         name: file.originalname.slice(0, 255),
-        url: `${origin}/uploads/${certificateUpload ? 'certificates/' : ''}${file.filename}`,
+        url: `${origin}/uploads/${certificateUpload ? 'certificates/' : ''}${file.filename}?t=${signFileToken(file.filename)}`,
         mimeType: file.mimetype,
         size: file.size,
         isImage: file.mimetype.startsWith('image/'),

@@ -81,6 +81,21 @@ export function verifyStepUpToken(token: string): string {
   return payload.sub
 }
 
+/** Короткоживущая подпись ссылки на вложение: привязана к имени файла, живёт 10 минут. */
+export function signFileToken(fileName: string) {
+  // Ссылка сохраняется в данных (вложения, материалы), поэтому живёт долго; доступ всё равно только к своему файлу.
+  return jwt.sign({ scope: 'file', name: fileName }, env.JWT_ACCESS_SECRET, { expiresIn: '365d' })
+}
+
+export function verifyFileToken(token: string, fileName: string): boolean {
+  try {
+    const payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as Partial<{ scope: string; name: string }>
+    return payload.scope === 'file' && payload.name === fileName
+  } catch {
+    return false
+  }
+}
+
 /** Промежуточный токен после пароля, когда включена двухфакторная аутентификация. */
 export function signTwoFactorChallenge(userId: string) {
   return jwt.sign({ scope: '2fa', sub: userId }, env.JWT_ACCESS_SECRET, { expiresIn: '5m' })

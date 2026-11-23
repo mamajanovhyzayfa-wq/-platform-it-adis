@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import type { RequestHandler } from 'express'
 import { env } from '../config/env.js'
-import { verifyAccessToken } from './security.js'
+import { verifyAccessToken, verifyFileToken } from './security.js'
 import { writeFileAudit } from './file-audit.js'
 import { getPrimaryBranch, normalizeHost, resolveBranchByDomain } from './branch-registry.js'
 import { defaultPrisma } from './prisma.js'
@@ -91,6 +91,15 @@ export const tenantMiddleware: RequestHandler = (req, res, next) => {
   })().catch(next)
 }
 
+function isValidAccessToken(token: string): boolean {
+  try {
+    verifyAccessToken(token)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Статика вложений из каталога текущего филиала. */
 export const tenantUploadsStatic: RequestHandler = (req, res, next) => {
   const dir = getTenant()?.uploadsDir
@@ -110,32 +119,33 @@ export const tenantUploadsStatic: RequestHandler = (req, res, next) => {
     res.status(404).end()
     return
   }
+  // Файлы отдаются только владельцу/участнику с Bearer-токеном или по короткой подписанной ссылке ?t=.
+  const queryToken = typeof req.query.t === 'string' ? req.query.t : ''
+  const bearer = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : ''
+  const authorized = (bearer && isValidAccessToken(bearer)) || (queryToken && verifyFileToken(queryToken, name))
+  if (!authorized) {
+    res.status(401).json({ error: 'UNAUTHORIZED', message: 'Требуется авторизация для просмотра файла' })
+    return
+  }
   // Вложения чата и решений не должны исполняться как HTML/SVG в браузере.
   // Приватные документы (библиотека, сертификаты) идут только через API с ACL.
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'; sandbox")
   res.setHeader('Cross-Origin-Resource-Policy', 'same-site')
-  res.setHeader('Cache-Control', 'private, max-age=3600')
+  res.setHeader('Cache-Control', 'private, no-store')
   if (!/\.(jpe?g|png|webp|gif|heic|mp4|webm|mov|mkv|mp3|m4a|wav|ogg|pdf|txt|md|docx?|xlsx?|pptx?|zip)$/i.test(name)) {
     res.setHeader('Content-Disposition', 'attachment')
   }
   let userId: string | undefined
-  const header = req.headers.authorization
-  if (header?.startsWith('Bearer ')) {
-    try {
-      userId = verifyAccessToken(header.slice(7)).sub
-    } catch {
-      // Скачивание публичное; просто не привязываем его к пользователю.
-    }
-  }
+  if (bearer && isValidAccessToken(bearer)) userId = verifyAccessToken(bearer).sub
 
-  res.sendFile(file, { maxAge: '7d' }, (error) => {
+  res.sendFile(file, (error) => {
     if (!error) {
       void writeFileAudit({
         userId,
         action: 'DOWNLOAD',
         fileName: name,
-        url: req.originalUrl,
+        url: req.path,
         ip: req.ip,
         userAgent: req.get('user-agent') ?? null,
       })
