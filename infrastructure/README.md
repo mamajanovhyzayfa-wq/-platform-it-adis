@@ -148,6 +148,11 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec antivi
 и содержать `.env.production`. Без `DEPLOY_*` job деплоя пропускается, образы
 всё равно публикуются.
 
+`DEPLOY_PATH` — рабочая копия репозитория: `docker-compose.prod.yml`,
+`infrastructure/caddy/Caddyfile` и `infrastructure/clamav/rest.mjs` читаются
+с диска, а не из образов. Перед деплоем обновите копию (`git pull`), иначе
+`caddy` и `antivirus` получат устаревшие конфиги или не найдут файлы.
+
 ## Масштабирование до 10 000 онлайн
 
 10 000 онлайн — это 10 000 HTTP/WebSocket-клиентов, а не 10 000 соединений

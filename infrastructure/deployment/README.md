@@ -76,5 +76,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml ps
   сборка admin и typecheck mobile.
 - `.github/workflows/release.yml` — образы API/admin в GHCR и SSH-деплой по
   тегу при заданных `DEPLOY_*` в GitHub Environment `production`.
+  `DEPLOY_PATH` — checkout репозитория: compose и конфиги `caddy`/`antivirus`
+  монтируются с диска, поэтому перед деплоем обновите его (`git pull`).
 - Откат — предыдущий тег образа. Миграции автоматически не откатываются:
   сначала проверьте совместимость и сделайте свежую копию БД.
