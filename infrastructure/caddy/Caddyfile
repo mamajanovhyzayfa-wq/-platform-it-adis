@@ -27,8 +27,7 @@
 	}
 
 	# WebSocket /socket.io/ Caddy проксирует без дополнительной настройки.
-	reverse_proxy edge:80 {
-		header_up X-Forwarded-Proto {scheme}
-		header_up X-Real-IP {remote_host}
-	}
+	# X-Forwarded-Proto, X-Forwarded-For и X-Forwarded-Host Caddy подставляет сам,
+	# поэтому дублировать их в header_up не нужно.
+	reverse_proxy edge:80
 }
