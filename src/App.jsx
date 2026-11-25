@@ -133,6 +133,8 @@ export default function App() {
         <Route path="/student" element={<CabinetRedirect path="/student" />} />
         <Route path="/parent" element={<CabinetRedirect path="/parent" />} />
         <Route path="/login" element={<LoginPage />} />
+        {/* /dashboard — привычный адрес кабинета: ведём в кабинет, а не в 404. */}
+        <Route path="/dashboard" element={<CabinetRedirect path="/" />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
 
