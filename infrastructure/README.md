@@ -16,6 +16,7 @@
 | `nginx/edge.conf` | Внутренний вход, прокси на admin/backend |
 | `caddy/Caddyfile` | TLS-фронт на sslip.io: Let's Encrypt, HTTPS, WebSocket |
 | `clamav/rest.mjs` | HTTP-обёртка над clamd для `ANTIVIRUS_SCAN_URL` |
+| `scripts/deploy.sh` | Деплой одной командой: sslip.io-хостнейм из IP, preflight, compose up, ожидание `/healthz` |
 | `monitoring/prometheus.yml` | Scrape `/metrics` |
 | `monitoring/alerts.yml` | Алерты: API down, рост 5xx, перезапуск процесса |
 | `../.env.production.example` | Полный шаблон production-переменных (домены, секреты, интеграции) |
@@ -57,6 +58,31 @@ Google/Apple, календари, бухгалтерию, платёжные а�
 ломают запуск. `PUBLIC_HOSTNAME` и production-секреты обязательны: compose
 падает до старта, если они не заданы. `ANTIVIRUS_SCAN_URL` заполнять не нужно —
 его значение по умолчанию ведёт на контейнер ClamAV.
+
+### Одной командой: `infrastructure/scripts/deploy.sh`
+
+Скрипт закрывает весь подготовительный этап: считает `PUBLIC_HOSTNAME` из IP
+сервера (`203.0.113.10` → `203-0-113-10.sslip.io`) и записывает его в
+`.env.production`, проверяет обязательные переменные и занятость портов
+80/443, затем запускает `docker compose up -d --build` и ждёт ответа
+`https://PUBLIC_HOSTNAME/healthz`.
+
+```bash
+# на сервере, из корня репозитория (Docker + compose v2 должны быть установлены)
+infrastructure/scripts/deploy.sh --ip 203.0.113.10
+
+# только preflight: переменные, порты, валидность compose — без запуска
+infrastructure/scripts/deploy.sh --check
+```
+
+Опции: `--ip <IPv4>` (без него IP берётся из текущего `PUBLIC_HOSTNAME` или
+определяется через внешний сервис), `--env-file <путь>` (по умолчанию
+`.env.production`), `--check`. Секреты скрипт не печатает — только имена
+незаполненных переменных. При повторном запуске занятые порты не считаются
+ошибкой, если их держит `caddy` этого же стека: команда работает как
+передеплой. Собственный домен: скрипт не трогает `PUBLIC_HOSTNAME`, если он
+уже не в формате sslip.io — тогда он только предупредит о расхождении с
+`APP_ORIGIN`.
 
 ### Деплой без домена: sslip.io
 

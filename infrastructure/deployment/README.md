@@ -20,6 +20,16 @@ compose; вручную его задают только для внешнего
 
 ## 2. Запуск
 
+Одной командой — скрипт сам посчитает `PUBLIC_HOSTNAME` из IP сервера,
+проверит переменные и порты 80/443, поднимет compose и дождётся `/healthz`:
+
+```bash
+infrastructure/scripts/deploy.sh --ip 203.0.113.10
+infrastructure/scripts/deploy.sh --check   # только preflight, без запуска
+```
+
+Эквивалент вручную:
+
 ```bash
 docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
 docker compose --env-file .env.production -f docker-compose.prod.yml --profile monitoring up -d
