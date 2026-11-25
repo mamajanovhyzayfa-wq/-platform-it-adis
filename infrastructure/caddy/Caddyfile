@@ -1,0 +1,34 @@
+# Production-вход без покупки домена: Caddy получает Let's Encrypt сертификат
+# для бесплатного хостнейма sslip.io (203-0-113-10.sslip.io → 203.0.113.10)
+# и проксирует всё на внутренний nginx `edge`.
+#
+# Публичные порты 80 и 443 должны быть открыты: порт 80 нужен для ACME
+# HTTP-01 challenge и перенаправления на HTTPS.
+{
+	email {$ACME_EMAIL}
+	# Логи в stdout, их собирает docker json-file driver.
+	log {
+		output stdout
+		format console
+	}
+}
+
+{$PUBLIC_HOSTNAME} {
+	encode zstd gzip
+
+	# Вложения и записи занятий — до 512 MB, как и в edge/nginx.
+	request_body {
+		max_size 512MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	# WebSocket /socket.io/ Caddy проксирует без дополнительной настройки.
+	reverse_proxy edge:80 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+	}
+}

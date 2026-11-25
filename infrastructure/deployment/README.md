@@ -11,9 +11,11 @@ cp .env.production.example .env.production
 ```
 
 Обязательны `POSTGRES_PASSWORD`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`,
-`DATA_ENCRYPTION_KEY`, `APP_ORIGIN`, `ANTIVIRUS_SCAN_URL`, `S3_ACCESS_KEY`,
-`S3_SECRET_KEY`. Для филиалов — `PRIMARY_DOMAIN`, `PLATFORM_DOMAIN` и пароль
-или bcrypt-хеш платформенного администратора. Все внешние адаптеры получают
+`DATA_ENCRYPTION_KEY`, `APP_ORIGIN`, `PUBLIC_HOSTNAME`, `S3_ACCESS_KEY`,
+`S3_SECRET_KEY`. `ANTIVIRUS_SCAN_URL` уже указывает на контейнер ClamAV из
+compose; вручную его задают только для внешнего сканера. Для филиалов —
+`PRIMARY_DOMAIN`, `PLATFORM_DOMAIN` и пароль или bcrypt-хеш платформенного
+администратора. Все внешние адаптеры получают
 ключи из этого же файла; без ключей они работают в режиме `not_configured`.
 
 ## 2. Запуск
@@ -30,15 +32,34 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile m
 
 ## 3. Домены и TLS
 
-- A/AAAA-записи основного домена, `PLATFORM_DOMAIN` и доменов филиалов ведут
-  на балансировщик или внешний nginx.
-- TLS-сертификат устанавливается на балансировщике; `edge` принимает HTTP
-  только из private network.
-- Включите WebSocket upgrade для `/socket.io/`, HSTS, HTTP → HTTPS и
-  `client_max_body_size` не меньше 512 MB.
-- PostgreSQL, Redis и MinIO не публикуют порты наружу.
+- Без своего домена используйте sslip.io: для сервера `203.0.113.10`
+  `PUBLIC_HOSTNAME=203-0-113-10.sslip.io` (дефисы вместо точек), а
+  `APP_ORIGIN`/`ADMIN_WEB_ORIGIN`/`API_PUBLIC_URL`/`PRIMARY_DOMAIN`/
+  `PLATFORM_DOMAIN` — `https://203-0-113-10.sslip.io`.
+- Откройте TCP 80 и 443 (и UDP 443): Caddy из compose сам получает
+  сертификат Let's Encrypt и проксирует на внутренний `edge`.
+- WebSocket upgrade для `/socket.io/`, HSTS и HTTP → HTTPS уже включены в
+  `infrastructure/caddy/Caddyfile`, лимит тела — 512 MB.
+- С внешним балансировщиком TLS переносится на него, а `caddy` не запускается;
+  PostgreSQL, Redis, MinIO и ClamAV портов наружу не публикуют.
 
-## 4. Проверка после запуска
+### Антивирус
+
+Compose поднимает `clamav` и HTTP-обёртку `antivirus`; backend ждёт её
+healthy и отправляет файлы на `http://antivirus:8080/scan`. Первый старт
+скачивает базы сигнатур — до нескольких минут.
+
+## 4. Проверка антивируса
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml exec antivirus \
+  node -e "fetch('http://127.0.0.1:8080/healthz').then(r=>r.text()).then(console.log)"
+```
+
+Ожидается `{"status":"ok"}`. Загрузка EICAR-файла через админку должна быть
+отклонена.
+
+## 5. Проверка после запуска
 
 ```bash
 curl -fsS https://app.example.com/healthz
@@ -49,7 +70,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml ps
 Проверьте вход администратора, `/api/integrations`, создание тестового филиала
 и восстановление резервной копии по процедуре из `infrastructure/README.md`.
 
-## 5. CI/CD и откат
+## 6. CI/CD и откат
 
 - `.github/workflows/ci.yml` — миграции, тесты API, e2e с PostgreSQL/Redis,
   сборка admin и typecheck mobile.

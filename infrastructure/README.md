@@ -8,12 +8,14 @@
 | Файл | Назначение |
 | --- | --- |
 | `../docker-compose.yml` | Локально: PostgreSQL 16, Redis 7, backend |
-| `../docker-compose.prod.yml` | Production: PostgreSQL, PgBouncer, Redis, MinIO, backend, admin, nginx, Prometheus |
+| `../docker-compose.prod.yml` | Production: PostgreSQL, PgBouncer, Redis, MinIO, ClamAV, backend, admin, nginx, Caddy, Prometheus |
 | `../apps/api/Dockerfile` | Backend + `pg_dump`/`pg_restore` для backup/restore |
 | `../apps/web/Dockerfile` | Сборка SPA и nginx-контейнер |
 | `nginx/nginx.conf` | Общий конфиг Nginx: 32k соединений на worker, nofile 65k |
 | `nginx/admin.conf` | SPA, `/api`, `/socket.io`, `/uploads` |
-| `nginx/edge.conf` | Внешний вход, прокси на admin/backend |
+| `nginx/edge.conf` | Внутренний вход, прокси на admin/backend |
+| `caddy/Caddyfile` | TLS-фронт на sslip.io: Let's Encrypt, HTTPS, WebSocket |
+| `clamav/rest.mjs` | HTTP-обёртка над clamd для `ANTIVIRUS_SCAN_URL` |
 | `monitoring/prometheus.yml` | Scrape `/metrics` |
 | `monitoring/alerts.yml` | Алерты: API down, рост 5xx, перезапуск процесса |
 | `../.env.production.example` | Полный шаблон production-переменных (домены, секреты, интеграции) |
@@ -29,8 +31,10 @@
 | production | боевой сервер | `docker-compose.prod.yml`, `.env.production` |
 
 В production обязательны: `POSTGRES_PASSWORD`, `JWT_ACCESS_SECRET`,
-`JWT_REFRESH_SECRET`, `DATA_ENCRYPTION_KEY`, `APP_ORIGIN`,
-`ANTIVIRUS_SCAN_URL`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`.
+`JWT_REFRESH_SECRET`, `DATA_ENCRYPTION_KEY`, `APP_ORIGIN`, `PUBLIC_HOSTNAME`,
+`S3_ACCESS_KEY`, `S3_SECRET_KEY`.
+`ANTIVIRUS_SCAN_URL` по умолчанию указывает на контейнер `antivirus`
+(`http://antivirus:8080/scan`) и вручную заполняется только для внешнего сканера.
 Для филиалов также задайте `PLATFORM_DOMAIN`, `PRIMARY_DOMAIN` и
 `PLATFORM_ADMIN_PASSWORD` (или `PLATFORM_ADMIN_PASSWORD_HASH`).
 `ALLOW_PRIMARY_FALLBACK` в production должен оставаться `false`.
@@ -50,25 +54,89 @@ docker compose --env-file .env.production -f docker-compose.prod.yml --profile m
 backend: JWT/шифрование, антивирус, SMTP, SMS/Twilio, Expo Push, AI,
 Google/Apple, календари, бухгалтерию, платёжные адаптеры, LiveDigital и S3.
 Пустые необязательные интеграции переводят адаптер в `not_configured`, а не
-ломают запуск. `ANTIVIRUS_SCAN_URL` и production-секреты обязательны: compose
-падает до старта, если они не заданы.
+ломают запуск. `PUBLIC_HOSTNAME` и production-секреты обязательны: compose
+падает до старта, если они не заданы. `ANTIVIRUS_SCAN_URL` заполнять не нужно —
+его значение по умолчанию ведёт на контейнер ClamAV.
 
-### Домены и TLS
+### Деплой без домена: sslip.io
 
-1. Направьте A/AAAA-записи основного домена, `PLATFORM_DOMAIN` и доменов
-   филиалов на балансировщик или внешний nginx.
-2. TLS-сертификат (Let's Encrypt/ACL) устанавливается на балансировщике;
-   `edge` принимает HTTP только из private network и не публикует PostgreSQL,
-   Redis или MinIO.
-3. На балансировщике включите WebSocket upgrade для `/socket.io/`, HSTS и
-   перенаправление HTTP → HTTPS. `client_max_body_size` — не меньше 512 MB.
+Покупать домен не нужно. `sslip.io` — публичный DNS, встраивающий IP в имя:
+хостнейм `203-0-113-10.sslip.io` резолвится в `203.0.113.10`.
+
+1. Откройте на сервере входящие TCP 80 и 443 (и UDP 443 для HTTP/3): порт 80
+   нужен Let's Encrypt для ACME HTTP-01 и для редиректа на HTTPS.
+2. Замените `203.0.113.10` на публичный IPv4 сервера (в хостнейме — дефисы
+   вместо точек) и задайте в `.env.production`:
+
+   ```ini
+   PUBLIC_HOSTNAME=203-0-113-10.sslip.io
+   ACME_EMAIL=admin@example.com
+   APP_ORIGIN=https://203-0-113-10.sslip.io
+   ADMIN_WEB_ORIGIN=https://203-0-113-10.sslip.io
+   API_PUBLIC_URL=https://203-0-113-10.sslip.io
+   PRIMARY_DOMAIN=203-0-113-10.sslip.io
+   PLATFORM_DOMAIN=203-0-113-10.sslip.io
+   ```
+
+3. Запустите compose из раздела выше. `caddy` получает сертификат сам и
+   проксирует трафик на `edge`: TLS, HTTP/2, WebSocket `/socket.io/` и лимит
+   тела файла 512 MB уже настроены в `caddy/Caddyfile`.
+4. Проверьте: `curl -fsS https://203-0-113-10.sslip.io/healthz`. При смене IP сервера меняется
+   только `PUBLIC_HOSTNAME` (и связанные URL) → `docker compose up -d`.
+
+`sslip.io` подходит для тестового и рабочего запуска без своего домена; имя
+привязано к IP и не подходит для мобильных приложений с жёстким deep link.
+Когда появится домен: добавьте A-запись на этот же IP, замените
+`PUBLIC_HOSTNAME`/`*_ORIGIN` на домен и выполните `docker compose up -d` —
+Caddy перевыпустит сертификат автоматически. Если TLS завершается облачным
+балансировщиком, оставьте его перед `edge` и сделайте `caddy` no-op через
+`docker compose ... up -d --scale caddy=0`.
+
+### TLS и проксирование
+
+1. Наружу опубликованы только порты `caddy` (80/443). `edge` — внутренний
+   nginx, PostgreSQL, Redis, MinIO и ClamAV портов не публикуют.
+2. Caddy включает HSTS, WebSocket upgrade для `/socket.io/` и
+   `request_body max_size 512MB`; `edge` проксирует запросы на `admin` и
+   `backend` по private network.
+3. При внешнем балансировщике перенесите эти правила на него и не публикуйте
+   `caddy` (см. выше).
 4. Проверьте HTTPS для API, admin и домена каждого филиала; токен филиала
    отклоняется на чужом домене tenant-middleware.
 
 Порядок: `postgres` → `pgbouncer` → `migrate` (`prisma migrate deploy`) →
-`backend` → `admin`/`edge`. MinIO создаёт приватный бакет `S3_BUCKET`;
-анонимный доступ запрещён. TLS завершается облачным балансировщиком или
-внешним nginx; `edge` принимает HTTP только из private network.
+`backend` → `admin`/`edge` → `caddy`. MinIO создаёт приватный бакет `S3_BUCKET`;
+анонимный доступ запрещён. TLS завершается `caddy`, `edge` принимает HTTP
+только из private network.
+
+### Антивирус
+
+`ANTIVIRUS_SCAN_URL` в production обязателен по валидации env. Compose поднимает
+два контейнера:
+
+- `clamav` (`clamav/clamav:stable`) — clamd на 3310, базы сигнатур в volume
+  `clamav_signatures`, freshclam обновляет их при старте (первый старт — минуты,
+  `start_period` healthcheck 300 s);
+- `antivirus` (`node:24-alpine` + `clamav/rest.mjs`) — HTTP API для backend:
+  `POST /scan` с сырым телом файла → `{"clean":true}` или
+  `{"clean":false,"reason":"..."}`, `GET /healthz` проверяет clamd.
+
+Backend ждёт `antivirus` здоровым и отправляет файлы на
+`http://antivirus:8080/scan` (`ANTIVIRUS_PROVIDER=clamav`). Если задан
+`ANTIVIRUS_API_KEY`, обёртка требует заголовок `X-API-Key` — backend отправляет
+его автоматически. Внешний сканер (Cloudmersive/MetaDefender) подключается
+сменой `ANTIVIRUS_SCAN_URL` и `ANTIVIRUS_PROVIDER`.
+
+Проверка после запуска:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml exec antivirus \
+  node -e "fetch('http://127.0.0.1:8080/healthz').then(r=>r.text()).then(console.log)"
+```
+
+Ответ `{"status":"ok"}` означает, что обёртка видит clamd. Затем загрузите
+тестовый EICAR-файл через админку: загрузка должна быть отклонена с причиной
+«Обнаружено: …»; чистый файл проходит со статусом `EXTERNAL` в аудите.
 
 ### CD по тегу
 
@@ -188,7 +256,9 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
 - [ ] Секреты ≥ 32 символов, разные для JWT/refresh/encryption.
 - [ ] `APP_ORIGIN` и `ADMIN_WEB_ORIGIN` — точные HTTPS-origin.
 - [ ] PostgreSQL/Redis/MinIO недоступны из интернета.
+- [ ] `PUBLIC_HOSTNAME` указывает на реальный IP, порты 80/443 открыты.
 - [ ] TLS/HSTS, WebSocket upgrade, `client_max_body_size`.
+- [ ] `antivirus` и `clamav` в статусе healthy, загрузка EICAR отклоняется.
 - [ ] `prisma migrate deploy` выполнен; демо-данные отсутствуют.
 - [ ] `BACKUP_SCHEDULER_ENABLED=true`, `BACKUP_DIR` на отдельном volume.
 - [ ] Проверено восстановление тестового филиала и целостность копий.
