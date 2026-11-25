@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Inject, Param, Patch, Post, Query } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { CurrentUser, Public, Roles, type AuthUser } from '../../nest/common/decorators.js'
 import { zodBody } from '../../nest/common/zod.pipe.js'
@@ -32,7 +32,8 @@ function parseQuery(raw: Record<string, unknown>): LeadsQuery {
  */
 @Controller('api/leads')
 export class LeadsController {
-  constructor(private readonly leads: LeadsService) {}
+  // @Inject делает зависимость явной: контроллер работает и без emitDecoratorMetadata.
+  constructor(@Inject(LeadsService) private readonly leads: LeadsService) {}
 
   @Public()
   @Throttle({ default: { limit: 5, ttl: 10 * 60 * 1000 } })
