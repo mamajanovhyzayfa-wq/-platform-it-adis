@@ -18,7 +18,6 @@ function validate(form) {
   const phoneDigits = form.phone.replace(/\D/g, '')
   if (phoneDigits.length < 9 || phoneDigits.length > 15) errors.phone = 'Укажите номер телефона'
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = 'Проверьте email'
-  if (form.message.trim().length > 1000) errors.message = 'Не больше 1000 символов'
   return errors
 }
 
@@ -32,8 +31,12 @@ export function LeadForm({ onDone }) {
   const inFlight = useRef(false)
 
   const update = (field) => (event) => {
-    setForm((current) => ({ ...current, [field]: event.target.value }))
-    setErrors((current) => ({ ...current, [field]: undefined }))
+    const { value } = event.target
+    setForm((current) => ({ ...current, [field]: value }))
+    setErrors((current) => {
+      const { [field]: _cleared, ...rest } = current
+      return rest
+    })
     setRequestError(null)
   }
 
@@ -148,9 +151,7 @@ export function LeadForm({ onDone }) {
           placeholder="Что хотите изучать или какой формат рассматриваете"
           rows={3}
           maxLength={1000}
-          aria-invalid={Boolean(errors.message)}
         />
-        {errors.message ? <em className="field-error">{errors.message}</em> : null}
       </label>
 
       {requestError ? (

@@ -22,6 +22,7 @@
     "build:web": "npm --prefix apps/web run build",
     "typecheck:mobile": "cd apps/mobile && npx tsc --noEmit",
     "test:api": "npm --prefix apps/api test",
+    "test:worker": "node --test infrastructure/sites/worker.test.mjs",
     "test:mobile": "npm --prefix apps/mobile test",
     "test:e2e:api": "npm --prefix apps/api run test:e2e",
     "prisma:validate": "npm --prefix apps/api run prisma:validate"

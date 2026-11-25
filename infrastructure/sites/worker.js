@@ -3,9 +3,10 @@
  *
  * Корень отдаёт лендинг, /app/ — полноценный веб-кабинет. Если задан
  * API_ORIGIN, запросы /api и /socket.io проксируются на backend; иначе
- * клиент получает понятный ответ о ненастроенном сервере.
+ * клиент получает ответ о ненастроенном сервере.
  */
 const APP_PREFIX = '/app/'
+const LEADS_PATH = '/api/leads'
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -14,9 +15,8 @@ function json(status, body) {
   })
 }
 
-function proxyToApi(request, url, origin) {
-  const target = new URL(url.pathname + url.search, origin)
-  return fetch(new Request(target, request))
+function isApiRequest(pathname) {
+  return pathname === '/api' || pathname.startsWith('/api/') || pathname.startsWith('/socket.io/')
 }
 
 export default {
@@ -24,39 +24,29 @@ export default {
     const url = new URL(request.url)
 
     if (url.pathname === '/app') {
-      return Response.redirect(new URL(`${APP_PREFIX}`, url), 308)
+      return Response.redirect(new URL(APP_PREFIX, url), 308)
     }
 
-    // Статический деплой без backend: лендинг и вход всё равно запрашивают
-    // брендинг. Отдаём валидные значения по умолчанию вместо 503, чтобы
-    // страница не писала ошибку в консоль и не ждала недоступный API.
-    if (request.method === 'GET' && url.pathname === '/api/branding' && !env.API_ORIGIN) {
-      return json(200, {
-        name: 'ITadis',
-        isPrimary: true,
-        mainSiteUrl: null,
-        logoUrl: null,
-        description: null,
-        contacts: null,
-        directions: [],
-      })
-    }
-
-    if (url.pathname.startsWith('/api/') || url.pathname === '/api' || url.pathname.startsWith('/socket.io/')) {
+    if (isApiRequest(url.pathname)) {
       if (!env.API_ORIGIN) {
         // Посетителю лендинга не показываем техническую инструкцию про API_ORIGIN:
         // для него это просто временная недоступность приёма заявок.
-        const leads = url.pathname === '/api/leads'
+        if (request.method === 'POST' && url.pathname === LEADS_PATH) {
+          return json(503, {
+            error: {
+              code: 'LEADS_UNAVAILABLE',
+              message: 'Приём заявок временно недоступен. Пожалуйста, попробуйте позже.',
+            },
+          })
+        }
         return json(503, {
           error: {
-            code: leads ? 'LEADS_UNAVAILABLE' : 'API_NOT_CONFIGURED',
-            message: leads
-              ? 'Приём заявок временно недоступен. Пожалуйста, попробуйте позже.'
-              : 'Сервер ITadis ещё не подключён к этому домену. Укажите адрес API в настройках сайта (API_ORIGIN).',
+            code: 'API_NOT_CONFIGURED',
+            message: 'Сервер ITadis ещё не подключён к этому домену. Укажите адрес API в настройках сайта (API_ORIGIN).',
           },
         })
       }
-      return proxyToApi(request, url, env.API_ORIGIN)
+      return fetch(new Request(new URL(url.pathname + url.search, env.API_ORIGIN), request))
     }
 
     const asset = await env.ASSETS.fetch(request)
