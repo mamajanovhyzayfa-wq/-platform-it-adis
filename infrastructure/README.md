@@ -17,7 +17,7 @@
 | `caddy/Caddyfile` | TLS-фронт на sslip.io: Let's Encrypt, HTTPS, WebSocket |
 | `clamav/rest.mjs` | HTTP-обёртка над clamd для `ANTIVIRUS_SCAN_URL` |
 | `scripts/deploy.sh` | Деплой одной командой: sslip.io-хостнейм из IP, preflight, compose up, ожидание `/healthz` |
-| `scripts/smoke.sh` | Smoke-проверка живого стека: `/healthz`, анонимный `POST /api/leads`, 401 без токена, `/socket.io/` |
+| `scripts/smoke.sh` | Smoke-проверка живого стека: `/healthz`, анонимный `POST /api/leads`, его CORS-ответ для Origin сайта, 401 без токена, `/socket.io/` |
 | `monitoring/prometheus.yml` | Scrape `/metrics` |
 | `monitoring/alerts.yml` | Алерты: API down, рост 5xx, перезапуск процесса |
 | `../.env.production.example` | Полный шаблон production-переменных (домены, секреты, интеграции) |
@@ -98,7 +98,7 @@ infrastructure/scripts/deploy.sh --check
 | 4 | `$EDITOR .env.production` | заполнены `POSTGRES_PASSWORD`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `DATA_ENCRYPTION_KEY`, `APP_ORIGIN`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `ACME_EMAIL` |
 | 5 | `infrastructure/scripts/deploy.sh --check --ip 203.0.113.10` | `preflight пройден (--check): https://203-0-113-10.sslip.io/healthz после запуска` |
 | 6 | `infrastructure/scripts/deploy.sh --ip 203.0.113.10` | `https://203-0-113-10.sslip.io/healthz отвечает`, затем `Деплой завершён.` |
-| 7 | `infrastructure/scripts/smoke.sh https://203-0-113-10.sslip.io` | четыре `PASS` и `Проверок пройдено: 4, провалено: 0`, код возврата 0 |
+| 7 | `infrastructure/scripts/smoke.sh https://203-0-113-10.sslip.io --origin https://platform-it-adis-nmtovk.freebuff.site` | пять `PASS` и `Проверок пройдено: 5, провалено: 0, пропущено: 0`, код возврата 0 |
 | 8 | в настройках сайта Freebuff: `API_ORIGIN=https://203-0-113-10.sslip.io` | заявка с лендинга сохраняется, вход в кабинет работает |
 
 Шаг 5 проверяет переменные, порты 80/443 и `docker compose config` без запуска;
@@ -106,6 +106,14 @@ infrastructure/scripts/deploy.sh --check
 настоящую заявку «Smoke test» — это единственное изменение данных; ответ `429`
 на `POST /api/leads` тоже считается успехом, потому что лимит 5 заявок за
 10 минут с одного IP уже исчерпан.
+
+`--origin` в шаге 7 обязателен для полной проверки: за воркером сайта `Host`
+равен sslip-имени, а `Origin` — домену сайта, и именно эта пара решает, увидит
+ли лендинг ответ на свою заявку. Скрипт отправляет `POST /api/leads` с этим
+`Origin` и требует `Access-Control-Allow-Origin` ровно с этим значением:
+отсутствие заголовка и `*` (с `credentials` браузер такой ответ отклонит) —
+провал. Без `--origin` проверка печатает `SKIP` и считается в итоговой строке
+`пропущено`, а не молча проходит.
 
 Те же проверки deploy-пути выполняет job `infrastructure` в CI на каждый PR:
 `shellcheck -x` по `infrastructure/**/*.sh`, `docker compose config -q` с
