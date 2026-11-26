@@ -49,6 +49,8 @@
   margin: 6px 0 24px;
   font-size: clamp(1.8rem, 4vw, 2.7rem);
   line-height: 1.15;
+  /* Длинные слова вроде «конфиденциальности» не должны выезжать за экран. */
+  overflow-wrap: break-word;
 }
 
 .legal-content h2 {

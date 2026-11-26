@@ -53,10 +53,9 @@ test('остальные маршруты /api без API_ORIGIN получаю�
     assert.equal(response.status, 503, `${method} ${path}`)
     const body = await response.json()
     assert.equal(body.error.code, 'API_NOT_CONFIGURED', `${method} ${path}`)
-    // Форма входа показывает это сообщение посетителю, поэтому начинается оно
-    // с понятной фразы, а техническая подсказка идёт второй.
+    // Форма входа показывает это сообщение посетителю: никаких имён настроек.
     assert.match(body.error.message, /^Сервер ITadis временно недоступен\./)
-    assert.match(body.error.message, /API_ORIGIN/)
+    assert.doesNotMatch(body.error.message, /API_ORIGIN|undefined|null/)
   }
 })
 
