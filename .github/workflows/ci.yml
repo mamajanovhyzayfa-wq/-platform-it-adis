@@ -250,3 +250,58 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm test
+
+  # Гейт deploy-пути: синтаксис shell-скриптов, валидность production-compose
+  # и Caddyfile проверяются до того, как кто-то окажется на сервере.
+  infrastructure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck -x для infrastructure/*.sh
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/shellcheck.tar.xz" \
+            https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz
+          tar -xJf "$RUNNER_TEMP/shellcheck.tar.xz" -C "$RUNNER_TEMP"
+          shellcheck_bin="$RUNNER_TEMP/shellcheck-v0.10.0/shellcheck"
+          mapfile -t scripts < <(find infrastructure -name '*.sh' -type f | sort)
+          if ((${#scripts[@]} == 0)); then
+            echo 'В infrastructure нет shell-скриптов'
+            exit 1
+          fi
+          printf 'Проверяю: %s\n' "${scripts[*]}"
+          "$shellcheck_bin" --version
+          "$shellcheck_bin" -x "${scripts[@]}"
+      - name: docker compose config -q для production
+        run: |
+          # Одноразовый env: значения фиктивные, но нужной формы.
+          env_file="$RUNNER_TEMP/production.env"
+          printf '%s\n' \
+            'POSTGRES_USER=itadis' \
+            'POSTGRES_DB=itadis' \
+            'POSTGRES_PASSWORD=ci-postgres-password-0123456789abcdef' \
+            'PUBLIC_HOSTNAME=203-0-113-10.sslip.io' \
+            'ACME_EMAIL=ci@example.com' \
+            'APP_ORIGIN=https://203-0-113-10.sslip.io' \
+            'ADMIN_WEB_ORIGIN=https://203-0-113-10.sslip.io' \
+            'API_PUBLIC_URL=https://203-0-113-10.sslip.io' \
+            'PRIMARY_DOMAIN=203-0-113-10.sslip.io' \
+            'PLATFORM_DOMAIN=203-0-113-10.sslip.io' \
+            'JWT_ACCESS_SECRET=ci-access-secret-0123456789abcdef0123' \
+            'JWT_REFRESH_SECRET=ci-refresh-secret-0123456789abcdef0123' \
+            'DATA_ENCRYPTION_KEY=ci-encryption-key-0123456789abcdef0123' \
+            'S3_ACCESS_KEY=ci-s3-access-key' \
+            'S3_SECRET_KEY=ci-s3-secret-key-0123456789abcdef' \
+            'PLATFORM_ADMIN_EMAIL=admin@example.com' \
+            'PLATFORM_ADMIN_PASSWORD=ci-platform-admin-password' >"$env_file"
+          docker compose --env-file "$env_file" -f docker-compose.prod.yml config -q
+          echo 'compose config валиден'
+      - name: caddy validate для Caddyfile
+        run: |
+          # Caddyfile читает эти значения из окружения; они же нужны для validate.
+          export PUBLIC_HOSTNAME=203-0-113-10.sslip.io
+          export ACME_EMAIL=ci@example.com
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/caddy.tar.gz" \
+            https://github.com/caddyserver/caddy/releases/download/v2.10.2/caddy_2.10.2_linux_amd64.tar.gz
+          tar -xzf "$RUNNER_TEMP/caddy.tar.gz" -C "$RUNNER_TEMP" caddy
+          "$RUNNER_TEMP/caddy" validate --config infrastructure/caddy/Caddyfile --adapter caddyfile

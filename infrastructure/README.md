@@ -17,10 +17,11 @@
 | `caddy/Caddyfile` | TLS-фронт на sslip.io: Let's Encrypt, HTTPS, WebSocket |
 | `clamav/rest.mjs` | HTTP-обёртка над clamd для `ANTIVIRUS_SCAN_URL` |
 | `scripts/deploy.sh` | Деплой одной командой: sslip.io-хостнейм из IP, preflight, compose up, ожидание `/healthz` |
+| `scripts/smoke.sh` | Smoke-проверка живого стека: `/healthz`, анонимный `POST /api/leads`, 401 без токена, `/socket.io/` |
 | `monitoring/prometheus.yml` | Scrape `/metrics` |
 | `monitoring/alerts.yml` | Алерты: API down, рост 5xx, перезапуск процесса |
 | `../.env.production.example` | Полный шаблон production-переменных (домены, секреты, интеграции) |
-| `../.github/workflows/ci.yml` | CI: миграции, тесты API, e2e, сборка admin, typecheck mobile |
+| `../.github/workflows/ci.yml` | CI: миграции, тесты API, e2e, сборка admin, typecheck mobile, гейт deploy-пути (`shellcheck`, `compose config`, `caddy validate`) |
 | `../.github/workflows/release.yml` | Release: образы API/admin в GHCR и CD по тегу при заданных `DEPLOY_*` |
 
 ## Окружения
@@ -83,6 +84,33 @@ infrastructure/scripts/deploy.sh --check
 передеплой. Собственный домен: скрипт не трогает `PUBLIC_HOSTNAME`, если он
 уже не в формате sslip.io — тогда он только предупредит о расхождении с
 `APP_ORIGIN`.
+
+### Чек-лист первого запуска
+
+Порядок команд на новом сервере и ожидаемый вывод. Если вывод отличается —
+остановитесь и разберите причину, дальше не идите.
+
+| # | Команда | Ожидаемый вывод |
+| --- | --- | --- |
+| 1 | `docker compose version` | `Docker Compose version v2.…` (иначе поставить compose-плагин) |
+| 2 | `git clone <repo> && cd -- -platform-it-adis` | рабочая копия без ошибок, код 0 |
+| 3 | `cp .env.production.example .env.production && chmod 600 .env.production` | ничего не печатает, код 0 |
+| 4 | `$EDITOR .env.production` | заполнены `POSTGRES_PASSWORD`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `DATA_ENCRYPTION_KEY`, `APP_ORIGIN`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `ACME_EMAIL` |
+| 5 | `infrastructure/scripts/deploy.sh --check --ip 203.0.113.10` | `preflight пройден (--check): https://203-0-113-10.sslip.io/healthz после запуска` |
+| 6 | `infrastructure/scripts/deploy.sh --ip 203.0.113.10` | `https://203-0-113-10.sslip.io/healthz отвечает`, затем `Деплой завершён.` |
+| 7 | `infrastructure/scripts/smoke.sh https://203-0-113-10.sslip.io` | четыре `PASS` и `Проверок пройдено: 4, провалено: 0`, код возврата 0 |
+| 8 | в настройках сайта Freebuff: `API_ORIGIN=https://203-0-113-10.sslip.io` | заявка с лендинга сохраняется, вход в кабинет работает |
+
+Шаг 5 проверяет переменные, порты 80/443 и `docker compose config` без запуска;
+шаг 6 дополнительно ждёт TLS-сертификат и `/healthz`. Шаг 7 создаёт одну
+настоящую заявку «Smoke test» — это единственное изменение данных; ответ `429`
+на `POST /api/leads` тоже считается успехом, потому что лимит 5 заявок за
+10 минут с одного IP уже исчерпан.
+
+Те же проверки deploy-пути выполняет job `infrastructure` в CI на каждый PR:
+`shellcheck -x` по `infrastructure/**/*.sh`, `docker compose config -q` с
+одноразовым env из фиктивных значений и `caddy validate` для `caddy/Caddyfile`.
+Локально они запускаются теми же командами — секретов для них не нужно.
 
 ### Деплой без домена: sslip.io
 
