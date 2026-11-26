@@ -217,6 +217,30 @@ services:
     networks: [internal]
     logging: *logging
 
+  # Одноразовый шаг после миграций: администратор основной БД и каталог ролей.
+  # Тот же образ, что у backend: dist/src/bootstrap.js уже собран tsc, поэтому
+  # tsx и scripts/ в прод-образе не нужны. Повторный запуск идемпотентен,
+  # смена PLATFORM_ADMIN_PASSWORD обновляет пароль при следующем `up`.
+  bootstrap:
+    image: ${BACKEND_IMAGE:-itadis-backend:latest}
+    build:
+      context: ./apps/api
+    restart: 'no'
+    command: ['node', 'dist/src/bootstrap.js']
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      # Прямое подключение к PostgreSQL: bootstrap не идёт через PgBouncer.
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-itadis}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-itadis}?schema=public"
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
+      PLATFORM_ADMIN_PASSWORD_HASH: ${PLATFORM_ADMIN_PASSWORD_HASH:-}
+    networks: [internal]
+    logging: *logging
+
   backend:
     image: ${BACKEND_IMAGE:-itadis-backend:latest}
     build:

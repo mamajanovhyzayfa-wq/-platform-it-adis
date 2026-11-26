@@ -18,6 +18,9 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
+# dist собирается тем же tsc из src (tsconfig include: src/**, prisma/**, test/**),
+# поэтому CLI bootstrap администратора лежит в dist/src/bootstrap.js и не требует
+# tsx или каталога scripts/ в финальном образе.
 COPY --from=build /app/dist ./dist
 COPY prisma ./prisma
 EXPOSE 4000

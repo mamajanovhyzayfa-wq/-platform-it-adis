@@ -1,68 +1,43 @@
 /**
- * Создание первого администратора production-филиала без демонстрационных данных.
+ * Создание первого администратора основной БД без демонстрационных данных.
+ *
+ * Это локальный/отладочный путь для машины разработчика (запуск через `tsx`).
+ * В production тот же код выполняется собранным JS: `node dist/src/bootstrap.js`
+ * в сервисе `bootstrap` из docker-compose.prod.yml — прод-образ не содержит
+ * `tsx` и каталога `scripts/`.
  *
  * Запуск из apps/api:
  *   ADMIN_EMAIL=... ADMIN_PASSWORD=... npx tsx scripts/create-admin.ts
  *
- * Без ADMIN_PASSWORD пароль генерируется и печатается один раз. Скрипт
- * идемпотентен: повторный запуск обновляет пароль существующего пользователя,
- * но не трогает остальные данные.
+ * Пароль обязателен: bootstrap не генерирует и не печатает пароли.
+ * Скрипт идемпотентен: повторный запуск обновляет пароль существующего
+ * пользователя, но не создаёт дубликат.
  */
 import 'dotenv/config'
-import bcrypt from 'bcryptjs'
 import { PrismaClient } from '@prisma/client'
-import { bootstrapRbac } from '../prisma/bootstrap-rbac'
-import { generateAdminPassword } from '../src/lib/branches.util'
-
-const MIN_PASSWORD_LENGTH = 12
+import { MIN_ADMIN_PASSWORD_LENGTH, bootstrapAdmin } from '../src/lib/bootstrap-admin.js'
 
 async function main(): Promise<void> {
   const email = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase()
-  const providedPassword = process.env.ADMIN_PASSWORD ?? ''
+  const password = process.env.ADMIN_PASSWORD ?? ''
   const firstName = (process.env.ADMIN_FIRST_NAME ?? 'Администратор').trim() || 'Администратор'
   const lastName = (process.env.ADMIN_LAST_NAME ?? '').trim()
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw new Error('ADMIN_EMAIL обязателен и должен быть корректным email')
-  }
-  if (providedPassword && providedPassword.length < MIN_PASSWORD_LENGTH) {
-    throw new Error(`ADMIN_PASSWORD должен быть не короче ${MIN_PASSWORD_LENGTH} символов`)
+  if (!password) {
+    throw new Error(
+      `ADMIN_PASSWORD обязателен (не короче ${MIN_ADMIN_PASSWORD_LENGTH} символов): пароль не генерируется, чтобы не попасть в лог`,
+    )
   }
 
-  const password = providedPassword || generateAdminPassword()
-  const passwordHash = await bcrypt.hash(password, 12)
   const prisma = new PrismaClient()
-
   try {
-    // Каталог ролей и прав — часть схемы, без него Role не существует и вход невозможен.
-    await bootstrapRbac(prisma)
-
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: {
-        passwordHash,
-        role: 'ADMIN',
-        isActive: true,
-        deletedAt: null,
-        emailVerifiedAt: new Date(),
-      },
-      create: {
-        email,
-        passwordHash,
-        firstName,
-        lastName,
-        role: 'ADMIN',
-        emailVerifiedAt: new Date(),
-        coinBalance: { create: { balance: 0 } },
-      },
-      select: { id: true, email: true, role: true },
+    const result = await bootstrapAdmin(prisma, {
+      email,
+      password,
+      firstName,
+      lastName,
     })
-
-    console.log(`Администратор готов: ${user.email} (${user.role})`)
-    if (!providedPassword) {
-      console.log(`Одноразовый пароль: ${password}`)
-      console.log('Смените его после первого входа.')
-    }
+    console.log(`Готово: ${result.email} (${result.role}), действие: ${result.action}`)
   } finally {
     await prisma.$disconnect()
   }

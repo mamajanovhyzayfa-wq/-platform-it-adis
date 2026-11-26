@@ -230,8 +230,12 @@ if [[ $APP_ORIGIN_VALUE != "https://$PUBLIC_HOSTNAME" ]]; then
 fi
 [[ -n $(env_value PRIMARY_DOMAIN) ]] || warn "PRIMARY_DOMAIN пуст: основной сайт ответит 404 при ALLOW_PRIMARY_FALLBACK=false"
 [[ -n $(env_value PLATFORM_ADMIN_EMAIL) ]] || warn "PLATFORM_ADMIN_EMAIL пуст: войти в платформенную админку будет некому"
-if [[ -z $(env_value PLATFORM_ADMIN_PASSWORD) && -z $(env_value PLATFORM_ADMIN_PASSWORD_HASH) ]]; then
-  warn "PLATFORM_ADMIN_PASSWORD и PLATFORM_ADMIN_PASSWORD_HASH пусты: пароль платформенного админа не задан"
+PLATFORM_ADMIN_PASSWORD_VALUE=$(env_value PLATFORM_ADMIN_PASSWORD)
+if [[ -z $PLATFORM_ADMIN_PASSWORD_VALUE && -z $(env_value PLATFORM_ADMIN_PASSWORD_HASH) ]]; then
+  warn "PLATFORM_ADMIN_PASSWORD и PLATFORM_ADMIN_PASSWORD_HASH пусты: сервис bootstrap не создаст администратора"
+elif [[ -n $PLATFORM_ADMIN_PASSWORD_VALUE && ${#PLATFORM_ADMIN_PASSWORD_VALUE} -lt 12 && -z $(env_value PLATFORM_ADMIN_PASSWORD_HASH) ]]; then
+  # Порог тот же, что у bootstrap (apps/api/src/lib/bootstrap-admin.ts).
+  warn "PLATFORM_ADMIN_PASSWORD короче 12 символов: bootstrap администратора откажется его применять"
 fi
 if [[ $(env_value ALLOW_PRIMARY_FALLBACK) == true ]]; then
   warn "ALLOW_PRIMARY_FALLBACK=true: для production ожидается false"
@@ -304,4 +308,6 @@ ${C_OK}Деплой завершён.${C_RESET}
 
 Осталось один раз: в настройках сайта Freebuff задайте API_ORIGIN=https://$PUBLIC_HOSTNAME,
 чтобы форма заявок и вход на https://platform-it-adis-nmtovk.freebuff.site шли на этот сервер.
+
+Администратор основной БД: ${COMPOSE[*]} logs bootstrap
 EOF

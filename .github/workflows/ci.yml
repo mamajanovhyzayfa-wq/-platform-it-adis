@@ -55,6 +55,54 @@ jobs:
       - run: npx prisma generate
       - run: npx prisma migrate deploy
       - run: npm run build
+      - name: Bootstrap администратора на чистой БД (идемпотентность и логи)
+        env:
+          NODE_ENV: production
+          PLATFORM_ADMIN_EMAIL: bootstrap@example.com
+          PLATFORM_ADMIN_PASSWORD: ci-bootstrap-password-0123456789
+        run: |
+          node dist/src/bootstrap.js | tee /tmp/bootstrap-1.log
+          node dist/src/bootstrap.js | tee /tmp/bootstrap-2.log
+
+          grep -q '→ created' /tmp/bootstrap-1.log
+          grep -q '→ unchanged' /tmp/bootstrap-2.log
+
+          # Пароль и bcrypt-хеш не должны попадать в вывод контейнера.
+          if grep -q 'ci-bootstrap-password-0123456789' /tmp/bootstrap-1.log /tmp/bootstrap-2.log; then
+            echo 'Пароль администратора попал в лог bootstrap'
+            exit 1
+          fi
+          if grep -qE '\$2[aby]\$' /tmp/bootstrap-1.log /tmp/bootstrap-2.log; then
+            echo 'bcrypt-хеш попал в лог bootstrap'
+            exit 1
+          fi
+
+          node --input-type=module <<'NODE'
+          import { PrismaClient } from '@prisma/client'
+          import bcrypt from 'bcryptjs'
+
+          const password = 'ci-bootstrap-password-0123456789'
+          const prisma = new PrismaClient()
+          try {
+            const users = await prisma.user.findMany({ where: { email: 'bootstrap@example.com' } })
+            if (users.length !== 1) throw new Error(`ожидался 1 администратор, найдено ${users.length}`)
+            const [user] = users
+            if (user.role !== 'ADMIN') throw new Error(`роль ${user.role}, ожидалась ADMIN`)
+            if (!(await bcrypt.compare(password, user.passwordHash))) {
+              throw new Error('пароль не совпадает с сохранённым хешем')
+            }
+            const role = await prisma.role.findUnique({ where: { code: 'ADMIN' } })
+            if (!role) throw new Error('роль ADMIN отсутствует в каталоге ролей')
+            const grants = await prisma.rolePermission.count({ where: { role: 'ADMIN' } })
+            const permissions = await prisma.permission.count()
+            if (grants === 0 || grants !== permissions) {
+              throw new Error(`у ADMIN ${grants} прав из ${permissions}`)
+            }
+            console.log(`Bootstrap: ${user.email}, роль ${user.role}, прав ${grants}/${permissions}`)
+          } finally {
+            await prisma.$disconnect()
+          }
+          NODE
       - run: npm test
 
   e2e:
@@ -258,6 +306,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Приватные ключи не попадают в репозиторий
+        run: |
+          # .deploy/ игнорируется, но проверка в CI не даёт вернуть ключ в обход правила.
+          git check-ignore -q .deploy/vps_ed25519 || {
+            echo '.deploy/ не игнорируется git: добавьте правило в .gitignore'
+            exit 1
+          }
+          if git grep -nIE -- '-----BEGIN (OPENSSH|RSA|EC|DSA|PGP) PRIVATE KEY-----' -- . ':(exclude).github/workflows/ci.yml'; then
+            echo 'В отслеживаемых файлах найден приватный ключ: удалите его и отзовите (ротация).'
+            exit 1
+          fi
+          echo 'Приватных ключей в отслеживаемых файлах нет'
       - name: shellcheck -x для infrastructure/*.sh
         run: |
           curl -fsSL --retry 3 -o "$RUNNER_TEMP/shellcheck.tar.xz" \
