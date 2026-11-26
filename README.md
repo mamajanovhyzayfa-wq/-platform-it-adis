@@ -113,6 +113,23 @@ npm run preview    # локальный просмотр production-сборки
 Вход — только аккаунт с ролью `ADMIN` (`admin@itadis.kg` / `ITadis2026`). Для деплоя за другим доменом
 задайте `VITE_API_URL` (например, `https://api.itadis.kg/api`) на этапе сборки.
 
+### 4. Публичный сайт (лендинг + кабинет)
+
+Сайт собирается одной командой: лендинг попадает в `dist/`, кабинет — в `dist/app/`.
+
+```bash
+npm run build:site   # vite build + apps/web с --base=/app/ + копирование в dist/app/
+```
+
+Деплой идёт по манифесту [`freebuff.sites.json`](freebuff.sites.json): воркер
+[`infrastructure/sites/worker.js`](infrastructure/sites/worker.js) плюс `assetsDirectory: ./dist`.
+Воркер отдаёт `/app/*` из `dist/app/` с SPA-фолбэком и проксирует `/api` и `/socket.io/`
+на `API_ORIGIN` (задаётся в настройках сайта).
+
+`npm run build` собирает только лендинг: получившийся `dist/` без `dist/app/` и без воркера даёт
+404 на `/app/login` (вход из шапки) и HTML вместо JSON на `/api/*`. Если `/app/login` показывает
+«Страница не найдена» — опубликована не та сборка, пересоберите через `build:site`.
+
 ### Демо-аккаунты (после `npm run prisma:seed`)
 
 | Роль | Email | Телефон | Пароль |
