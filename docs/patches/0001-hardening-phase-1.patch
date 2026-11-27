@@ -1,6 +1,6 @@
-From 3f9ed6379230bf0e679624e592484461d63443bf Mon Sep 17 00:00:00 2001
+From e0b4724d8c2b51e0d9ac5d3b32db458caf31c7b4 Mon Sep 17 00:00:00 2001
 From: huzayfa <mamajanovhyzayfa@gmail.com>
-Date: Fri, 27 Nov 2026 07:03:12 +0000
+Date: Fri, 27 Nov 2026 07:07:16 +0000
 Subject: [PATCH] Harden the administrator bootstrap and gate Phase 1 with
  real CI
 
@@ -26,7 +26,7 @@ Failing bring-up steps publish the tail of their output as a check-run
 annotation, because downloading job logs needs admin rights on the repository.
 
 ---
- .github/workflows/ci.yml                  | 346 +++++++++++++
+ .github/workflows/ci.yml                  | 359 +++++++++++++
  .github/workflows/production-health.yml   |  80 +++
  .oxlintrc.json                            |  15 +-
  apps/api/package-lock.json                | 809 +++++++++++++++++++-----------
@@ -42,10 +42,10 @@ annotation, because downloading job logs needs admin rights on the repository.
  infrastructure/ci/docker-compose.ci.yml   |  21 +
  infrastructure/ci/run-annotated.sh        |  40 ++
  infrastructure/tests/deploy.bats          | 136 +++++
- 16 files changed, 1719 insertions(+), 311 deletions(-)
+ 16 files changed, 1732 insertions(+), 311 deletions(-)
 
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 7def3c7..4e6ac24 100644
+index 7def3c7..fd54a5b 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
 @@ -55,6 +55,18 @@ jobs:
@@ -67,7 +67,7 @@ index 7def3c7..4e6ac24 100644
        - name: Bootstrap администратора на чистой БД (идемпотентность и логи)
          env:
            NODE_ENV: production
-@@ -103,8 +115,321 @@ jobs:
+@@ -103,8 +115,334 @@ jobs:
              await prisma.$disconnect()
            }
            NODE
@@ -230,10 +230,23 @@ index 7def3c7..4e6ac24 100644
 +            printf '%s\n' "$states"
 +            echo '--- логи сервисов ---'
 +            compose logs --no-color --tail=200 || true
-+            # Та же причина, что и у обёртки выше: логи шага снаружи недоступны.
-+            summary=${states//'%'/'%25'}
-+            summary=${summary//$'\n'/'%0A'}
-+            echo "::error title=Поднять стек::${summary}"
++            # Та же причина, что и у обёртки выше: логи шага снаружи недоступны,
++            # а аннотации check-run'а читаются через API без токена.
++            annotate() {
++              local title=$1 body=$2
++              body=${body//'%'/'%25'}
++              body=${body//$'\n'/'%0A'}
++              echo "::error title=${title}::${body}"
++            }
++            annotate 'Поднять стек' "$states"
++
++            # Причина падения — не состояние, а вывод контейнера: печатаем хвост
++            # логов каждого сервиса, который не running и не exited 0.
++            broken=$(printf '%s\n' "$states" | awk '($2 != "running" && $2 != "exited") || ($2 == "exited" && $3 != 0) {print $1}')
++            for service in $broken; do
++              # shellcheck disable=SC2086 -- имена сервисов разделены пробелами
++              annotate "Логи $service" "$(compose logs --no-color --tail=120 "$service" 2>&1 | tail -c 4000)"
++            done
 +            exit 1
 +          fi
 +      - name: Дождаться /healthz и проверить состояние сервисов
@@ -389,7 +402,7 @@ index 7def3c7..4e6ac24 100644
    e2e:
      runs-on: ubuntu-latest
      timeout-minutes: 25
-@@ -282,6 +607,21 @@ jobs:
+@@ -282,6 +620,21 @@ jobs:
        - run: npm ci
        - run: npm run build
  
@@ -411,7 +424,7 @@ index 7def3c7..4e6ac24 100644
    mobile:
      runs-on: ubuntu-latest
      timeout-minutes: 20
-@@ -332,6 +672,12 @@ jobs:
+@@ -332,6 +685,12 @@ jobs:
            printf 'Проверяю: %s\n' "${scripts[*]}"
            "$shellcheck_bin" --version
            "$shellcheck_bin" -x "${scripts[@]}"
