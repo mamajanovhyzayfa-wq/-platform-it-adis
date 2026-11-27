@@ -1,39 +1,72 @@
-From 56b7d56cc131c534b384a1bdbc9a349eeb17cf2d Mon Sep 17 00:00:00 2001
+From 51643243299782c5957a4b644a166be11158d455 Mon Sep 17 00:00:00 2001
 From: huzayfa <mamajanovhyzayfa@gmail.com>
-Date: Fri, 27 Nov 2026 04:53:40 +0000
-Subject: [PATCH] Harden the first administrator bootstrap and gate it with
+Date: Fri, 27 Nov 2026 05:17:18 +0000
+Subject: [PATCH] Harden the administrator bootstrap and gate Phase 1 with
  real CI
 
-bootstrap-admin now rejects bcrypt cost factors outside 04-31 and refuses to
-promote an existing non-ADMIN account, so a typo in PLATFORM_ADMIN_EMAIL can no
-longer silently escalate a student or teacher to ADMIN.
+Phase 1 hardening: real-Postgres CI for the admin bootstrap, a full
+production compose stack with smoke and log gates, a real pg_dump/pg_restore
+round-trip, bats tests for the deploy preflight, and a live probe of the
+published site.
 
-Phase 1 adds CI coverage that cannot be faked with an in-memory Prisma: five
-bootstrap scenarios on a real PostgreSQL 16 with before/after SQL assertions, a
-full production compose stack with smoke checks through edge, and bats tests for
-the deploy.sh preflight. The patch and apply instructions live in docs/patches.
+bootstrap-admin rejects bcrypt cost factors outside 04-31 and refuses to promote
+an existing non-ADMIN account, so a typo in PLATFORM_ADMIN_EMAIL can no longer
+escalate a student or teacher to ADMIN. The oxlint config now actually enables
+typescript/no-explicit-any and typescript/no-floating-promises, and CI greps the
+literal passwordHash read from the database instead of the $2[aby]$ pattern.
+
 ---
- .github/workflows/ci.yml                  | 188 +++++++++++++++++++
- apps/api/scripts/ci-bootstrap-postgres.sh | 214 ++++++++++++++++++++++
- apps/api/src/lib/bootstrap-admin.ts       |  29 ++-
- apps/api/test/bootstrap-admin.test.ts     |  40 ++++
- docker-compose.prod.yml                   |  27 ++-
- docs/patches/README.md                    |  52 ++++++
- docs/testing/strategy.md                  |  29 +++
+ .github/workflows/ci.yml                  | 250 ++++++++++++++++++++++++++++++
+ .github/workflows/production-health.yml   |  80 ++++++++++
+ .oxlintrc.json                            |  15 +-
+ apps/api/scripts/ci-bootstrap-postgres.sh | 214 +++++++++++++++++++++++++
+ apps/api/src/lib/bootstrap-admin.ts       |  29 +++-
+ apps/api/test/admin-routes.test.ts        |  14 +-
+ apps/api/test/bootstrap-admin.test.ts     |  40 +++++
+ apps/web/src/pages/AiCenter.tsx           |  21 ++-
+ docker-compose.prod.yml                   |  27 ++--
+ docs/patches/README.md                    |  74 +++++++++
+ docs/testing/strategy.md                  |  52 +++++++
+ infrastructure/README.md                  |  43 ++++-
  infrastructure/ci/docker-compose.ci.yml   |  21 +++
- infrastructure/tests/deploy.bats          | 136 ++++++++++++++
- 9 files changed, 722 insertions(+), 14 deletions(-)
- create mode 100755 apps/api/scripts/ci-bootstrap-postgres.sh
- create mode 100644 docs/patches/README.md
- create mode 100644 infrastructure/ci/docker-compose.ci.yml
- create mode 100644 infrastructure/tests/deploy.bats
+ infrastructure/tests/deploy.bats          | 136 ++++++++++++++++
+ 14 files changed, 996 insertions(+), 20 deletions(-)
 
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 7def3c7..7231f2f 100644
+index 7def3c7..ec98e41 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
-@@ -105,6 +105,188 @@ jobs:
+@@ -103,8 +103,252 @@ jobs:
+             await prisma.$disconnect()
+           }
            NODE
++      - name: Фактический хеш администратора из БД не попадает в логи
++        run: |
++          # Грепаем не шаблон \$2[aby]\$, а буквальное значение из таблицы:
++          # шаблон совпадает с любым bcrypt-хешем в тексте и даёт ложные
++          # срабатывания. Нет хеша в БД — шаг падает, а не молча проходит.
++          node --input-type=module <<'NODE'
++          import { writeFileSync } from 'node:fs'
++          import { PrismaClient } from '@prisma/client'
++
++          const prisma = new PrismaClient()
++          try {
++            const user = await prisma.user.findUnique({ where: { email: 'bootstrap@example.com' } })
++            if (!user?.passwordHash) throw new Error('в БД нет passwordHash администратора')
++            if (user.passwordHash.length !== 60) {
++              throw new Error(`длина хеша ${user.passwordHash.length}, ожидалось 60`)
++            }
++            writeFileSync('/tmp/bootstrap-hash.txt', user.passwordHash)
++          } finally {
++            await prisma.$disconnect()
++          }
++          NODE
++          hash=$(cat /tmp/bootstrap-hash.txt)
++          if grep -qF -- "$hash" /tmp/bootstrap-1.log /tmp/bootstrap-2.log; then
++            echo 'Фактический bcrypt-хеш из БД попал в лог bootstrap'
++            exit 1
++          fi
++          echo 'Фактического хеша из БД в логах bootstrap нет'
        - run: npm test
  
 +  # Bootstrap администратора на реальном PostgreSQL: пять сценариев, каждый —
@@ -193,6 +226,41 @@ index 7def3c7..7231f2f 100644
 +          done
 +      - name: Smoke через edge
 +        run: infrastructure/scripts/smoke.sh http://primary.local:8080 --origin https://primary.local
++      - name: Резервная копия и восстановление на реальном PostgreSQL
++        run: |
++          compose() {
++            docker compose --env-file "$COMPOSE_ENV" \
++              -f docker-compose.prod.yml \
++              -f infrastructure/ci/docker-compose.ci.yml "$@"
++          }
++
++          # Планировщик копий и restore вызывают pg_dump/pg_restore внутри
++          # backend (в образе postgresql16-client). DATABASE_URL смотрит на
++          # PgBouncer, а pg_dump в transaction mode не работает, поэтому и дамп,
++          # и восстановление идут по DIRECT_DATABASE_URL — прямому подключению.
++          compose exec -T backend sh -eu -c '
++            echo "pg_dump: $(pg_dump --version)"
++            echo "pg_restore: $(pg_restore --version)"
++            test -n "${DIRECT_DATABASE_URL:-}"
++            src=$(printf '%s' "$DIRECT_DATABASE_URL" | sed 's/[?].*$//')
++            pg_dump --format=custom --no-owner --no-privileges --file=/tmp/ci-backup.dump "$src"
++            pg_restore --list /tmp/ci-backup.dump >/tmp/ci-backup.list
++            objects=$(wc -l </tmp/ci-backup.list | tr -d " ")
++            echo "оглавление дампа: $objects строк"
++            test "$objects" -gt 10
++            psql "$src" -v ON_ERROR_STOP=1 -qAt -c "DROP DATABASE IF EXISTS itadis_restore_check"
++            psql "$src" -v ON_ERROR_STOP=1 -qAt -c "CREATE DATABASE itadis_restore_check"
++            target="${src%/*}/itadis_restore_check"
++            pg_restore --clean --if-exists --single-transaction --exit-on-error \
++              --no-owner --no-privileges --dbname="$target" /tmp/ci-backup.dump
++            before=$(psql "$src" -v ON_ERROR_STOP=1 -qAt -c "SELECT count(*) FROM \"User\"")
++            after=$(psql "$target" -v ON_ERROR_STOP=1 -qAt -c "SELECT count(*) FROM \"User\"")
++            echo "пользователей: источник=$before, восстановленная копия=$after"
++            test "$before" = "$after"
++            test "$after" -gt 0
++            psql "$src" -v ON_ERROR_STOP=1 -qAt -c "DROP DATABASE itadis_restore_check"
++            echo "Резервная копия и восстановление: OK"
++          '
 +      - name: В логах приложения нет ERROR/FATAL/Unhandled
 +        run: |
 +          compose() {
@@ -221,7 +289,7 @@ index 7def3c7..7231f2f 100644
    e2e:
      runs-on: ubuntu-latest
      timeout-minutes: 25
-@@ -332,6 +514,12 @@ jobs:
+@@ -332,6 +576,12 @@ jobs:
            printf 'Проверяю: %s\n' "${scripts[*]}"
            "$shellcheck_bin" --version
            "$shellcheck_bin" -x "${scripts[@]}"
@@ -234,6 +302,118 @@ index 7def3c7..7231f2f 100644
        - name: docker compose config -q для production
          run: |
            # Одноразовый env: значения фиктивные, но нужной формы.
+diff --git a/.github/workflows/production-health.yml b/.github/workflows/production-health.yml
+new file mode 100644
+index 0000000..f4fb77c
+--- /dev/null
++++ b/.github/workflows/production-health.yml
+@@ -0,0 +1,80 @@
++name: Production health
++
++# Реальный сайт проверяется отдельно от PR-CI: job full-stack-e2e поднимает
++# собственный стек на primary.local и по определению не видит, что опубликовано
++# на домене. Этот workflow закрывает случай «CI зелёный, а сайт отвечает 503
++# API_NOT_CONFIGURED» — то есть воркер сайта не подключён к API.
++#
++# Запуск: по расписанию и вручную (Actions → Production health → Run workflow).
++# В блокирующие проверки PR он не входит: падение означает проблему деплоя, а не
++# ошибку в коде ветки.
++on:
++  schedule:
++    - cron: '17 */6 * * *'
++  workflow_dispatch:
++
++concurrency:
++  group: production-health
++  cancel-in-progress: true
++
++jobs:
++  live:
++    runs-on: ubuntu-latest
++    timeout-minutes: 10
++    env:
++      SITE_ORIGIN: https://platform-it-adis-nmtovk.freebuff.site
++    steps:
++      - name: GET /api/healthz отвечает 200 и не API_NOT_CONFIGURED
++        run: |
++          body=$(mktemp)
++          code=$(curl -sS --max-time 20 -o "$body" -w '%{http_code}' "$SITE_ORIGIN/api/healthz" || echo 000)
++          echo "GET $SITE_ORIGIN/api/healthz → $code"
++          cat "$body"
++          echo
++          if [[ $code == 503 ]] && grep -q 'API_NOT_CONFIGURED' "$body"; then
++            echo 'Воркер сайта не подключён к API: в настройках сайта не задан API_ORIGIN.'
++            echo 'Порядок: infrastructure/README.md → «Чек-лист первого запуска», шаг 8.'
++            exit 1
++          fi
++          if [[ $code != 200 ]]; then
++            echo "Ожидался 200, получен $code"
++            exit 1
++          fi
++          if ! grep -q '"status":"ok"' "$body"; then
++            echo 'В ответе /api/healthz нет "status":"ok"'
++            exit 1
++          fi
++
++      - name: POST /api/auth/password/request не отвечает 5xx
++        run: |
++          # Именно этот маршрут вызывает форма восстановления пароля на сайте.
++          # Несуществующий адрес выбран намеренно: ответ не должен раскрывать,
++          # есть ли такой аккаунт, и не должен быть 500/503.
++          body=$(mktemp)
++          code=$(curl -sS --max-time 20 -o "$body" -w '%{http_code}' \
++            -X POST "$SITE_ORIGIN/api/auth/password/request" \
++            -H 'content-type: application/json' \
++            -d '{"identifier":"production-health-probe@example.com"}' || echo 000)
++          echo "POST $SITE_ORIGIN/api/auth/password/request → $code"
++          cat "$body"
++          echo
++          if [[ $code == 503 ]] && grep -q 'API_NOT_CONFIGURED' "$body"; then
++            echo 'Воркер сайта не подключён к API: восстановление пароля недоступно.'
++            echo 'Порядок: infrastructure/README.md → «Чек-лист первого запуска», шаг 8.'
++            exit 1
++          fi
++          if ((code >= 500)); then
++            echo "Восстановление пароля отвечает $code"
++            exit 1
++          fi
++
++      - name: Лендинг и кабинет отдаются (200)
++        run: |
++          for path in / /app/login; do
++            code=$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "$SITE_ORIGIN$path")
++            echo "GET $SITE_ORIGIN$path → $code"
++            if [[ $code != 200 ]]; then
++              echo "Ожидался 200 для $path"
++              exit 1
++            fi
++          done
+diff --git a/.oxlintrc.json b/.oxlintrc.json
+index 1255078..ecb3b3a 100644
+--- a/.oxlintrc.json
++++ b/.oxlintrc.json
+@@ -1,8 +1,19 @@
+ {
+   "$schema": "./node_modules/oxlint/configuration_schema.json",
+-  "plugins": ["react", "oxc"],
++  "plugins": [
++    "react",
++    "oxc",
++    "typescript"
++  ],
+   "rules": {
+     "react/rules-of-hooks": "error",
+-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
++    "react/only-export-components": [
++      "warn",
++      {
++        "allowConstantExport": true
++      }
++    ],
++    "typescript/no-explicit-any": "error",
++    "typescript/no-floating-promises": "error"
+   }
+ }
 diff --git a/apps/api/scripts/ci-bootstrap-postgres.sh b/apps/api/scripts/ci-bootstrap-postgres.sh
 new file mode 100755
 index 0000000..d83f10a
@@ -510,6 +690,38 @@ index d7fa41c..9556d61 100644
    // Хеш bcrypt недетерминирован (соль), поэтому «пароль не изменился»
    // проверяется сравнением, а не равенством строк — иначе каждый прогон
    // перезаписывал бы строку пользователя.
+diff --git a/apps/api/test/admin-routes.test.ts b/apps/api/test/admin-routes.test.ts
+index 1ba71cd..2edb13e 100644
+--- a/apps/api/test/admin-routes.test.ts
++++ b/apps/api/test/admin-routes.test.ts
+@@ -17,6 +17,18 @@ const db = vi.hoisted(() => {
+     createdAt: Date
+   }
+   type Profile = { id: string; userId: string; workplace?: string | null }
++  // Тело PATCH /users/:id: перечисляем только те поля, которые читает двойник
++  // Prisma, чтобы вместо Record<string, any> у проверок был реальный тип.
++  type ProfileLink = { connectOrCreate?: { where: { userId: string } } }
++  type UserUpdate = {
++    firstName?: string
++    lastName?: string
++    role?: Role
++    isActive?: boolean
++    studentProfile?: ProfileLink
++    teacherProfile?: ProfileLink
++    parentProfile?: ProfileLink
++  }
+ 
+   const now = new Date('2026-11-22T00:00:00.000Z')
+   const users: User[] = []
+@@ -57,7 +69,7 @@ const db = vi.hoisted(() => {
+     return { ...user }
+   })
+ 
+-  const userUpdate = vi.fn(async ({ where, data }: { where: { id: string }; data: Record<string, any> }) => {
++  const userUpdate = vi.fn(async ({ where, data }: { where: { id: string }; data: UserUpdate }) => {
+     const user = users.find((item) => item.id === where.id)
+     if (!user) throw new Error(`Пользователь ${where.id} не найден`)
+ 
 diff --git a/apps/api/test/bootstrap-admin.test.ts b/apps/api/test/bootstrap-admin.test.ts
 index b2cbb5c..a344ae7 100644
 --- a/apps/api/test/bootstrap-admin.test.ts
@@ -561,6 +773,45 @@ index b2cbb5c..a344ae7 100644
    it('не печатает пароль или хеш в лог', async () => {
      const fake = createFakePrisma()
      const logs: string[] = []
+diff --git a/apps/web/src/pages/AiCenter.tsx b/apps/web/src/pages/AiCenter.tsx
+index 6317dc1..6acc49b 100644
+--- a/apps/web/src/pages/AiCenter.tsx
++++ b/apps/web/src/pages/AiCenter.tsx
+@@ -6,6 +6,23 @@ import { portalApi } from '../api/portal'
+ import { aiApi, type AiAutomation, type AiHistoryItem, type AiSource, type AiTool } from '../api/ai'
+ import { Empty, PageHeader, Section, StatusBadge, formatDateTime } from '../components/ui'
+ 
++// Web Speech API не описан в lib.dom в нужном объёме: объявляем только те члены,
++// которые использует компонент, вместо `any` на конструкторе.
++type SpeechRecognitionLike = {
++  lang: string
++  interimResults: boolean
++  start: () => void
++  stop: () => void
++  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null
++  onend: (() => void) | null
++  onerror: (() => void) | null
++}
++type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
++type SpeechWindow = {
++  SpeechRecognition?: SpeechRecognitionConstructor
++  webkitSpeechRecognition?: SpeechRecognitionConstructor
++}
++
+ const sourceLabels: Record<string, string> = {
+   COURSE: 'Курс',
+   LESSON: 'Урок',
+@@ -236,8 +253,8 @@ export function AiCenterPage() {
+   })
+ 
+   const startVoice = () => {
+-    const Speech = (window as unknown as { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any }).SpeechRecognition
+-      ?? (window as unknown as { webkitSpeechRecognition?: new () => any }).webkitSpeechRecognition
++    const speechWindow = window as unknown as SpeechWindow
++    const Speech = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition
+     if (!Speech) { setNotice('Голосовой ввод не поддерживается этим браузером.'); return }
+     if (listening) { recognitionRef.current?.stop(); setListening(false); return }
+     const recognition = new Speech()
 diff --git a/docker-compose.prod.yml b/docker-compose.prod.yml
 index 4c0996b..f552a9d 100644
 --- a/docker-compose.prod.yml
@@ -619,10 +870,10 @@ index 4c0996b..f552a9d 100644
        S3_SECRET_KEY: ${S3_SECRET_KEY}
 diff --git a/docs/patches/README.md b/docs/patches/README.md
 new file mode 100644
-index 0000000..34c9a42
+index 0000000..df202a2
 --- /dev/null
 +++ b/docs/patches/README.md
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,74 @@
 +# Патчи хардненинга
 +
 +Изменения Phase 1 собраны в `0001-hardening-phase-1.patch` — его можно
@@ -666,6 +917,21 @@ index 0000000..34c9a42
 +  MinIO) вместо удалённых с Docker Hub в сентябре 2026 `minio/minio` и
 +  `minio/mc`; healthcheck ClamAV — штатный `clamdcheck.sh` из образа.
 +- `infrastructure/tests/deploy.bats` — 11 проверок preflight без Docker и сети.
++- `.github/workflows/ci.yml` — шаг «Фактический хеш администратора из БД не
++  попадает в логи» грепает буквальное значение `passwordHash` из таблицы (а не
++  шаблон `$2[aby]$`), и шаг резервного копирования/восстановления
++  (`pg_dump` + `pg_restore --clean --if-exists --single-transaction
++  --exit-on-error` в отдельную БД) в `full-stack-e2e`.
++- `.oxlintrc.json` — подключён плагин `typescript`, включены
++  `no-explicit-any` и `no-floating-promises`; найденные нарушения исправлены
++  типами в `apps/web/src/pages/AiCenter.tsx` и
++  `apps/api/test/admin-routes.test.ts`.
++- `.github/workflows/production-health.yml` — живая проверка опубликованного
++  сайта: `/api/healthz`, `POST /api/auth/password/request`, лендинг и кабинет.
++  Ловит `503 API_NOT_CONFIGURED`, когда у сайта не задан `API_ORIGIN`.
++- `infrastructure/README.md` — копии файлов S3/MinIO через `mc mirror` /
++  `rclone sync` вместо `tar.gz` бакета, а в разделах запуска и восстановления -
++  блоки «Ожидаемо» с тем, что печатают шаги CI.
 +
 +## Ограничения
 +
@@ -675,11 +941,18 @@ index 0000000..34c9a42
 +лимит job — 60 минут.
 +Патч не деплоит ничего и не меняет `main`: ветка `fix/hardening-2026-11-26`
 +готова к PR.
++
++Опубликованный сайт `https://platform-it-adis-nmtovk.freebuff.site` остаётся
++без API, пока сервер не развёрнут: `203.0.113.10` в документации — адрес из
++TEST-NET-3, а `.deploy/render.key` пуст. Пока `API_ORIGIN` не задан, воркер
++возвращает `503 API_NOT_CONFIGURED`, и именно это показывает
++`production-health.yml`. Порядок: `infrastructure/README.md`, «Чек-лист
++первого запуска», шаги 5–8.
 diff --git a/docs/testing/strategy.md b/docs/testing/strategy.md
-index 3667bef..999d389 100644
+index 3667bef..1862e7e 100644
 --- a/docs/testing/strategy.md
 +++ b/docs/testing/strategy.md
-@@ -107,6 +107,35 @@ npm run test:e2e
+@@ -107,6 +107,58 @@ npm run test:e2e
  Локально второй филиал создаётся штатным provisioner или записью в реестре
  филиалов; API должен быть доступен по его домену.
  
@@ -703,6 +976,12 @@ index 3667bef..999d389 100644
 +  резервных копий, чтобы job проверял стек, а не фоновый pg_dump.
 +  Ожидание `/healthz` — до 30 минут с ранним падением, если сервис уже
 +  завершился или упал.
++  Внутри той же job выполняется резервная копия и восстановление на реальном
++  PostgreSQL: `pg_dump --format=custom` по `DIRECT_DATABASE_URL` (не через
++  PgBouncer — в transaction mode он не поддерживает дамп), проверка оглавления
++  через `pg_restore --list` и `pg_restore --clean --if-exists
++  --single-transaction --exit-on-error` в отдельную БД `itadis_restore_check`
++  со сверкой количества строк `User`.
 +  Хранилище — `pgsty/silo`, поддерживаемый форк MinIO: образы `minio/minio` и
 +  `minio/mc` удалены с Docker Hub в сентябре 2026, а `quay.io/minio/*` требует
 +  логин. Форк сохраняет S3 API, переменные `MINIO_*` и формат данных, а в образе
@@ -712,9 +991,94 @@ index 3667bef..999d389 100644
 +  и сети (`infrastructure/tests/deploy.bats`): обязательные переменные, запись
 +  `PUBLIC_HOSTNAME`, предупреждения и отсутствие секретов в выводе.
 +
++Отдельно от PR-CI работает `.github/workflows/production-health.yml`
++(расписание раз в 6 часов и ручной запуск). Он проверяет опубликованный сайт
++`https://platform-it-adis-nmtovk.freebuff.site`: `GET /api/healthz` должен
++отвечать `200` и `{"status":"ok",...}`, `/api/auth/password/request` не должен
++отвечать `5xx`, лендинг и `/app/login` — `200`. Ответ `503` с кодом
++`API_NOT_CONFIGURED` означает, что воркер сайта не подключён к API (в
++настройках сайта не задан `API_ORIGIN`) — именно этот случай не видит
++`full-stack-e2e`, который поднимает собственный стек на `primary.local`.
++Локальный стек не может заменить эту проверку, а падение означает проблему
++деплоя, а не ошибку кода ветки, поэтому workflow не входит в блокирующие
++проверки PR.
++
++Правила линтера, которые ловят типовые ошибки без запуска тестов, включены в
++`.oxlintrc.json`: плагин `typescript` и `typescript/no-explicit-any`,
++`typescript/no-floating-promises`. `npm run lint` завершается с кодом 0 только
++при отсутствии ошибок (предупреждения react-hooks не блокируют).
++
  ## Команды проверки
  
  ```bash
+diff --git a/infrastructure/README.md b/infrastructure/README.md
+index 5636782..ee6bc37 100644
+--- a/infrastructure/README.md
++++ b/infrastructure/README.md
+@@ -60,6 +60,14 @@ Google/Apple, календари, бухгалтерию, платёжные а
+ падает до старта, если они не заданы. `ANTIVIRUS_SCAN_URL` заполнять не нужно —
+ его значение по умолчанию ведёт на контейнер ClamAV.
+ 
++Ожидаемо: последняя строка `up -d --build` — `✔ Container … Started` для
++каждого сервиса; `docker compose --env-file .env.production -f docker-compose.prod.yml ps`
++показывает `running` у `postgres`, `pgbouncer`, `redis`, `minio`, `clamav`,
++`antivirus`, `backend`, `admin`, `edge`, `caddy` и `exited (0)` у `migrate`,
++`bootstrap`, `minio-init`. `curl -fsS https://PUBLIC_HOSTNAME/healthz` печатает
++`{"status":"ok",...}`. Первые минуты `clamav` остаётся `health: starting`:
++образ загружает базы, start-period 6 минут — это не ошибка.
++
+ ### Одной командой: `infrastructure/scripts/deploy.sh`
+ 
+ Скрипт закрывает весь подготовительный этап: считает `PUBLIC_HOSTNAME` из IP
+@@ -284,7 +292,26 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
+ - Планировщик в backend включается `BACKUP_SCHEDULER_ENABLED=true`.
+ - По умолчанию БД копируется ежедневно; частота/срок хранения/файлы — поля
+   `Branch` (`backupFrequencyHours`, `backupRetentionDays`, `backupIncludeFiles`).
+-- БД: `pg_dump --format=custom`; файлы: `tar.gz` каталога uploads и библиотеки.
++- БД: `pg_dump --format=custom` по прямому подключению (`DIRECT_DATABASE_URL`),
++  а не через PgBouncer: в transaction mode `pg_dump`/`pg_restore` не работают.
++- Файлы в S3/MinIO: `mc mirror`, а не `tar.gz` бакета. Копия кладётся в
++  отдельный бакет/префикс, чтобы `retention` не смешивал её с рабочими
++  объектами:
++
++  ```bash
++  mc alias set prod http://minio:9000 "$S3_ACCESS_KEY" "$S3_SECRET_KEY"
++  mc mirror --overwrite --remove prod/itadis "prod/itadis-backups/$(date -u +%Y%m%dT%H%M%SZ)"
++  mc ls --recursive prod/itadis-backups | wc -l
++  ```
++
++  Для любого S3-провайдера (не только MinIO) вместо `mc` работает
++  `rclone sync prod:itadis remote:itadis-backups/$(date -u +%Y%m%dT%H%M%SZ)`.
++  `tar.gz` каталога uploads остаётся только для локального `STORAGE_DIR`, когда
++  S3 не настроен.
++
++  Ожидаемо: `mc mirror` печатает по строке на объект и завершается с кодом 0;
++  `mc ls --recursive` после копии возвращает столько же объектов, сколько в
++  исходном бакете.
+ - Каждая копия получает SHA-256; целостность проверяется `pg_restore --list`
+   или `tar -tzf`, результат — `verifiedAt`.
+ - Retention удаляет старые файлы копий (и объекты S3), записи истории остаются.
+@@ -307,6 +334,20 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
+ восстанавливаемой; в production используйте отдельный `CONTROL_DATABASE_URL`.
+ Перед production-restore сделайте свежую копию и проверьте её.
+ 
++Ожидаемо при проверке копии (эти строки печатает шаг «Резервная копия и
++восстановление на реальном PostgreSQL» в job `full-stack-e2e`):
++
++```text
++pg_dump: pg_dump (PostgreSQL) 16.x
++оглавление дампа: 120 строк
++пользователей: источник=6, восстановленная копия=6
++Резервная копия и восстановление: OK
++```
++
++Тот же шаг выполняет `pg_restore --clean --if-exists --single-transaction
++--exit-on-error` в отдельную БД `itadis_restore_check` и сверяет количество
++строк `User` до и после; расхождение — падение job, а не предупреждение.
++
+ ## Мониторинг и логи
+ 
+ - `/healthz` — БД, Redis, storage driver, scheduler.
 diff --git a/infrastructure/ci/docker-compose.ci.yml b/infrastructure/ci/docker-compose.ci.yml
 new file mode 100644
 index 0000000..1d739b5
@@ -884,6 +1248,3 @@ index 0000000..57f1818
 +  [[ "$output" == *"PUBLIC_HOSTNAME=198-51-100-7.sslip.io"* ]]
 +  grep -q '^PUBLIC_HOSTNAME=198-51-100-7\.sslip\.io$' "$ENV_FILE"
 +}
--- 
-2.43.0
-
