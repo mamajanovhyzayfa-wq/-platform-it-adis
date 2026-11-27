@@ -1,6 +1,6 @@
-From 63d2ba6992eb7f73b3b9c0da29f0ee43fd40f8cb Mon Sep 17 00:00:00 2001
+From e964058450d732a4167231a670f7eec1f177171e Mon Sep 17 00:00:00 2001
 From: huzayfa <mamajanovhyzayfa@gmail.com>
-Date: Fri, 27 Nov 2026 05:22:18 +0000
+Date: Fri, 27 Nov 2026 05:23:01 +0000
 Subject: [PATCH] Harden the administrator bootstrap and gate Phase 1 with
  real CI
 
@@ -9,9 +9,10 @@ production compose stack with smoke, log-error, log-secret and backup/restore
 gates, bats tests for the deploy preflight, and a live probe of the published
 site.
 
-bootstrap-admin rejects bcrypt cost factors outside 04-31 and refuses to promote
-an existing non-ADMIN account, so a typo in PLATFORM_ADMIN_EMAIL can no longer
-escalate a student or teacher to ADMIN. The oxlint config now actually enables
+bootstrap-admin rejects bcrypt cost factors outside 04-31 and the $2x$ prefix,
+and refuses to promote an existing non-ADMIN account (STUDENT and TEACHER are
+covered), so a typo in PLATFORM_ADMIN_EMAIL can no longer escalate a student or
+teacher to ADMIN. The oxlint config now actually enables
 typescript/no-explicit-any and typescript/no-floating-promises with a lint job
 behind them, and CI greps the literal passwordHash read from the database
 instead of the $2[aby]$ pattern.
@@ -23,7 +24,7 @@ instead of the $2[aby]$ pattern.
  apps/api/scripts/ci-bootstrap-postgres.sh | 214 +++++++++++++++++++++
  apps/api/src/lib/bootstrap-admin.ts       |  29 ++-
  apps/api/test/admin-routes.test.ts        |  14 +-
- apps/api/test/bootstrap-admin.test.ts     |  40 ++++
+ apps/api/test/bootstrap-admin.test.ts     |  77 ++++++++
  apps/web/src/pages/AiCenter.tsx           |  21 ++-
  docker-compose.prod.yml                   |  27 ++-
  docs/patches/README.md                    |  74 ++++++++
@@ -31,7 +32,7 @@ instead of the $2[aby]$ pattern.
  infrastructure/README.md                  |  43 ++++-
  infrastructure/ci/docker-compose.ci.yml   |  21 +++
  infrastructure/tests/deploy.bats          | 136 ++++++++++++++
- 14 files changed, 1044 insertions(+), 20 deletions(-)
+ 14 files changed, 1081 insertions(+), 20 deletions(-)
 
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
 index 7def3c7..272abda 100644
@@ -778,10 +779,10 @@ index 1ba71cd..2edb13e 100644
      if (!user) throw new Error(`Пользователь ${where.id} не найден`)
  
 diff --git a/apps/api/test/bootstrap-admin.test.ts b/apps/api/test/bootstrap-admin.test.ts
-index b2cbb5c..a344ae7 100644
+index b2cbb5c..2b93313 100644
 --- a/apps/api/test/bootstrap-admin.test.ts
 +++ b/apps/api/test/bootstrap-admin.test.ts
-@@ -252,6 +252,46 @@ describe('bootstrapAdmin', () => {
+@@ -252,6 +252,83 @@ describe('bootstrapAdmin', () => {
      expect(fake.users.size).toBe(0)
    })
  
@@ -795,6 +796,43 @@ index b2cbb5c..a344ae7 100644
 +    for (const cost of ['00', '01', '03', '32', '99']) {
 +      expect(isBcryptHash(hashWithCost(cost)), `cost ${cost} должен отклоняться`).toBe(false)
 +    }
++
++    // Префиксы: bcryptjs понимает 2a/2b/2y, а устаревший $2x$ не проверяет —
++    // такой хеш нельзя принимать, иначе вход по нему невозможен.
++    const hashWithPrefix = (prefix: string) => `${prefix}10$${'a'.repeat(53)}`
++    for (const prefix of ['$2a$', '$2b$', '$2y$']) {
++      expect(isBcryptHash(hashWithPrefix(prefix)), `${prefix} должен приниматься`).toBe(true)
++    }
++    for (const prefix of ['$2x$', '$2z$', '$1a$', '$3b$']) {
++      expect(isBcryptHash(hashWithPrefix(prefix)), `${prefix} должен отклоняться`).toBe(false)
++    }
++  })
++
++  it('не повышает до ADMIN существующего TEACHER', async () => {
++    const fake = createFakePrisma()
++    const teacherEmail = 'teacher@itadis.kg'
++    const teacherHash = await bcrypt.hash('Teacher-Pass-2026', 10)
++    fake.users.set(teacherEmail, {
++      id: 'user-existing-teacher',
++      email: teacherEmail,
++      passwordHash: teacherHash,
++      role: 'TEACHER',
++      firstName: 'Учитель',
++      lastName: '',
++      isActive: true,
++      deletedAt: null,
++      emailVerifiedAt: null,
++    })
++
++    await expect(
++      bootstrapAdmin(fake.prisma, { email: teacherEmail, password: PASSWORD, log: () => {} }),
++    ).rejects.toThrow(/TEACHER/)
++
++    const user = fake.users.get(teacherEmail)
++    expect(user?.role).toBe('TEACHER')
++    expect(user?.passwordHash).toBe(teacherHash)
++    // Активная учётная запись не должна пострадать от неудачного запуска.
++    expect(user?.isActive).toBe(true)
 +  })
 +
 +  it('не повышает до ADMIN существующего пользователя с другой ролью', async () => {
