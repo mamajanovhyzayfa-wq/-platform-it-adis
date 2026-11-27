@@ -282,6 +282,13 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
 `?pgbouncer=true` к `DATABASE_URL`; в образе 1.24 подготовленные выражения
 включены через `MAX_PREPARED_STATEMENTS`.
 
+В `DATABASE_URL`, который смотрит на PgBouncer, не должно быть `schema=`:
+Prisma шлёт его стартовым параметром `search_path`, а PgBouncer в transaction
+mode такие параметры не принимает (`FATAL: unsupported startup parameter:
+search_path`) — backend уходит в `restarting`. Схема по умолчанию и у Prisma,
+и у пользователя БД — `public`. Для прямого подключения (`DIRECT_DATABASE_URL`,
+`migrate`, `bootstrap`) `schema=public` допустим: там нет PgBouncer.
+
 ## Базы данных филиалов
 
 - `Branch` в управляющей БД содержит домен, имя БД, `storagePrefix`.

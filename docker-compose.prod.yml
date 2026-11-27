@@ -272,7 +272,13 @@ services:
       NODE_ENV: production
       PORT: 4000
       # Приложение ходит только через PgBouncer.
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-itadis}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-itadis}?schema=public&connection_limit=${DATABASE_CONNECTION_LIMIT:-10}&pool_timeout=${DATABASE_POOL_TIMEOUT:-10}"
+      # `schema=public` в этом URL — ошибка: Prisma передаёт его стартовым
+      # параметром search_path, а PgBouncer в transaction mode отвергает
+      # необъявленные стартовые параметры (`FATAL: unsupported startup
+      # parameter: search_path`) и backend не стартует. Схема по умолчанию у
+      # Prisma и у пользователя БД — public, поэтому параметр не нужен;
+      # branchDatabaseUrl() его тоже не ставит.
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-itadis}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-itadis}?connection_limit=${DATABASE_CONNECTION_LIMIT:-10}&pool_timeout=${DATABASE_POOL_TIMEOUT:-10}"
       # Прямое подключение нужно только pg_dump/pg_restore и провижинингу.
       DIRECT_DATABASE_URL: "postgresql://${POSTGRES_USER:-itadis}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-itadis}?schema=public"
       DATABASE_CONNECTION_LIMIT: ${DATABASE_CONNECTION_LIMIT:-10}
