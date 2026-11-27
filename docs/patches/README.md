@@ -41,6 +41,21 @@ DATABASE_URL=postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public \
   MinIO) вместо удалённых с Docker Hub в сентябре 2026 `minio/minio` и
   `minio/mc`; healthcheck ClamAV — штатный `clamdcheck.sh` из образа.
 - `infrastructure/tests/deploy.bats` — 11 проверок preflight без Docker и сети.
+- `.github/workflows/ci.yml` — шаг «Фактический хеш администратора из БД не
+  попадает в логи» грепает буквальное значение `passwordHash` из таблицы (а не
+  шаблон `$2[aby]$`), и шаг резервного копирования/восстановления
+  (`pg_dump` + `pg_restore --clean --if-exists --single-transaction
+  --exit-on-error` в отдельную БД) в `full-stack-e2e`.
+- `.oxlintrc.json` — подключён плагин `typescript`, включены
+  `no-explicit-any` и `no-floating-promises`; найденные нарушения исправлены
+  типами в `apps/web/src/pages/AiCenter.tsx` и
+  `apps/api/test/admin-routes.test.ts`.
+- `.github/workflows/production-health.yml` — живая проверка опубликованного
+  сайта: `/api/healthz`, `POST /api/auth/password/request`, лендинг и кабинет.
+  Ловит `503 API_NOT_CONFIGURED`, когда у сайта не задан `API_ORIGIN`.
+- `infrastructure/README.md` — копии файлов S3/MinIO через `mc mirror` /
+  `rclone sync` вместо `tar.gz` бакета, а в разделах запуска и восстановления -
+  блоки «Ожидаемо» с тем, что печатают шаги CI.
 
 ## Ограничения
 
@@ -50,3 +65,10 @@ Job `full-stack-e2e` поднимает настоящие ClamAV/PgBouncer/S3-�
 лимит job — 60 минут.
 Патч не деплоит ничего и не меняет `main`: ветка `fix/hardening-2026-11-26`
 готова к PR.
+
+Опубликованный сайт `https://platform-it-adis-nmtovk.freebuff.site` остаётся
+без API, пока сервер не развёрнут: `203.0.113.10` в документации — адрес из
+TEST-NET-3, а `.deploy/render.key` пуст. Пока `API_ORIGIN` не задан, воркер
+возвращает `503 API_NOT_CONFIGURED`, и именно это показывает
+`production-health.yml`. Порядок: `infrastructure/README.md`, «Чек-лист
+первого запуска», шаги 5–8.

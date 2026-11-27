@@ -6,6 +6,23 @@ import { portalApi } from '../api/portal'
 import { aiApi, type AiAutomation, type AiHistoryItem, type AiSource, type AiTool } from '../api/ai'
 import { Empty, PageHeader, Section, StatusBadge, formatDateTime } from '../components/ui'
 
+// Web Speech API не описан в lib.dom в нужном объёме: объявляем только те члены,
+// которые использует компонент, вместо `any` на конструкторе.
+type SpeechRecognitionLike = {
+  lang: string
+  interimResults: boolean
+  start: () => void
+  stop: () => void
+  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null
+  onend: (() => void) | null
+  onerror: (() => void) | null
+}
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
+type SpeechWindow = {
+  SpeechRecognition?: SpeechRecognitionConstructor
+  webkitSpeechRecognition?: SpeechRecognitionConstructor
+}
+
 const sourceLabels: Record<string, string> = {
   COURSE: 'Курс',
   LESSON: 'Урок',
@@ -236,8 +253,8 @@ export function AiCenterPage() {
   })
 
   const startVoice = () => {
-    const Speech = (window as unknown as { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any }).SpeechRecognition
-      ?? (window as unknown as { webkitSpeechRecognition?: new () => any }).webkitSpeechRecognition
+    const speechWindow = window as unknown as SpeechWindow
+    const Speech = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition
     if (!Speech) { setNotice('Голосовой ввод не поддерживается этим браузером.'); return }
     if (listening) { recognitionRef.current?.stop(); setListening(false); return }
     const recognition = new Speech()

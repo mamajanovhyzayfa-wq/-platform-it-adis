@@ -1,0 +1,80 @@
+name: Production health
+
+# Реальный сайт проверяется отдельно от PR-CI: job full-stack-e2e поднимает
+# собственный стек на primary.local и по определению не видит, что опубликовано
+# на домене. Этот workflow закрывает случай «CI зелёный, а сайт отвечает 503
+# API_NOT_CONFIGURED» — то есть воркер сайта не подключён к API.
+#
+# Запуск: по расписанию и вручную (Actions → Production health → Run workflow).
+# В блокирующие проверки PR он не входит: падение означает проблему деплоя, а не
+# ошибку в коде ветки.
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: production-health
+  cancel-in-progress: true
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE_ORIGIN: https://platform-it-adis-nmtovk.freebuff.site
+    steps:
+      - name: GET /api/healthz отвечает 200 и не API_NOT_CONFIGURED
+        run: |
+          body=$(mktemp)
+          code=$(curl -sS --max-time 20 -o "$body" -w '%{http_code}' "$SITE_ORIGIN/api/healthz" || echo 000)
+          echo "GET $SITE_ORIGIN/api/healthz → $code"
+          cat "$body"
+          echo
+          if [[ $code == 503 ]] && grep -q 'API_NOT_CONFIGURED' "$body"; then
+            echo 'Воркер сайта не подключён к API: в настройках сайта не задан API_ORIGIN.'
+            echo 'Порядок: infrastructure/README.md → «Чек-лист первого запуска», шаг 8.'
+            exit 1
+          fi
+          if [[ $code != 200 ]]; then
+            echo "Ожидался 200, получен $code"
+            exit 1
+          fi
+          if ! grep -q '"status":"ok"' "$body"; then
+            echo 'В ответе /api/healthz нет "status":"ok"'
+            exit 1
+          fi
+
+      - name: POST /api/auth/password/request не отвечает 5xx
+        run: |
+          # Именно этот маршрут вызывает форма восстановления пароля на сайте.
+          # Несуществующий адрес выбран намеренно: ответ не должен раскрывать,
+          # есть ли такой аккаунт, и не должен быть 500/503.
+          body=$(mktemp)
+          code=$(curl -sS --max-time 20 -o "$body" -w '%{http_code}' \
+            -X POST "$SITE_ORIGIN/api/auth/password/request" \
+            -H 'content-type: application/json' \
+            -d '{"identifier":"production-health-probe@example.com"}' || echo 000)
+          echo "POST $SITE_ORIGIN/api/auth/password/request → $code"
+          cat "$body"
+          echo
+          if [[ $code == 503 ]] && grep -q 'API_NOT_CONFIGURED' "$body"; then
+            echo 'Воркер сайта не подключён к API: восстановление пароля недоступно.'
+            echo 'Порядок: infrastructure/README.md → «Чек-лист первого запуска», шаг 8.'
+            exit 1
+          fi
+          if ((code >= 500)); then
+            echo "Восстановление пароля отвечает $code"
+            exit 1
+          fi
+
+      - name: Лендинг и кабинет отдаются (200)
+        run: |
+          for path in / /app/login; do
+            code=$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "$SITE_ORIGIN$path")
+            echo "GET $SITE_ORIGIN$path → $code"
+            if [[ $code != 200 ]]; then
+              echo "Ожидался 200 для $path"
+              exit 1
+            fi
+          done

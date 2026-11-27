@@ -17,6 +17,18 @@ const db = vi.hoisted(() => {
     createdAt: Date
   }
   type Profile = { id: string; userId: string; workplace?: string | null }
+  // Тело PATCH /users/:id: перечисляем только те поля, которые читает двойник
+  // Prisma, чтобы вместо Record<string, any> у проверок был реальный тип.
+  type ProfileLink = { connectOrCreate?: { where: { userId: string } } }
+  type UserUpdate = {
+    firstName?: string
+    lastName?: string
+    role?: Role
+    isActive?: boolean
+    studentProfile?: ProfileLink
+    teacherProfile?: ProfileLink
+    parentProfile?: ProfileLink
+  }
 
   const now = new Date('2026-11-22T00:00:00.000Z')
   const users: User[] = []
@@ -57,7 +69,7 @@ const db = vi.hoisted(() => {
     return { ...user }
   })
 
-  const userUpdate = vi.fn(async ({ where, data }: { where: { id: string }; data: Record<string, any> }) => {
+  const userUpdate = vi.fn(async ({ where, data }: { where: { id: string }; data: UserUpdate }) => {
     const user = users.find((item) => item.id === where.id)
     if (!user) throw new Error(`Пользователь ${where.id} не найден`)
 

@@ -60,6 +60,14 @@ Google/Apple, календари, бухгалтерию, платёжные а�
 падает до старта, если они не заданы. `ANTIVIRUS_SCAN_URL` заполнять не нужно —
 его значение по умолчанию ведёт на контейнер ClamAV.
 
+Ожидаемо: последняя строка `up -d --build` — `✔ Container … Started` для
+каждого сервиса; `docker compose --env-file .env.production -f docker-compose.prod.yml ps`
+показывает `running` у `postgres`, `pgbouncer`, `redis`, `minio`, `clamav`,
+`antivirus`, `backend`, `admin`, `edge`, `caddy` и `exited (0)` у `migrate`,
+`bootstrap`, `minio-init`. `curl -fsS https://PUBLIC_HOSTNAME/healthz` печатает
+`{"status":"ok",...}`. Первые минуты `clamav` остаётся `health: starting`:
+образ загружает базы, start-period 6 минут — это не ошибка.
+
 ### Одной командой: `infrastructure/scripts/deploy.sh`
 
 Скрипт закрывает весь подготовительный этап: считает `PUBLIC_HOSTNAME` из IP
@@ -284,7 +292,26 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
 - Планировщик в backend включается `BACKUP_SCHEDULER_ENABLED=true`.
 - По умолчанию БД копируется ежедневно; частота/срок хранения/файлы — поля
   `Branch` (`backupFrequencyHours`, `backupRetentionDays`, `backupIncludeFiles`).
-- БД: `pg_dump --format=custom`; файлы: `tar.gz` каталога uploads и библиотеки.
+- БД: `pg_dump --format=custom` по прямому подключению (`DIRECT_DATABASE_URL`),
+  а не через PgBouncer: в transaction mode `pg_dump`/`pg_restore` не работают.
+- Файлы в S3/MinIO: `mc mirror`, а не `tar.gz` бакета. Копия кладётся в
+  отдельный бакет/префикс, чтобы `retention` не смешивал её с рабочими
+  объектами:
+
+  ```bash
+  mc alias set prod http://minio:9000 "$S3_ACCESS_KEY" "$S3_SECRET_KEY"
+  mc mirror --overwrite --remove prod/itadis "prod/itadis-backups/$(date -u +%Y%m%dT%H%M%SZ)"
+  mc ls --recursive prod/itadis-backups | wc -l
+  ```
+
+  Для любого S3-провайдера (не только MinIO) вместо `mc` работает
+  `rclone sync prod:itadis remote:itadis-backups/$(date -u +%Y%m%dT%H%M%SZ)`.
+  `tar.gz` каталога uploads остаётся только для локального `STORAGE_DIR`, когда
+  S3 не настроен.
+
+  Ожидаемо: `mc mirror` печатает по строке на объект и завершается с кодом 0;
+  `mc ls --recursive` после копии возвращает столько же объектов, сколько в
+  исходном бакете.
 - Каждая копия получает SHA-256; целостность проверяется `pg_restore --list`
   или `tar -tzf`, результат — `verifiedAt`.
 - Retention удаляет старые файлы копий (и объекты S3), записи истории остаются.
@@ -306,6 +333,20 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
 требует освободить соединения. Для primary demo управляющая БД совпадает с
 восстанавливаемой; в production используйте отдельный `CONTROL_DATABASE_URL`.
 Перед production-restore сделайте свежую копию и проверьте её.
+
+Ожидаемо при проверке копии (эти строки печатает шаг «Резервная копия и
+восстановление на реальном PostgreSQL» в job `full-stack-e2e`):
+
+```text
+pg_dump: pg_dump (PostgreSQL) 16.x
+оглавление дампа: 120 строк
+пользователей: источник=6, восстановленная копия=6
+Резервная копия и восстановление: OK
+```
+
+Тот же шаг выполняет `pg_restore --clean --if-exists --single-transaction
+--exit-on-error` в отдельную БД `itadis_restore_check` и сверяет количество
+строк `User` до и после; расхождение — падение job, а не предупреждение.
 
 ## Мониторинг и логи
 

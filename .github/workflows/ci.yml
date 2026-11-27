@@ -103,6 +103,33 @@ jobs:
             await prisma.$disconnect()
           }
           NODE
+      - name: Фактический хеш администратора из БД не попадает в логи
+        run: |
+          # Грепаем не шаблон \$2[aby]\$, а буквальное значение из таблицы:
+          # шаблон совпадает с любым bcrypt-хешем в тексте и даёт ложные
+          # срабатывания. Нет хеша в БД — шаг падает, а не молча проходит.
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs'
+          import { PrismaClient } from '@prisma/client'
+
+          const prisma = new PrismaClient()
+          try {
+            const user = await prisma.user.findUnique({ where: { email: 'bootstrap@example.com' } })
+            if (!user?.passwordHash) throw new Error('в БД нет passwordHash администратора')
+            if (user.passwordHash.length !== 60) {
+              throw new Error(`длина хеша ${user.passwordHash.length}, ожидалось 60`)
+            }
+            writeFileSync('/tmp/bootstrap-hash.txt', user.passwordHash)
+          } finally {
+            await prisma.$disconnect()
+          }
+          NODE
+          hash=$(cat /tmp/bootstrap-hash.txt)
+          if grep -qF -- "$hash" /tmp/bootstrap-1.log /tmp/bootstrap-2.log; then
+            echo 'Фактический bcrypt-хеш из БД попал в лог bootstrap'
+            exit 1
+          fi
+          echo 'Фактического хеша из БД в логах bootstrap нет'
       - run: npm test
 
   # Bootstrap администратора на реальном PostgreSQL: пять сценариев, каждый —
@@ -262,6 +289,41 @@ jobs:
           done
       - name: Smoke через edge
         run: infrastructure/scripts/smoke.sh http://primary.local:8080 --origin https://primary.local
+      - name: Резервная копия и восстановление на реальном PostgreSQL
+        run: |
+          compose() {
+            docker compose --env-file "$COMPOSE_ENV" \
+              -f docker-compose.prod.yml \
+              -f infrastructure/ci/docker-compose.ci.yml "$@"
+          }
+
+          # Планировщик копий и restore вызывают pg_dump/pg_restore внутри
+          # backend (в образе postgresql16-client). DATABASE_URL смотрит на
+          # PgBouncer, а pg_dump в transaction mode не работает, поэтому и дамп,
+          # и восстановление идут по DIRECT_DATABASE_URL — прямому подключению.
+          compose exec -T backend sh -eu -c '
+            echo "pg_dump: $(pg_dump --version)"
+            echo "pg_restore: $(pg_restore --version)"
+            test -n "${DIRECT_DATABASE_URL:-}"
+            src=$(printf '%s' "$DIRECT_DATABASE_URL" | sed 's/[?].*$//')
+            pg_dump --format=custom --no-owner --no-privileges --file=/tmp/ci-backup.dump "$src"
+            pg_restore --list /tmp/ci-backup.dump >/tmp/ci-backup.list
+            objects=$(wc -l </tmp/ci-backup.list | tr -d " ")
+            echo "оглавление дампа: $objects строк"
+            test "$objects" -gt 10
+            psql "$src" -v ON_ERROR_STOP=1 -qAt -c "DROP DATABASE IF EXISTS itadis_restore_check"
+            psql "$src" -v ON_ERROR_STOP=1 -qAt -c "CREATE DATABASE itadis_restore_check"
+            target="${src%/*}/itadis_restore_check"
+            pg_restore --clean --if-exists --single-transaction --exit-on-error \
+              --no-owner --no-privileges --dbname="$target" /tmp/ci-backup.dump
+            before=$(psql "$src" -v ON_ERROR_STOP=1 -qAt -c "SELECT count(*) FROM \"User\"")
+            after=$(psql "$target" -v ON_ERROR_STOP=1 -qAt -c "SELECT count(*) FROM \"User\"")
+            echo "пользователей: источник=$before, восстановленная копия=$after"
+            test "$before" = "$after"
+            test "$after" -gt 0
+            psql "$src" -v ON_ERROR_STOP=1 -qAt -c "DROP DATABASE itadis_restore_check"
+            echo "Резервная копия и восстановление: OK"
+          '
       - name: В логах приложения нет ERROR/FATAL/Unhandled
         run: |
           compose() {

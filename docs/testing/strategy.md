@@ -127,6 +127,12 @@ npm run test:e2e
   резервных копий, чтобы job проверял стек, а не фоновый pg_dump.
   Ожидание `/healthz` — до 30 минут с ранним падением, если сервис уже
   завершился или упал.
+  Внутри той же job выполняется резервная копия и восстановление на реальном
+  PostgreSQL: `pg_dump --format=custom` по `DIRECT_DATABASE_URL` (не через
+  PgBouncer — в transaction mode он не поддерживает дамп), проверка оглавления
+  через `pg_restore --list` и `pg_restore --clean --if-exists
+  --single-transaction --exit-on-error` в отдельную БД `itadis_restore_check`
+  со сверкой количества строк `User`.
   Хранилище — `pgsty/silo`, поддерживаемый форк MinIO: образы `minio/minio` и
   `minio/mc` удалены с Docker Hub в сентябре 2026, а `quay.io/minio/*` требует
   логин. Форк сохраняет S3 API, переменные `MINIO_*` и формат данных, а в образе
@@ -135,6 +141,23 @@ npm run test:e2e
 - `bats` в job `infrastructure` — 11 проверок preflight `deploy.sh` без Docker
   и сети (`infrastructure/tests/deploy.bats`): обязательные переменные, запись
   `PUBLIC_HOSTNAME`, предупреждения и отсутствие секретов в выводе.
+
+Отдельно от PR-CI работает `.github/workflows/production-health.yml`
+(расписание раз в 6 часов и ручной запуск). Он проверяет опубликованный сайт
+`https://platform-it-adis-nmtovk.freebuff.site`: `GET /api/healthz` должен
+отвечать `200` и `{"status":"ok",...}`, `/api/auth/password/request` не должен
+отвечать `5xx`, лендинг и `/app/login` — `200`. Ответ `503` с кодом
+`API_NOT_CONFIGURED` означает, что воркер сайта не подключён к API (в
+настройках сайта не задан `API_ORIGIN`) — именно этот случай не видит
+`full-stack-e2e`, который поднимает собственный стек на `primary.local`.
+Локальный стек не может заменить эту проверку, а падение означает проблему
+деплоя, а не ошибку кода ветки, поэтому workflow не входит в блокирующие
+проверки PR.
+
+Правила линтера, которые ловят типовые ошибки без запуска тестов, включены в
+`.oxlintrc.json`: плагин `typescript` и `typescript/no-explicit-any`,
+`typescript/no-floating-promises`. `npm run lint` завершается с кодом 0 только
+при отсутствии ошибок (предупреждения react-hooks не блокируют).
 
 ## Команды проверки
 
