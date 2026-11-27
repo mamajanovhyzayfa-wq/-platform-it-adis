@@ -1,6 +1,6 @@
-From 51643243299782c5957a4b644a166be11158d455 Mon Sep 17 00:00:00 2001
+From 5fb2295b037f099435dd06f830bea973e3cf869b Mon Sep 17 00:00:00 2001
 From: huzayfa <mamajanovhyzayfa@gmail.com>
-Date: Fri, 27 Nov 2026 05:17:18 +0000
+Date: Fri, 27 Nov 2026 05:20:43 +0000
 Subject: [PATCH] Harden the administrator bootstrap and gate Phase 1 with
  real CI
 
@@ -12,28 +12,29 @@ published site.
 bootstrap-admin rejects bcrypt cost factors outside 04-31 and refuses to promote
 an existing non-ADMIN account, so a typo in PLATFORM_ADMIN_EMAIL can no longer
 escalate a student or teacher to ADMIN. The oxlint config now actually enables
-typescript/no-explicit-any and typescript/no-floating-promises, and CI greps the
-literal passwordHash read from the database instead of the $2[aby]$ pattern.
+typescript/no-explicit-any and typescript/no-floating-promises with a lint job
+behind them, and CI greps the literal passwordHash read from the database
+instead of the $2[aby]$ pattern.
 
 ---
- .github/workflows/ci.yml                  | 250 ++++++++++++++++++++++++++++++
- .github/workflows/production-health.yml   |  80 ++++++++++
+ .github/workflows/ci.yml                  | 265 ++++++++++++++++++++++++++++++
+ .github/workflows/production-health.yml   |  80 +++++++++
  .oxlintrc.json                            |  15 +-
- apps/api/scripts/ci-bootstrap-postgres.sh | 214 +++++++++++++++++++++++++
+ apps/api/scripts/ci-bootstrap-postgres.sh | 214 ++++++++++++++++++++++++
  apps/api/src/lib/bootstrap-admin.ts       |  29 +++-
  apps/api/test/admin-routes.test.ts        |  14 +-
  apps/api/test/bootstrap-admin.test.ts     |  40 +++++
  apps/web/src/pages/AiCenter.tsx           |  21 ++-
- docker-compose.prod.yml                   |  27 ++--
+ docker-compose.prod.yml                   |  27 ++-
  docs/patches/README.md                    |  74 +++++++++
- docs/testing/strategy.md                  |  52 +++++++
+ docs/testing/strategy.md                  |  53 ++++++
  infrastructure/README.md                  |  43 ++++-
  infrastructure/ci/docker-compose.ci.yml   |  21 +++
- infrastructure/tests/deploy.bats          | 136 ++++++++++++++++
- 14 files changed, 996 insertions(+), 20 deletions(-)
+ infrastructure/tests/deploy.bats          | 136 +++++++++++++++
+ 14 files changed, 1012 insertions(+), 20 deletions(-)
 
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 7def3c7..ec98e41 100644
+index 7def3c7..23daa72 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
 @@ -103,8 +103,252 @@ jobs:
@@ -289,7 +290,29 @@ index 7def3c7..ec98e41 100644
    e2e:
      runs-on: ubuntu-latest
      timeout-minutes: 25
-@@ -332,6 +576,12 @@ jobs:
+@@ -282,6 +526,21 @@ jobs:
+       - run: npm ci
+       - run: npm run build
+ 
++  # Линтер — единственный гейт, который ловит `any` и «висящие» промисы без
++  # запуска тестов. oxlint стоит в корне, поэтому нужен корневой npm ci.
++  lint:
++    runs-on: ubuntu-latest
++    timeout-minutes: 10
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 24
++          cache: npm
++          cache-dependency-path: package-lock.json
++      - run: npm ci
++      - run: npm run lint
++
+   mobile:
+     runs-on: ubuntu-latest
+     timeout-minutes: 20
+@@ -332,6 +591,12 @@ jobs:
            printf 'Проверяю: %s\n' "${scripts[*]}"
            "$shellcheck_bin" --version
            "$shellcheck_bin" -x "${scripts[@]}"
@@ -949,10 +972,10 @@ index 0000000..df202a2
 +`production-health.yml`. Порядок: `infrastructure/README.md`, «Чек-лист
 +первого запуска», шаги 5–8.
 diff --git a/docs/testing/strategy.md b/docs/testing/strategy.md
-index 3667bef..1862e7e 100644
+index 3667bef..f5d1aa6 100644
 --- a/docs/testing/strategy.md
 +++ b/docs/testing/strategy.md
-@@ -107,6 +107,58 @@ npm run test:e2e
+@@ -107,6 +107,59 @@ npm run test:e2e
  Локально второй филиал создаётся штатным provisioner или записью в реестре
  филиалов; API должен быть доступен по его домену.
  
@@ -1005,8 +1028,9 @@ index 3667bef..1862e7e 100644
 +
 +Правила линтера, которые ловят типовые ошибки без запуска тестов, включены в
 +`.oxlintrc.json`: плагин `typescript` и `typescript/no-explicit-any`,
-+`typescript/no-floating-promises`. `npm run lint` завершается с кодом 0 только
-+при отсутствии ошибок (предупреждения react-hooks не блокируют).
++`typescript/no-floating-promises`. Проверяет их job `lint` (корневой `npm ci` и
++`npm run lint`); он зелёный только при отсутствии ошибок — предупреждения
++react-hooks не блокируют.
 +
  ## Команды проверки
  
