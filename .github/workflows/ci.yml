@@ -142,6 +142,15 @@ jobs:
       - run: npx prisma generate
       - run: npx prisma migrate deploy
       - run: npm run build
+      - name: Клиент psql
+        run: |
+          # На ubuntu-latest psql обычно уже есть, но шаг не должен падать
+          # из-за образа runner-а, где клиент не установлен.
+          command -v psql >/dev/null 2>&1 || {
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          }
+          psql --version
       - name: Пять сценариев bootstrap с SQL до/после
         run: bash scripts/ci-bootstrap-postgres.sh
 
@@ -163,9 +172,12 @@ jobs:
             echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
             echo 'PUBLIC_HOSTNAME=primary.local'
             echo 'ACME_EMAIL=ci@example.com'
-            echo 'APP_ORIGIN=http://primary.local:8080'
-            echo 'ADMIN_WEB_ORIGIN=http://primary.local:8080'
-            echo 'API_PUBLIC_URL=http://primary.local:8080'
+            # Production-валидация требует https в APP_ORIGIN, а TLS в CI никто не
+            # терминирует: smoke идёт в edge по http. Origin — только строка
+            # заголовка, CORS сверяет её с APP_ORIGIN, поэтому схемы совпадают.
+            echo 'APP_ORIGIN=https://primary.local'
+            echo 'ADMIN_WEB_ORIGIN=https://primary.local'
+            echo 'API_PUBLIC_URL=https://primary.local'
             echo 'PRIMARY_DOMAIN=primary.local'
             echo 'PLATFORM_DOMAIN=primary.local'
             echo 'ALLOW_PRIMARY_FALLBACK=false'
@@ -225,7 +237,7 @@ jobs:
             fi
           done
       - name: Smoke через edge
-        run: infrastructure/scripts/smoke.sh http://primary.local:8080 --origin http://primary.local:8080
+        run: infrastructure/scripts/smoke.sh http://primary.local:8080 --origin https://primary.local
       - name: В логах приложения нет ERROR/FATAL/Unhandled
         run: |
           compose() {
