@@ -409,7 +409,9 @@ export class TeacherService {
             comment: submission.review.comment,
             returnForRevision: submission.review.returnForRevision,
             createdAt: submission.review.createdAt,
-            reviewer: `${submission.review.reviewer.firstName} ${submission.review.reviewer.lastName}`.trim(),
+            reviewer: submission.review.reviewer
+              ? `${submission.review.reviewer.firstName} ${submission.review.reviewer.lastName}`.trim()
+              : 'Не указан',
           }
         : null,
     }

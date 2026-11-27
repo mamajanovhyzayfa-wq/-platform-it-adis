@@ -412,115 +412,115 @@ model User {
   twoFactorSecret    String?
   twoFactorEnabledAt DateTime?
 
-  profile               UserProfile?
-  studentProfile        Student?
-  teacherProfile        Teacher?
-  parentProfile         Parent?
-  roleRef               Role                      @relation(fields: [role], references: [code], onDelete: Restrict)
-  coinBalance           CoinBalance?
-  refreshSessions       RefreshSession[]
-  roleGrants            UserRoleGrant[]
-  devices               UserDevice[]
-  consents              ConsentRecord[]
-  deletionRequests      AccountDeletionRequest[] @relation("AccountDeletionUser")
-  reviewedDeletionRequests AccountDeletionRequest[] @relation("AccountDeletionReviewer")
-  deletionEvents        AccountDeletionEvent[] @relation("AccountDeletionActor")
-  fileAuditLogs         FileAuditLog[]
-  storageFiles          StorageFile[]
-  enrollments           CourseEnrollment[]
-  taughtCourses         Course[]                  @relation("CourseTeacher")
-  lessonProgress        LessonProgress[]
-  submissions           HomeworkSubmission[]      @relation("SubmissionStudent")
-  reviewedReviews       HomeworkReview[]
-  attempts              TestAttempt[]
-  notifications         Notification[]
-  coinTransactions      CoinTransaction[]
-  aiUserLimit           AiUserLimit?
-  coinAwardsMade        CoinTransaction[]         @relation("CoinAwardedBy")
-  coinReversalsMade     CoinTransaction[]         @relation("CoinReversedBy")
-  coinProfile           UserCoinProfile?
-  questProgress         UserQuestProgress[]
-  shopFavorites         ShopFavorite[]
-  seasonParticipations  CoinSeasonParticipant[]
-  achievements          UserAchievement[]
-  shopOrders            ShopOrder[]
-  sentMessages          Message[]
-  conversationLinks     ConversationParticipant[]
-  createdConversations  Conversation[]             @relation("ConversationCreator")
-  lessonComments        LessonComment[]            @relation("LessonCommentAuthor")
-  lessonQuestionsAsked  LessonQuestion[]           @relation("LessonQuestionStudent")
-  lessonQuestionsAnswered LessonQuestion[]         @relation("LessonQuestionAnswerer")
-  meetingRequests       MeetingRequest[]           @relation("MeetingRequester")
-  meetingsAsTeacher     MeetingRequest[]           @relation("MeetingTeacher")
-  meetingsAsStudent     MeetingRequest[]           @relation("MeetingStudent")
-  announcements         Announcement[]             @relation("AnnouncementCreator")
-  communityEvents       CommunityEvent[]           @relation("CommunityEventCreator")
-  eventRegistrations    EventRegistration[]        @relation("EventRegistrationUser")
-  eventResults          EventResult[]              @relation("EventResultUser")
-  eventResultsCreated   EventResult[]              @relation("EventResultCreator")
-  eventAwards           EventAward[]               @relation("EventAwardUser")
-  eventAwardsCreated    EventAward[]               @relation("EventAwardCreator")
-  notificationPreference NotificationPreference?
-  attendance            Attendance[]
-  auditLogs             AuditLog[]
-  feedbackGiven         Feedback[]                @relation("FeedbackTeacher")
-  feedbackReceived      Feedback[]                @relation("FeedbackStudent")
-  supportTickets        SupportTicket[]           @relation("SupportTicketRequester")
-  assignedSupportTickets SupportTicket[]          @relation("SupportTicketAssignee")
-  aiRequests            AiRequest[]
-  paymentAdjustments    PaymentAdjustment[]
-  invoiceDiscounts      InvoiceDiscount[]
-  createdRooms          VideoRoom[]
-  knowledgeAuthored     KnowledgeMaterial[]       @relation("KnowledgeAuthor")
-  knowledgeViews        KnowledgeView[]
-  knowledgeFavorites    KnowledgeFavorite[]
-  createdHomework       Homework[]
-  passwordResets        PasswordResetToken[]
-  assignedLeads         Lead[]                    @relation("LeadAssignee")
-  invoices              Invoice[]                 @relation("InvoiceStudent")
-  issuedInvoices        Invoice[]                 @relation("InvoiceIssuer")
-  registeredPayments    Payment[]                 @relation("PaymentRegistrar")
-  confirmedPayments     Payment[]                 @relation("PaymentConfirmer")
-  requestedRefunds      Refund[]                  @relation("RefundRequester")
-  reviewedRefunds       Refund[]                  @relation("RefundReviewer")
-  expenses              Expense[]
-  coursePriceChanges    CoursePriceHistory[]
-  certificates          Certificate[]             @relation("CertificateStudent")
-  issuedCertificates    Certificate[]             @relation("CertificateIssuer")
-  homeworkTargets       HomeworkTarget[]          @relation("HomeworkTargetStudent")
-  questionBanks         QuestionBank[]            @relation("QuestionBankTeacher")
-  authoredTests         Test[]                    @relation("TestTeacher")
-  gradedAttempts        TestAttempt[]             @relation("AttemptGrader")
-  reviewedAnswers       TestAnswer[]              @relation("AnswerReviewer")
-  examRegistrations     ExamRegistration[]
-  createdExams          Exam[]                    @relation("ExamCreator")
-  assessmentEvents      AssessmentEvent[]         @relation("AssessmentEventActor")
-  twoFactorBackupCodes  TwoFactorBackupCode[]
-  registrationRequests  RegistrationRequest[]     @relation("RegistrationDecider")
-  attachments           Attachment[]              @relation("AttachmentOwner")
-  authoredCourses       Course[]                  @relation("CourseAuthor")
-  lessonNotes           LessonNote[]
-  materialBookmarks     MaterialBookmark[]
-  materialHighlights    MaterialHighlight[]
-  createdSchedules      Schedule[]                @relation("ScheduleCreator")
-  cancelledSchedules    Schedule[]                @relation("ScheduleCanceller")
-  requestedChanges      ScheduleChange[]          @relation("ScheduleChangeRequester")
-  decidedChanges        ScheduleChange[]          @relation("ScheduleChangeDecider")
-  createdSeries         ScheduleSeries[]          @relation("SeriesCreator")
-  seriesTeaching        ScheduleSeries[]          @relation("SeriesTeacher")
-  createdTemplates      ScheduleTemplate[]        @relation("TemplateCreator")
-  templateTeaching      ScheduleTemplate[]        @relation("TemplateTeacher")
-  scheduleEvents        ScheduleEvent[]           @relation("ScheduleEventActor")
-  extraEnrollments      ExtraSessionEnrollment[]
-  substitutionsFrom     TeacherSubstitution[]     @relation("SubstitutionFrom")
-  substitutionsTo       TeacherSubstitution[]     @relation("SubstitutionTo")
-  assignedSubstitutions TeacherSubstitution[]     @relation("SubstitutionAssigner")
-  attendanceSessions    AttendanceSession[]
-  markedAttendance      Attendance[]              @relation("AttendanceMarker")
-  scheduleMessages      ScheduleMessage[]
-  calendarTasks         CalendarTask[]
-  calendarConnections   CalendarConnection[]
-  proposedChanges       ScheduleChange[]          @relation("ScheduleChangeProposedTeacher")
+  profile                  UserProfile?
+  studentProfile           Student?
+  teacherProfile           Teacher?
+  parentProfile            Parent?
+  roleRef                  Role                      @relation(fields: [role], references: [code], onDelete: Restrict)
+  coinBalance              CoinBalance?
+  refreshSessions          RefreshSession[]
+  roleGrants               UserRoleGrant[]
+  devices                  UserDevice[]
+  consents                 ConsentRecord[]
+  deletionRequests         AccountDeletionRequest[]  @relation("AccountDeletionUser")
+  reviewedDeletionRequests AccountDeletionRequest[]  @relation("AccountDeletionReviewer")
+  deletionEvents           AccountDeletionEvent[]    @relation("AccountDeletionActor")
+  fileAuditLogs            FileAuditLog[]
+  storageFiles             StorageFile[]
+  enrollments              CourseEnrollment[]
+  taughtCourses            Course[]                  @relation("CourseTeacher")
+  lessonProgress           LessonProgress[]
+  submissions              HomeworkSubmission[]      @relation("SubmissionStudent")
+  reviewedReviews          HomeworkReview[]
+  attempts                 TestAttempt[]
+  notifications            Notification[]
+  coinTransactions         CoinTransaction[]
+  aiUserLimit              AiUserLimit?
+  coinAwardsMade           CoinTransaction[]         @relation("CoinAwardedBy")
+  coinReversalsMade        CoinTransaction[]         @relation("CoinReversedBy")
+  coinProfile              UserCoinProfile?
+  questProgress            UserQuestProgress[]
+  shopFavorites            ShopFavorite[]
+  seasonParticipations     CoinSeasonParticipant[]
+  achievements             UserAchievement[]
+  shopOrders               ShopOrder[]
+  sentMessages             Message[]
+  conversationLinks        ConversationParticipant[]
+  createdConversations     Conversation[]            @relation("ConversationCreator")
+  lessonComments           LessonComment[]           @relation("LessonCommentAuthor")
+  lessonQuestionsAsked     LessonQuestion[]          @relation("LessonQuestionStudent")
+  lessonQuestionsAnswered  LessonQuestion[]          @relation("LessonQuestionAnswerer")
+  meetingRequests          MeetingRequest[]          @relation("MeetingRequester")
+  meetingsAsTeacher        MeetingRequest[]          @relation("MeetingTeacher")
+  meetingsAsStudent        MeetingRequest[]          @relation("MeetingStudent")
+  announcements            Announcement[]            @relation("AnnouncementCreator")
+  communityEvents          CommunityEvent[]          @relation("CommunityEventCreator")
+  eventRegistrations       EventRegistration[]       @relation("EventRegistrationUser")
+  eventResults             EventResult[]             @relation("EventResultUser")
+  eventResultsCreated      EventResult[]             @relation("EventResultCreator")
+  eventAwards              EventAward[]              @relation("EventAwardUser")
+  eventAwardsCreated       EventAward[]              @relation("EventAwardCreator")
+  notificationPreference   NotificationPreference?
+  attendance               Attendance[]
+  auditLogs                AuditLog[]
+  feedbackGiven            Feedback[]                @relation("FeedbackTeacher")
+  feedbackReceived         Feedback[]                @relation("FeedbackStudent")
+  supportTickets           SupportTicket[]           @relation("SupportTicketRequester")
+  assignedSupportTickets   SupportTicket[]           @relation("SupportTicketAssignee")
+  aiRequests               AiRequest[]
+  paymentAdjustments       PaymentAdjustment[]
+  invoiceDiscounts         InvoiceDiscount[]
+  createdRooms             VideoRoom[]
+  knowledgeAuthored        KnowledgeMaterial[]       @relation("KnowledgeAuthor")
+  knowledgeViews           KnowledgeView[]
+  knowledgeFavorites       KnowledgeFavorite[]
+  createdHomework          Homework[]
+  passwordResets           PasswordResetToken[]
+  assignedLeads            Lead[]                    @relation("LeadAssignee")
+  invoices                 Invoice[]                 @relation("InvoiceStudent")
+  issuedInvoices           Invoice[]                 @relation("InvoiceIssuer")
+  registeredPayments       Payment[]                 @relation("PaymentRegistrar")
+  confirmedPayments        Payment[]                 @relation("PaymentConfirmer")
+  requestedRefunds         Refund[]                  @relation("RefundRequester")
+  reviewedRefunds          Refund[]                  @relation("RefundReviewer")
+  expenses                 Expense[]
+  coursePriceChanges       CoursePriceHistory[]
+  certificates             Certificate[]             @relation("CertificateStudent")
+  issuedCertificates       Certificate[]             @relation("CertificateIssuer")
+  homeworkTargets          HomeworkTarget[]          @relation("HomeworkTargetStudent")
+  questionBanks            QuestionBank[]            @relation("QuestionBankTeacher")
+  authoredTests            Test[]                    @relation("TestTeacher")
+  gradedAttempts           TestAttempt[]             @relation("AttemptGrader")
+  reviewedAnswers          TestAnswer[]              @relation("AnswerReviewer")
+  examRegistrations        ExamRegistration[]
+  createdExams             Exam[]                    @relation("ExamCreator")
+  assessmentEvents         AssessmentEvent[]         @relation("AssessmentEventActor")
+  twoFactorBackupCodes     TwoFactorBackupCode[]
+  registrationRequests     RegistrationRequest[]     @relation("RegistrationDecider")
+  attachments              Attachment[]              @relation("AttachmentOwner")
+  authoredCourses          Course[]                  @relation("CourseAuthor")
+  lessonNotes              LessonNote[]
+  materialBookmarks        MaterialBookmark[]
+  materialHighlights       MaterialHighlight[]
+  createdSchedules         Schedule[]                @relation("ScheduleCreator")
+  cancelledSchedules       Schedule[]                @relation("ScheduleCanceller")
+  requestedChanges         ScheduleChange[]          @relation("ScheduleChangeRequester")
+  decidedChanges           ScheduleChange[]          @relation("ScheduleChangeDecider")
+  createdSeries            ScheduleSeries[]          @relation("SeriesCreator")
+  seriesTeaching           ScheduleSeries[]          @relation("SeriesTeacher")
+  createdTemplates         ScheduleTemplate[]        @relation("TemplateCreator")
+  templateTeaching         ScheduleTemplate[]        @relation("TemplateTeacher")
+  scheduleEvents           ScheduleEvent[]           @relation("ScheduleEventActor")
+  extraEnrollments         ExtraSessionEnrollment[]
+  substitutionsFrom        TeacherSubstitution[]     @relation("SubstitutionFrom")
+  substitutionsTo          TeacherSubstitution[]     @relation("SubstitutionTo")
+  assignedSubstitutions    TeacherSubstitution[]     @relation("SubstitutionAssigner")
+  attendanceSessions       AttendanceSession[]
+  markedAttendance         Attendance[]              @relation("AttendanceMarker")
+  scheduleMessages         ScheduleMessage[]
+  calendarTasks            CalendarTask[]
+  calendarConnections      CalendarConnection[]
+  proposedChanges          ScheduleChange[]          @relation("ScheduleChangeProposedTeacher")
 
   @@index([role])
   @@index([deletedAt])
@@ -742,15 +742,15 @@ model ConsentRecord {
 }
 
 model AccountDeletionRequest {
-  id            String                 @id @default(uuid())
-  userId        String
-  status        AccountDeletionStatus  @default(PENDING)
-  reason        String?
-  adminComment  String?
-  legalHold     Boolean                @default(false)
-  requestedAt   DateTime               @default(now())
-  reviewedAt    DateTime?
-  reviewedById  String?
+  id           String                @id @default(uuid())
+  userId       String
+  status       AccountDeletionStatus @default(PENDING)
+  reason       String?
+  adminComment String?
+  legalHold    Boolean               @default(false)
+  requestedAt  DateTime              @default(now())
+  reviewedAt   DateTime?
+  reviewedById String?
 
   user       User                   @relation("AccountDeletionUser", fields: [userId], references: [id], onDelete: Cascade)
   reviewedBy User?                  @relation("AccountDeletionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
@@ -758,20 +758,22 @@ model AccountDeletionRequest {
 
   @@index([status, requestedAt])
   @@index([userId, requestedAt])
+  @@index([reviewedById])
 }
 
 model AccountDeletionEvent {
-  id         String                @id @default(uuid())
-  requestId  String
-  status     AccountDeletionStatus
-  comment    String?
-  actorId    String?
-  createdAt  DateTime              @default(now())
+  id        String                @id @default(uuid())
+  requestId String
+  status    AccountDeletionStatus
+  comment   String?
+  actorId   String?
+  createdAt DateTime              @default(now())
 
   request AccountDeletionRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   actor   User?                  @relation("AccountDeletionActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([requestId, createdAt])
+  @@index([actorId])
 }
 
 /// Журнал загрузок и скачиваний. Содержит хеш файла и результат антивирусной проверки.
@@ -790,7 +792,7 @@ model FileAuditLog {
   userAgent  String?
   createdAt  DateTime        @default(now())
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   file StorageFile? @relation(fields: [fileId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
@@ -801,25 +803,25 @@ model FileAuditLog {
 
 /// Файл облачной библиотеки филиала. Метаданные — в БД филиала, объект — в S3/локальном storage.
 model StorageFile {
-  id           String            @id @default(uuid())
-  ownerId      String
-  category     FileCategory      @default(OTHER)
-  title        String
-  originalName String
-  storageKey   String            @unique
-  mimeType     String
-  sizeBytes    Int
-  sha256       String
-  scanStatus   String            @default("CLEAN")
-  access       FileStorageAccess @default(BRANCH)
-  description  String?
-  tags         String[]          @default([])
-  downloadCount Int              @default(0)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  deletedAt    DateTime?
+  id            String            @id @default(uuid())
+  ownerId       String
+  category      FileCategory      @default(OTHER)
+  title         String
+  originalName  String
+  storageKey    String            @unique
+  mimeType      String
+  sizeBytes     Int
+  sha256        String
+  scanStatus    String            @default("CLEAN")
+  access        FileStorageAccess @default(BRANCH)
+  description   String?
+  tags          String[]          @default([])
+  downloadCount Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  deletedAt     DateTime?
 
-  owner User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   auditLogs FileAuditLog[]
 
   @@index([ownerId, createdAt])
@@ -892,6 +894,8 @@ model Course {
 
   author            User?                @relation("CourseAuthor", fields: [authorId], references: [id], onDelete: SetNull)
   versions          CourseVersion[]
+  // RESTRICT осознанно: курс нельзя оставить без преподавателя. Перед удалением
+  // аккаунта курсы переназначаются; рабочий сценарий удаления — обезличивание.
   teacher           User                 @relation("CourseTeacher", fields: [teacherId], references: [id])
   category          CourseCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   modules           Module[]
@@ -914,6 +918,7 @@ model Course {
   @@index([teacherId])
   @@index([categoryId])
   @@index([status])
+  @@index([authorId])
 }
 
 model CourseEnrollment {
@@ -974,20 +979,22 @@ model Lesson {
 }
 
 model LessonMaterial {
-  id        String       @id @default(uuid())
-  lessonId  String
-  type      MaterialType
-  title     String
-  url       String
-  mimeType  String?
-  sizeBytes Int?
+  id            String       @id @default(uuid())
+  lessonId      String
+  type          MaterialType
+  title         String
+  url           String
+  mimeType      String?
+  sizeBytes     Int?
   /// Разрешено ли ученику скачивать файл. Просмотр материала остаётся доступным.
-  allowDownload Boolean  @default(true)
-  createdAt DateTime     @default(now())
+  allowDownload Boolean      @default(true)
+  createdAt     DateTime     @default(now())
 
   lesson     Lesson              @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   bookmarks  MaterialBookmark[]
   highlights MaterialHighlight[]
+
+  @@index([lessonId])
 }
 
 model LessonProgress {
@@ -1034,6 +1041,8 @@ model Homework {
 
   course       Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lesson       Lesson?              @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  // RESTRICT осознанно: задание принадлежит курсу и его преподавателю.
+  // Аккаунт обезличивается; при жёстком удалении сначала переназначают курс.
   teacher      User                 @relation(fields: [teacherId], references: [id])
   gradingScale GradingScale?        @relation(fields: [gradingScaleId], references: [id], onDelete: SetNull)
   submissions  HomeworkSubmission[]
@@ -1041,6 +1050,9 @@ model Homework {
 
   @@index([courseId])
   @@index([dueAt])
+  @@index([gradingScaleId])
+  @@index([lessonId])
+  @@index([teacherId])
 }
 
 /// Адресная выдача задания конкретным ученикам, когда assignAll = false.
@@ -1088,7 +1100,7 @@ model HomeworkSubmission {
 model HomeworkReview {
   id                String   @id @default(uuid())
   submissionId      String   @unique
-  reviewerId        String
+  reviewerId        String?
   score             Int
   comment           String?
   returnForRevision Boolean  @default(false)
@@ -1100,7 +1112,9 @@ model HomeworkReview {
   updatedAt         DateTime @updatedAt
 
   submission HomeworkSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  reviewer   User               @relation(fields: [reviewerId], references: [id])
+  reviewer   User?              @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([reviewerId])
 }
 
 model Test {
@@ -1136,6 +1150,8 @@ model Test {
 
   @@index([courseId])
   @@index([teacherId])
+  @@index([gradingScaleId])
+  @@index([lessonId])
 }
 
 model TestQuestion {
@@ -1211,6 +1227,7 @@ model TestAttempt {
   @@index([testId, studentId])
   @@index([examId])
   @@index([studentId, status])
+  @@index([gradedById])
 }
 
 model TestAnswer {
@@ -1230,6 +1247,8 @@ model TestAnswer {
   reviewedBy User?        @relation("AnswerReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@unique([attemptId, questionId])
+  @@index([questionId])
+  @@index([reviewedById])
 }
 
 /// Банк вопросов наставника: переиспользование вопросов между тестами.
@@ -1337,19 +1356,22 @@ model Exam {
   allowLateRegistration Boolean  @default(false)
   isPublished           Boolean  @default(false)
   gradingScaleId        String?
-  createdById           String
+  createdById           String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
   course        Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
   test          Test               @relation(fields: [testId], references: [id], onDelete: Cascade)
   gradingScale  GradingScale?      @relation(fields: [gradingScaleId], references: [id], onDelete: SetNull)
-  creator       User               @relation("ExamCreator", fields: [createdById], references: [id])
+  creator       User?              @relation("ExamCreator", fields: [createdById], references: [id], onDelete: SetNull)
   registrations ExamRegistration[]
   attempts      TestAttempt[]
 
   @@index([startsAt])
   @@index([courseId])
+  @@index([createdById])
+  @@index([gradingScaleId])
+  @@index([testId])
 }
 
 model ExamRegistration {
@@ -1436,6 +1458,9 @@ model Schedule {
   @@index([teacherId, startsAt])
   @@index([classroomId, startsAt])
   @@index([seriesId, startsAt])
+  @@index([cancelledById])
+  @@index([createdById])
+  @@index([templateId])
 }
 
 /// Аудитория: вместимость и оборудование учитываются при планировании.
@@ -1481,6 +1506,11 @@ model ScheduleTemplate {
   createdBy User?            @relation("TemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
   series    ScheduleSeries[]
   schedules Schedule[]
+
+  @@index([classroomId])
+  @@index([courseId])
+  @@index([createdById])
+  @@index([teacherId])
 }
 
 /// Серия повторяющихся занятий; materialized occurrences лежат в Schedule.
@@ -1488,7 +1518,7 @@ model ScheduleSeries {
   id                  String         @id @default(uuid())
   courseId            String
   templateId          String?
-  teacherId           String
+  teacherId           String?
   classroomId         String?
   title               String
   description         String?
@@ -1510,10 +1540,16 @@ model ScheduleSeries {
 
   course    Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
   template  ScheduleTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  teacher   User              @relation("SeriesTeacher", fields: [teacherId], references: [id])
+  teacher   User?             @relation("SeriesTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
   classroom Classroom?        @relation(fields: [classroomId], references: [id], onDelete: SetNull)
   createdBy User?             @relation("SeriesCreator", fields: [createdById], references: [id], onDelete: SetNull)
   schedules Schedule[]
+
+  @@index([classroomId])
+  @@index([courseId])
+  @@index([createdById])
+  @@index([teacherId])
+  @@index([templateId])
 }
 
 /// Заявка на перенос/отмену: наставник предлагает, менеджер или админ решает.
@@ -1540,6 +1576,10 @@ model ScheduleChange {
 
   @@index([scheduleId, createdAt])
   @@index([status, createdAt])
+  @@index([decidedById])
+  @@index([proposedClassroomId])
+  @@index([proposedTeacherId])
+  @@index([requestedById])
 }
 
 /// Полная история изменений занятия: кто, что и когда сделал.
@@ -1556,6 +1596,7 @@ model ScheduleEvent {
   actor    User?    @relation("ScheduleEventActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([scheduleId, createdAt])
+  @@index([actorId])
 }
 
 /// Запись ученика на дополнительное занятие (только при allowSelfEnrollment).
@@ -1572,6 +1613,7 @@ model ExtraSessionEnrollment {
 
   @@unique([scheduleId, userId])
   @@index([scheduleId, status])
+  @@index([userId])
 }
 
 /// История замены преподавателя.
@@ -1585,11 +1627,14 @@ model TeacherSubstitution {
   createdAt     DateTime @default(now())
 
   schedule    Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  fromTeacher User     @relation("SubstitutionFrom", fields: [fromTeacherId], references: [id])
-  toTeacher   User     @relation("SubstitutionTo", fields: [toTeacherId], references: [id])
-  assignedBy  User     @relation("SubstitutionAssigner", fields: [assignedById], references: [id])
+  fromTeacher User     @relation("SubstitutionFrom", fields: [fromTeacherId], references: [id], onDelete: Cascade)
+  toTeacher   User     @relation("SubstitutionTo", fields: [toTeacherId], references: [id], onDelete: Cascade)
+  assignedBy  User     @relation("SubstitutionAssigner", fields: [assignedById], references: [id], onDelete: Cascade)
 
   @@index([scheduleId, createdAt])
+  @@index([assignedById])
+  @@index([fromTeacherId])
+  @@index([toTeacherId])
 }
 
 /// Один интервал подключения: переподключение создаёт новый интервал.
@@ -1605,6 +1650,7 @@ model AttendanceSession {
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([scheduleId, userId, joinedAt])
+  @@index([userId])
 }
 
 /// Задача в личном календаре.
@@ -1622,6 +1668,7 @@ model CalendarTask {
   course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([userId, dueAt])
+  @@index([courseId])
 }
 
 /// Подписка на ICS-календарь ITadis для Google/Apple/Outlook.
@@ -1637,6 +1684,7 @@ model ScheduleMessage {
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([scheduleId, createdAt])
+  @@index([userId])
 }
 
 model CalendarConnection {
@@ -1655,19 +1703,19 @@ model CalendarConnection {
 
 /// Настройки филиала в его собственной БД.
 model BranchSettings {
-  id                String   @id @default("branch")
-  recordingEnabled  Boolean  @default(false)
-  recordingAuto     Boolean  @default(false)
+  id                   String   @id @default("branch")
+  recordingEnabled     Boolean  @default(false)
+  recordingAuto        Boolean  @default(false)
   /// Уведомления при пропуске занятия: кому отправлять автоматически.
-  notifyAbsenceStudent Boolean @default(true)
-  notifyAbsenceParent  Boolean @default(true)
-  notifyAbsenceTeacher Boolean @default(true)
-  notifyAbsenceManager Boolean @default(true)
-  workingHoursStart String   @default("08:00")
-  workingHoursEnd   String   @default("21:00")
-  slotStepMinutes   Int      @default(30)
-  updatedById       String?
-  updatedAt         DateTime @updatedAt
+  notifyAbsenceStudent Boolean  @default(true)
+  notifyAbsenceParent  Boolean  @default(true)
+  notifyAbsenceTeacher Boolean  @default(true)
+  notifyAbsenceManager Boolean  @default(true)
+  workingHoursStart    String   @default("08:00")
+  workingHoursEnd      String   @default("21:00")
+  slotStepMinutes      Int      @default(30)
+  updatedById          String?
+  updatedAt            DateTime @updatedAt
 }
 
 model VideoRoom {
@@ -1680,7 +1728,7 @@ model VideoRoom {
   providerSpaceId String?
   providerAlias   String?
   settings        Json?
-  createdById     String
+  createdById     String?
   status          RoomStatus @default(CREATED)
   startedAt       DateTime?
   endedAt         DateTime?
@@ -1688,8 +1736,10 @@ model VideoRoom {
   createdAt       DateTime   @default(now())
 
   schedule   Schedule         @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  createdBy  User             @relation(fields: [createdById], references: [id])
+  createdBy  User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
   recordings VideoRecording[]
+
+  @@index([createdById])
 }
 
 model VideoRecording {
@@ -1742,19 +1792,20 @@ model Attendance {
 
   @@unique([scheduleId, userId])
   @@index([userId, scheduleId])
+  @@index([markedById])
 }
 
 model Conversation {
-  id           String           @id @default(uuid())
-  type         ConversationType @default(DIRECT)
-  title        String?
-  description  String?
-  courseId     String?
-  createdById  String?
-  isArchived   Boolean          @default(false)
-  isPinned     Boolean          @default(false)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id          String           @id @default(uuid())
+  type        ConversationType @default(DIRECT)
+  title       String?
+  description String?
+  courseId    String?
+  createdById String?
+  isArchived  Boolean          @default(false)
+  isPinned    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   course       Course?                   @relation(fields: [courseId], references: [id], onDelete: SetNull)
   createdBy    User?                     @relation("ConversationCreator", fields: [createdById], references: [id], onDelete: SetNull)
@@ -1763,6 +1814,7 @@ model Conversation {
 
   @@index([type, updatedAt])
   @@index([courseId, type])
+  @@index([createdById])
 }
 
 model ConversationParticipant {
@@ -1779,19 +1831,20 @@ model ConversationParticipant {
 }
 
 model Message {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   conversationId String
   senderId       String
   body           String
   attachments    Json?
   editedAt       DateTime?
   deletedAt      DateTime?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
+  @@index([senderId])
 }
 
 model Notification {
@@ -1840,13 +1893,14 @@ model LessonComment {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  lesson Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  user   User           @relation("LessonCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  parent LessonComment?  @relation("LessonCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  lesson  Lesson          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user    User            @relation("LessonCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  parent  LessonComment?  @relation("LessonCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies LessonComment[] @relation("LessonCommentReplies")
 
   @@index([lessonId, createdAt])
   @@index([parentId, createdAt])
+  @@index([userId])
 }
 
 /// Вопрос по уроку: ученик задаёт, наставник отвечает.
@@ -1869,6 +1923,7 @@ model LessonQuestion {
 
   @@index([lessonId, status, createdAt])
   @@index([studentId, createdAt])
+  @@index([answeredById])
 }
 
 enum MeetingRequestStatus {
@@ -1903,6 +1958,8 @@ model MeetingRequest {
 
   @@index([teacherId, status, preferredAt])
   @@index([requesterId, createdAt])
+  @@index([courseId])
+  @@index([studentId])
 }
 
 enum AnnouncementAudience {
@@ -1933,6 +1990,7 @@ model Announcement {
 
   @@index([audience, publishedAt])
   @@index([courseId, publishedAt])
+  @@index([createdById])
 }
 
 enum CommunityEventType {
@@ -1965,8 +2023,8 @@ enum EventRegistrationStatus {
 
 /// Событие, конкурс, олимпиада или внутреннее соревнование.
 model CommunityEvent {
-  id                   String                 @id @default(uuid())
-  type                 CommunityEventType     @default(EVENT)
+  id                   String                   @id @default(uuid())
+  type                 CommunityEventType       @default(EVENT)
   title                String
   description          String
   rules                String?
@@ -1976,12 +2034,12 @@ model CommunityEvent {
   location             String?
   onlineUrl            String?
   capacity             Int?
-  status               CommunityEventStatus @default(DRAFT)
+  status               CommunityEventStatus     @default(DRAFT)
   visibility           CommunityEventVisibility @default(BRANCH)
   courseId             String?
   createdById          String
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 
   course        Course?             @relation(fields: [courseId], references: [id], onDelete: SetNull)
   createdBy     User                @relation("CommunityEventCreator", fields: [createdById], references: [id], onDelete: Cascade)
@@ -1992,6 +2050,7 @@ model CommunityEvent {
 
   @@index([type, status, startsAt])
   @@index([courseId, startsAt])
+  @@index([createdById])
 }
 
 model EventRegistration {
@@ -2008,6 +2067,7 @@ model EventRegistration {
 
   @@unique([eventId, userId])
   @@index([eventId, status])
+  @@index([userId])
 }
 
 model EventTask {
@@ -2038,13 +2098,16 @@ model EventResult {
   createdById String?
   createdAt   DateTime  @default(now())
 
-  event   CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user    User           @relation("EventResultUser", fields: [userId], references: [id], onDelete: Cascade)
-  task    EventTask?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  createdBy User?        @relation("EventResultCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  event     CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User           @relation("EventResultUser", fields: [userId], references: [id], onDelete: Cascade)
+  task      EventTask?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  createdBy User?          @relation("EventResultCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@unique([eventId, userId, taskId])
   @@index([eventId, score])
+  @@index([createdById])
+  @@index([taskId])
+  @@index([userId])
 }
 
 model EventAward {
@@ -2062,6 +2125,8 @@ model EventAward {
   createdBy User?          @relation("EventAwardCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([eventId, awardedAt])
+  @@index([createdById])
+  @@index([userId])
 }
 
 model CoinBalance {
@@ -2098,6 +2163,8 @@ model CoinTransaction {
   @@unique([userId, sourceType, sourceId])
   @@index([userId, createdAt])
   @@index([status, createdAt])
+  @@index([awardedById])
+  @@index([reversedById])
 }
 
 /// Обжалование списания: решение принимает администратор филиала.
@@ -2186,6 +2253,7 @@ model UserQuestProgress {
 
   @@unique([userId, questId, periodKey])
   @@index([userId, periodKey])
+  @@index([questId])
 }
 
 /// Сезонное событие и его тематические задания.
@@ -2214,6 +2282,8 @@ model CoinSeasonChallenge {
   rewardXp    Int    @default(0)
 
   season CoinSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@index([seasonId])
 }
 
 model CoinSeasonParticipant {
@@ -2228,6 +2298,7 @@ model CoinSeasonParticipant {
 
   @@unique([seasonId, userId])
   @@index([seasonId, points])
+  @@index([userId])
 }
 
 model Achievement {
@@ -2257,6 +2328,7 @@ model UserAchievement {
   achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 
   @@id([userId, achievementId])
+  @@index([achievementId])
 }
 
 model ShopProduct {
@@ -2293,6 +2365,7 @@ model ShopFavorite {
 
   @@id([userId, productId])
   @@index([userId, createdAt])
+  @@index([productId])
 }
 
 model ShopOrder {
@@ -2314,6 +2387,7 @@ model ShopOrder {
 
   @@index([userId])
   @@index([status, createdAt])
+  @@index([productId])
 }
 
 model KnowledgeCategory {
@@ -2350,6 +2424,7 @@ model KnowledgeMaterial {
 
   @@index([categoryId, createdAt])
   @@index([type])
+  @@index([authorId])
 }
 
 model KnowledgeView {
@@ -2379,17 +2454,17 @@ model KnowledgeFavorite {
 
 /// Обращение в поддержку: пользователь создаёт, администратор/менеджер ведёт.
 model SupportTicket {
-  id           String               @id @default(uuid())
+  id           String                @id @default(uuid())
   userId       String
   subject      String
   message      String
-  category     String               @default("OTHER")
-  status       SupportTicketStatus  @default(OPEN)
+  category     String                @default("OTHER")
+  status       SupportTicketStatus   @default(OPEN)
   priority     SupportTicketPriority @default(NORMAL)
   assignedToId String?
   resolution   String?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
 
   user       User  @relation("SupportTicketRequester", fields: [userId], references: [id], onDelete: Cascade)
   assignedTo User? @relation("SupportTicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
@@ -2412,6 +2487,7 @@ model Feedback {
   student User @relation("FeedbackStudent", fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
+  @@index([teacherId])
 }
 
 /// История обращений к AI: пользователь управляет ею, администратор видит инциденты.
@@ -2614,9 +2690,11 @@ model Invoice {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  student  User      @relation("InvoiceStudent", fields: [studentId], references: [id])
-  course   Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  issuedBy User?     @relation("InvoiceIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+  // RESTRICT осознанно: счёт — документ бухгалтерского учёта и хранится вместе
+  // с плательщиком. Рабочий сценарий удаления — обезличивание (privacy.routes.ts).
+  student   User              @relation("InvoiceStudent", fields: [studentId], references: [id])
+  course    Course?           @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  issuedBy  User?             @relation("InvoiceIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
   payments  Payment[]
   discounts InvoiceDiscount[]
 
@@ -2624,6 +2702,7 @@ model Invoice {
   @@index([status, dueAt])
   @@index([courseId])
   @@index([createdAt])
+  @@index([issuedById])
 }
 
 /// Платёж по счёту. Наличный платёж регистрирует менеджер или администратор,
@@ -2646,15 +2725,17 @@ model Payment {
   confirmedAt    DateTime?
   createdAt      DateTime      @default(now())
 
-  invoice      Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  registeredBy User?    @relation("PaymentRegistrar", fields: [registeredById], references: [id], onDelete: SetNull)
-  confirmedBy  User?    @relation("PaymentConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
+  invoice      Invoice             @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  registeredBy User?               @relation("PaymentRegistrar", fields: [registeredById], references: [id], onDelete: SetNull)
+  confirmedBy  User?               @relation("PaymentConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
   refunds      Refund[]
   adjustments  PaymentAdjustment[]
 
   @@index([invoiceId, status])
   @@index([paidAt])
   @@index([status, paidAt])
+  @@index([confirmedById])
+  @@index([registeredById])
 }
 
 /// Заявка на возврат. Деньги возвращает только администратор после рассмотрения.
@@ -2664,37 +2745,40 @@ model Refund {
   amount        Int
   reason        String
   status        RefundStatus @default(REQUESTED)
-  requestedById String
+  requestedById String?
   reviewedById  String?
   reviewedAt    DateTime?
   reviewComment String?
   createdAt     DateTime     @default(now())
 
   payment     Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  requestedBy User    @relation("RefundRequester", fields: [requestedById], references: [id])
+  requestedBy User?   @relation("RefundRequester", fields: [requestedById], references: [id], onDelete: SetNull)
   reviewedBy  User?   @relation("RefundReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([paymentId, status])
   @@index([status, createdAt])
+  @@index([requestedById])
+  @@index([reviewedById])
 }
 
 /// Расход филиала: аренда, зарплаты, оборудование и т.д.
 model Expense {
-  id          String          @id @default(uuid())
-  category    ExpenseCategory @default(OTHER)
-  amount      Int
-  spentAt     DateTime        @default(now())
-  description String
-  documentUrl String?
+  id           String          @id @default(uuid())
+  category     ExpenseCategory @default(OTHER)
+  amount       Int
+  spentAt      DateTime        @default(now())
+  description  String
+  documentUrl  String?
   /// Несколько подтверждающих документов (ссылки на загруженные файлы).
   documentUrls Json?
-  createdById String
-  createdAt   DateTime        @default(now())
+  createdById  String?
+  createdAt    DateTime        @default(now())
 
-  createdBy User @relation(fields: [createdById], references: [id])
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([spentAt])
   @@index([category, spentAt])
+  @@index([createdById])
 }
 
 /// История изменения цены курса: кто и когда поменял стоимость.
@@ -2705,13 +2789,14 @@ model CoursePriceHistory {
   newPrice      Int
   /// Причина изменения тарифа, если указана администратором.
   reason        String?
-  changedById   String
+  changedById   String?
   createdAt     DateTime @default(now())
 
   course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  changedBy User   @relation(fields: [changedById], references: [id])
+  changedBy User?  @relation(fields: [changedById], references: [id], onDelete: SetNull)
 
   @@index([courseId, createdAt])
+  @@index([changedById])
 }
 
 /// Ручная скидка администратора по счёту. Сумма счёта уменьшается,
@@ -2721,13 +2806,14 @@ model InvoiceDiscount {
   invoiceId   String
   amount      Int
   reason      String
-  createdById String
+  createdById String?
   createdAt   DateTime @default(now())
 
   invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  createdBy User    @relation(fields: [createdById], references: [id])
+  createdBy User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([invoiceId, createdAt])
+  @@index([createdById])
 }
 
 /// Ручная корректировка платежа администратором: сумма, статус и причина.
@@ -2739,13 +2825,14 @@ model PaymentAdjustment {
   previousStatus PaymentStatus
   newStatus      PaymentStatus
   reason         String
-  adjustedById   String
+  adjustedById   String?
   createdAt      DateTime      @default(now())
 
   payment    Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  adjustedBy User    @relation(fields: [adjustedById], references: [id])
+  adjustedBy User?   @relation(fields: [adjustedById], references: [id], onDelete: SetNull)
 
   @@index([paymentId, createdAt])
+  @@index([adjustedById])
 }
 
 /// Платёжный аккаунт филиала. Секреты не хранятся в БД: поле secretEnvVar
@@ -2774,17 +2861,17 @@ model PaymentProviderAccount {
 /// только имена переменных окружения сервера, значения задаёт администратор
 /// сервера (переменные окружения или секреты платформы).
 model IntegrationConfig {
-  id            String   @id @default(uuid())
-  provider      String   @unique
-  enabled       Boolean  @default(true)
+  id            String    @id @default(uuid())
+  provider      String    @unique
+  enabled       Boolean   @default(true)
   settings      Json?
   secretEnvVars Json?
   lastCheckedAt DateTime?
   lastStatus    String?
   lastMessage   String?
   updatedById   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 enum IntegrationEventStatus {
@@ -2824,7 +2911,7 @@ model Certificate {
   verificationCode String            @unique
   studentId        String
   courseId         String
-  issuedById       String
+  issuedById       String?
   grade            Int?
   status           CertificateStatus @default(ISSUED)
   issuedAt         DateTime          @default(now())
@@ -2841,7 +2928,7 @@ model Certificate {
 
   student  User   @relation("CertificateStudent", fields: [studentId], references: [id], onDelete: Cascade)
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  issuedBy User   @relation("CertificateIssuer", fields: [issuedById], references: [id])
+  issuedBy User?  @relation("CertificateIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
 
   @@unique([studentId, courseId])
   @@index([status, issuedAt])
@@ -2865,33 +2952,33 @@ enum BranchStatus {
 /// Реестр филиалов (control plane). Хранится в управляющей БД; данные филиалов — в отдельных БД.
 /// Пароли БД здесь не хранятся: подключение собирается из CONTROL_DATABASE_URL.
 model Branch {
-  id            String       @id @default(uuid())
-  name          String
-  slug          String       @unique
-  domain        String       @unique
-  databaseName  String       @unique
-  storagePrefix String
+  id                   String       @id @default(uuid())
+  name                 String
+  slug                 String       @unique
+  domain               String       @unique
+  databaseName         String       @unique
+  storagePrefix        String
   /// Лимит одного файла и общая квота библиотеки филиала, МБ.
-  fileMaxSizeMb Int          @default(50)
-  fileQuotaMb   Int          @default(10240)
+  fileMaxSizeMb        Int          @default(50)
+  fileQuotaMb          Int          @default(10240)
   /// Автоматическое резервное копирование: частота и срок хранения задаются филиально.
-  backupEnabled        Boolean   @default(true)
-  backupFrequencyHours Int       @default(24)
-  backupRetentionDays  Int       @default(30)
-  backupIncludeFiles  Boolean   @default(true)
-  lastBackupAt        DateTime?
-  lastBackupStatus    String?
-  status        BranchStatus @default(PROVISIONING)
-  isPrimary     Boolean      @default(false)
-  adminEmail    String
-  adminName     String?
-  config        Json?
-  steps         Json?
-  lastError     String?
-  provisionedAt DateTime?
-  activatedAt   DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  backupEnabled        Boolean      @default(true)
+  backupFrequencyHours Int          @default(24)
+  backupRetentionDays  Int          @default(30)
+  backupIncludeFiles   Boolean      @default(true)
+  lastBackupAt         DateTime?
+  lastBackupStatus     String?
+  status               BranchStatus @default(PROVISIONING)
+  isPrimary            Boolean      @default(false)
+  adminEmail           String
+  adminName            String?
+  config               Json?
+  steps                Json?
+  lastError            String?
+  provisionedAt        DateTime?
+  activatedAt          DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   backupRuns      BackupRun[]
   restoreRequests RestoreRequest[]
@@ -2901,18 +2988,18 @@ model Branch {
 
 /// Запуск резервного копирования филиала. Хранится в управляющей БД.
 model BackupRun {
-  id          String       @id @default(uuid())
-  branchId    String
-  kind        BackupKind
-  status      BackupStatus @default(RUNNING)
-  storageKey  String?
-  sizeBytes   BigInt?
-  sha256      String?
-  startedAt   DateTime     @default(now())
-  finishedAt  DateTime?
-  verifiedAt  DateTime?
-  error       String?
-  metadata    Json?
+  id         String       @id @default(uuid())
+  branchId   String
+  kind       BackupKind
+  status     BackupStatus @default(RUNNING)
+  storageKey String?
+  sizeBytes  BigInt?
+  sha256     String?
+  startedAt  DateTime     @default(now())
+  finishedAt DateTime?
+  verifiedAt DateTime?
+  error      String?
+  metadata   Json?
 
   branch   Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
   restores RestoreRequest[]
@@ -2945,6 +3032,7 @@ model RestoreRequest {
   backup BackupRun @relation(fields: [backupId], references: [id], onDelete: Restrict)
 
   @@index([branchId, status, detectedAt])
+  @@index([backupId])
 }
 
 /// Заявка на регистрацию: аккаунт создаётся только после решения администратора.
@@ -2955,41 +3043,42 @@ enum RegistrationStatus {
 }
 
 model RegistrationRequest {
-  id            String             @id @default(uuid())
-  firstName     String
-  lastName      String
-  email         String
-  phone         String?
-  passwordHash  String
-  requestedRole RoleName           @default(STUDENT)
-  message       String?
+  id                String             @id @default(uuid())
+  firstName         String
+  lastName          String
+  email             String
+  phone             String?
+  passwordHash      String
+  requestedRole     RoleName           @default(STUDENT)
+  message           String?
   /// Данные несовершеннолетнего заявителя: переносятся в профиль при одобрении.
-  birthDate     DateTime?
-  guardianName  String?
-  guardianPhone String?
-  locale        String             @default("ru")
-  status        RegistrationStatus @default(PENDING)
+  birthDate         DateTime?
+  guardianName      String?
+  guardianPhone     String?
+  locale            String             @default("ru")
+  status            RegistrationStatus @default(PENDING)
   /// Приглашение, по которому пришла заявка (если было).
-  inviteId      String?
-  decidedById   String?
-  decidedAt     DateTime?
-  rejectReason  String?
+  inviteId          String?
+  decidedById       String?
+  decidedAt         DateTime?
+  rejectReason      String?
   /// Версии согласий, принятых при отправке заявки, и время принятия.
   consentAcceptedAt DateTime?
   consentVersions   Json?
   marketingOptIn    Boolean            @default(false)
-  ip            String?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  ip                String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   decidedBy User? @relation("RegistrationDecider", fields: [decidedById], references: [id], onDelete: SetNull)
-
-  @@index([status, createdAt])
-  @@index([email])
   // Дополнительно в миграции 20261127120000 создан частичный уникальный индекс
   // "RegistrationRequest_pending_email_key" ON (lower(email)) WHERE status = 'PENDING':
   // Prisma не умеет описывать частичные индексы в схеме, но без него две
   // одновременные заявки с одним email создают две записи PENDING.
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@index([decidedById])
 }
 
 /// Вложение, загруженное через POST /api/uploads.
@@ -3102,6 +3191,7 @@ model LessonNote {
 
   @@unique([userId, lessonId])
   @@index([userId, updatedAt])
+  @@index([lessonId])
 }
 
 /// Закладка на материал урока: быстрый возврат к сохранённому.
@@ -3116,6 +3206,7 @@ model MaterialBookmark {
 
   @@unique([userId, materialId])
   @@index([userId, createdAt])
+  @@index([materialId])
 }
 
 /// Выделенный учеником фрагмент материала с комментарием.

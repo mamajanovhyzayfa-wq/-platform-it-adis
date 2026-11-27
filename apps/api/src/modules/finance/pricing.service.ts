@@ -53,7 +53,7 @@ export class PricingService {
         previousPrice: entry.previousPrice,
         newPrice: entry.newPrice,
         reason: entry.reason,
-        changedBy: `${entry.changedBy.firstName} ${entry.changedBy.lastName}`.trim(),
+        changedBy: entry.changedBy ? `${entry.changedBy.firstName} ${entry.changedBy.lastName}`.trim() : 'Не указан',
         createdAt: entry.createdAt,
       })),
       currency: CURRENCY,

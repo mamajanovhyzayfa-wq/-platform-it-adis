@@ -41,7 +41,9 @@ export class ExpensesService {
         description: expense.description,
         documentUrl: expense.documentUrl,
         documentUrls: Array.isArray(expense.documentUrls) ? expense.documentUrls : [],
-        createdBy: `${expense.createdBy.firstName} ${expense.createdBy.lastName}`.trim(),
+        createdBy: expense.createdBy
+          ? `${expense.createdBy.firstName} ${expense.createdBy.lastName}`.trim()
+          : 'Не указан',
         createdAt: expense.createdAt,
       })),
       total,

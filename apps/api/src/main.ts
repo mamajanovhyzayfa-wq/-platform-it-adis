@@ -10,7 +10,7 @@ import { Logger } from '@nestjs/common'
 import { AppModule } from './nest/app.module.js'
 import { AllExceptionsFilter } from './nest/common/all-exceptions.filter.js'
 import { env } from './config/env.js'
-import { errorHandler } from './lib/errors.js'
+import { errorHandler, isJsonSyntaxError, sendJsonParseError } from './lib/errors.js'
 import { prisma } from './lib/prisma.js'
 import { controlPrisma } from './lib/control-prisma.js'
 import { disconnectBranchClients } from './lib/tenant.js'
@@ -67,6 +67,14 @@ async function bootstrap(): Promise<void> {
     financeWebhookRouter,
   )
   app.use(express.json({ limit: '1mb' }))
+  // Битый JSON от body-parser: 400 с общим текстом, без деталей парсера.
+  app.use((error: unknown, _req: Request, res: Response, next: NextFunction) => {
+    if (isJsonSyntaxError(error)) {
+      sendJsonParseError(res)
+      return
+    }
+    next(error)
+  })
   // NUL-байт в любом поле давал 500 от PostgreSQL, а не 400: отклоняем до маршрутов.
   app.use(rejectNulBytes)
   if (env.NODE_ENV !== 'test') app.use(morgan('tiny'))

@@ -56,7 +56,9 @@ export class RefundsService {
           invoiceId: refund.payment.invoice.id,
           student: refund.payment.invoice.student,
         },
-        requestedBy: `${refund.requestedBy.firstName} ${refund.requestedBy.lastName}`.trim(),
+        requestedBy: refund.requestedBy
+          ? `${refund.requestedBy.firstName} ${refund.requestedBy.lastName}`.trim()
+          : 'Не указан',
         reviewedBy: refund.reviewedBy
           ? `${refund.reviewedBy.firstName} ${refund.reviewedBy.lastName}`.trim()
           : null,

@@ -27,11 +27,16 @@ export function certificateFileExtension(mimeType: string): string | undefined {
   return CERTIFICATE_FILE_EXTENSIONS[mimeType as CertificateFileMimeType]
 }
 
-/** Ссылка должна вести в каталог загрузок и иметь расширение готового документа. */
+/**
+ * Ссылка на готовый документ: API-эндпоинт загрузки (новый формат) или
+ * прямой путь /uploads (файлы, загруженные раньше). Расширение обязательно.
+ */
 export function isCertificateFileUrl(value: string): boolean {
   try {
     const url = new URL(value)
-    return url.pathname.startsWith('/uploads/') && /\.(pdf|jpe?g|png|webp)$/i.test(url.pathname)
+    const allowed =
+      url.pathname.startsWith('/api/uploads/certificates/') || url.pathname.startsWith('/uploads/')
+    return allowed && /\.(pdf|jpe?g|png|webp)$/i.test(url.pathname)
   } catch {
     return false
   }

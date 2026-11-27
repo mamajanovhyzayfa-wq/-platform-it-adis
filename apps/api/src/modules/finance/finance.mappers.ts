@@ -58,7 +58,9 @@ export function toInvoiceCard(invoice: InvoiceWithPayments) {
       amount: discount.amount,
       reason: discount.reason,
       createdAt: discount.createdAt,
-      createdBy: `${discount.createdBy.firstName} ${discount.createdBy.lastName}`.trim(),
+      createdBy: discount.createdBy
+        ? `${discount.createdBy.firstName} ${discount.createdBy.lastName}`.trim()
+        : 'Не указан',
     })),
     totals,
     payments: invoice.payments.map((payment) => ({

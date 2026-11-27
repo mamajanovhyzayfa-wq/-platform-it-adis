@@ -23,11 +23,35 @@ export const conflict = (message: string) => new AppError(409, 'CONFLICT', messa
 export const tooManyRequests = (message = 'Слишком много попыток, попробуйте позже') =>
   new AppError(429, 'TOO_MANY_REQUESTS', message)
 
+/**
+ * Ошибка body-parser на битом JSON: у неё есть `.body` и статус 400.
+ * Наружу отдаём понятный текст без позиции парсера и имён полей.
+ */
+export function isJsonSyntaxError(error: unknown): boolean {
+  return (
+    error instanceof SyntaxError &&
+    (error as { status?: unknown }).status === 400 &&
+    typeof (error as { body?: unknown }).body !== 'undefined'
+  )
+}
+
+/** Единый ответ на некорректный JSON: код и текст одинаковы для Nest и Express. */
+export function sendJsonParseError(res: Response) {
+  res.status(400).json({
+    error: { code: 'BAD_REQUEST', message: 'Некорректный формат JSON' },
+  })
+}
+
 export function notFoundHandler(_req: Request, res: Response) {
   res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Маршрут не найден' } })
 }
 
 export function errorHandler(error: unknown, _req: Request, res: Response, _next: NextFunction) {
+  if (isJsonSyntaxError(error)) {
+    sendJsonParseError(res)
+    return
+  }
+
   if (error instanceof AppError) {
     res.status(error.status).json({
       error: { code: error.code, message: error.message, details: error.details },

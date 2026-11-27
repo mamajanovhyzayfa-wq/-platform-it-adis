@@ -1,7 +1,7 @@
 import { Catch, HttpException, HttpStatus, Logger, type ArgumentsHost, type ExceptionFilter } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { ZodError } from 'zod'
-import { AppError } from '../../lib/errors.js'
+import { AppError, isJsonSyntaxError, sendJsonParseError } from '../../lib/errors.js'
 import { sendAlert } from '../../lib/notify-alert.js'
 
 /**
@@ -17,6 +17,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>()
+
+    if (isJsonSyntaxError(exception)) {
+      sendJsonParseError(response)
+      return
+    }
 
     if (exception instanceof AppError) {
       response.status(exception.status).json({

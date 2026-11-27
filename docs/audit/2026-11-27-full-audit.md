@@ -91,14 +91,14 @@ Severity: **P0** — не работает продукт, **P1** — дыра/�
 | S-4 | Инфраструктура | Без `trust proxy` Express видит всех клиентов как IP контейнера nginx: лимит 120 req/мин общий на платформу, `req.ip` в аудите/согласиях — адрес прокси, `req.protocol` = `http` в ссылках на вложения | P1 | `apps/api/src/main.ts` (до фикса), `apps/api/src/nest/app.module.ts:80` | 130 запросов клиентом A, затем 3 клиентом B | У B свои 120/мин | **B сразу получает 429** (исправлено, P1-2) |
 | F-1 | Функционал/мониторинг | `/healthz` сайта отдаёт 200 с `index.html` при полностью мёртвом API | P1 | `infrastructure/sites/worker.js:57` | `curl https://…/healthz` | 503, если API недоступен | 200 + HTML (исправлено, P1-3) |
 | D-1 | Данные | Гонка регистрации: две одновременные заявки с одним email создают две `PENDING` записи (проверка и вставка не атомарны, уникального индекса нет) | P2 | `apps/api/src/modules/access/access.service.ts:64-71` | Два параллельных `POST /api/access/registration` с одним email | 201 + 409 | **201 + 201**, в БД `count=2` (исправлено, промпт 1: индекс + 409) |
-| D-2 | Данные | 19 внешних ключей с `NO ACTION/RESTRICT` на `User` (`Certificate`, `Course`, `Invoice`, `Homework`…) — удаление пользователя по GDPR-заявке упрётся в FK | P2 | `apps/api/prisma/schema.prisma` (19 `onDelete: Restrict/NoAction`) | Удалить пользователя с курсом/счётом | Понятный сценарий удаления/анонимизации | FK-ошибка (статически; end-to-end не удалял данные) |
-| D-3 | Производительность БД | 79 FK-колонок без ведущего индекса (39 из них `NO ACTION`): каскадное удаление и джойны идут seq scan по дочерней таблице | P2 | схема, 128 моделей | `pg_constraint` + `pg_index` (см. §3) | Индекс на FK | 79 колонок без индекса |
+| D-2 | Данные | 19 внешних ключей с `NO ACTION/RESTRICT` на `User` (`Certificate`, `Course`, `Invoice`, `Homework`…) — удаление пользователя по GDPR-заявке упрётся в FK | P2 | `apps/api/prisma/schema.prisma` (19 `onDelete: Restrict/NoAction`) | Удалить пользователя с курсом/счётом | Понятный сценарий удаления/анонимизации | FK-ошибка (статически; end-to-end не удалял данные). **13 изменены (промпт 2): 3 CASCADE, 10 SET NULL; `Course.teacherId`, `Homework.teacherId`, `Invoice.studentId` осознанно оставлены RESTRICT** |
+| D-3 | Производительность БД | 79 FK-колонок без ведущего индекса (39 из них `NO ACTION`): каскадное удаление и джойны идут seq scan по дочерней таблице | P2 | схема, 128 моделей | `pg_constraint` + `pg_index` (см. §3) | Индекс на FK | 79 колонок без индекса (исправлено, промпт 2: 79 `@@index`, на живой БД осталось 0) |
 | S-5 | XSS/данные | Значение заявки сохраняется как есть, включая `<script>`; в веб-панели React экранирует (нет `dangerouslySetInnerHTML`), но поле уходит в письма/уведомления без проверки | P2 | `apps/api/src/modules/leads/leads.service.ts` (`leadCreateSchema`) | `POST /api/leads {"name":"<script>alert(1)</script>…"}` | Санитизация/экранирование на выходе | Хранится `<script>…`, отдаётся в JSON как есть (исправлено, промпт 1: санитизация до записи) |
 | S-6 | Раскрытие | Swagger `/docs` и Prometheus `/metrics` открыты публично в production-сборке | P2 | `apps/api/src/main.ts:73`, `main.ts:55` | `curl /docs/`, `curl /metrics` | Закрыто или ограничено по IP/роли | 200 без авторизации |
 | S-7 | Наблюдаемость | Access-лог `morgan('tiny')` не содержит IP клиента; при разборе 5xx нет адреса | P2 | `apps/api/src/main.ts` | Любой запрос → строка лога | IP в логе | `GET /api/users/me 200 1247 - 5.7 ms` (без IP) |
-| F-2 | API-контракт | Ответ `POST /api/uploads?purpose=certificate` содержит URL `/uploads/certificates/<file>`, который **всегда** 404: сертификаты намеренно не отдаются статикой, только через `/api/certificates/:id/file` | P3 | `apps/api/src/modules/uploads/uploads.routes.ts:152`, `certificates.service.ts:342` | Загрузить сертификат, открыть выданный `url` | Либо рабочий URL, либо явно относительный путь | 404 (веб-панель использует API и работает) |
-| F-3 | Валидация | Пустой файл (0 байт) принимается с 201 | P3 | `apps/api/src/modules/uploads/uploads.routes.ts` | `POST /api/uploads` с 0-байтным PNG | 400 | 201 |
-| S-8 | Утечка деталей | Битый JSON возвращает детали парсера («Expected double-quoted property name … position 20») | P3 | `apps/api/src/nest/common/all-exceptions.filter.ts:46` | `POST /api/auth/login` с обрезанным JSON | Общее «некорректный JSON» | Текст парсера в `error.message` |
+| F-2 | API-контракт | Ответ `POST /api/uploads?purpose=certificate` содержит URL `/uploads/certificates/<file>`, который **всегда** 404: сертификаты намеренно не отдаются статикой, только через `/api/certificates/:id/file` | P3 | `apps/api/src/modules/uploads/uploads.routes.ts:152`, `certificates.service.ts:342` | Загрузить сертификат, открыть выданный `url` | Либо рабочий URL, либо явно относительный путь | 404 (исправлено, промпт 2: `/api/uploads/certificates/<file>` работает, `toCertificate.fileUrl` → `/api/certificates/:id/file`) |
+| F-3 | Валидация | Пустой файл (0 байт) принимается с 201 | P3 | `apps/api/src/modules/uploads/uploads.routes.ts` | `POST /api/uploads` с 0-байтным PNG | 400 | 201 (исправлено, промпт 2: 400 + файл удаляется) |
+| S-8 | Утечка деталей | Битый JSON возвращает детали парсера («Expected double-quoted property name … position 20») | P3 | `apps/api/src/nest/common/all-exceptions.filter.ts:46` | `POST /api/auth/login` с обрезанным JSON | Общее «некорректный JSON» | Текст парсера в `error.message` (исправлено, промпт 2: 400 `Некорректный формат JSON`) |
 | P-1 | Производительность фронта | Кабинет собирается в один чанк 1.99 МБ (501 КБ gzip), code splitting отсутствует | P3 | `apps/web` | `npx vite build` | Чанки по маршрутам | 1 файл `index-*.js` |
 | C-1 | Мёртвый код | 11 неиспользуемых файлов, 6 неиспользуемых зависимостей, 77 неиспользуемых экспортов, 90 неиспользуемых экспортируемых типов, 19 неиспользуемых переменных/импортов, ~10 мёртвых CSS-классов | P2 | см. §3 | `knip`, `oxlint -D no-unused-vars`, AST-скрипт по CSS | — | см. §3 |
 
@@ -235,7 +235,7 @@ span-8 (redesign/dashboard.css + responsive.css)
 | SQL-инъекция в login / leads / поиске | Работает (не проходит) | инъекции сохраняются как текст, таблица `Lead` цела, вход → 401 |
 | NUL-байт в любом поле | Исправлено в этой ветке | было 500, стало 400 + тест |
 | Ограничение частоты запросов | Работает, но было общим на всех | см. S-4; после фикса — персонально на IP |
-| Загрузка файла (PNG, MIME-фильтр, 11 МБ, пустой файл) | Частично | 201 для PNG; `text/html` → 400; 11 МБ → 413; **пустой файл → 201 (P3)** |
+| Загрузка файла (PNG, MIME-фильтр, 11 МБ, пустой файл) | Работает | 201 для PNG; `text/html` → 400; 11 МБ → 413; пустой файл → 400 (исправлено, промпт 2) |
 | Скачивание вложения владельцем | Работает | 200 + байты по `?t=` (15 минут) и по Bearer |
 | Скачивание чужого вложения | Исправлено (промпт 1) | 403 `FORBIDDEN` по Bearer и по ссылке другого владельца (S-1) |
 | Сертификаты: загрузка админом, запрет студенту, скачивание через API | Работает | 201 админу / 403 студенту; файл отдаётся `/api/certificates/:id/file` с проверкой владельца |
@@ -292,16 +292,38 @@ span-8 (redesign/dashboard.css + responsive.css)
    параллельные вставки → одна запись + `P2002`, рассмотренные заявки с тем же email вставляются,
    FK вложения на пользователя работает (`migrate deploy` — все миграции применены).
 
+### Сделано в промпте 2 (база данных и контракты API)
+
+8. **D-2 / P2** — правила удаления для FK на `User`: 3 `TeacherSubstitution*` → `CASCADE`
+   (связка замен без участников не нужна), 10 полей авторства → `SET NULL`
+   (`Certificate.issuedById`, `CoursePriceHistory.changedById`, `Exam.createdById`, `Expense.createdById`,
+   `HomeworkReview.reviewerId`, `InvoiceDiscount.createdById`, `PaymentAdjustment.adjustedById`,
+   `Refund.requestedById`, `ScheduleSeries.teacherId`, `VideoRoom.createdById`).
+   `Course.teacherId`, `Homework.teacherId` и `Invoice.studentId` остались `RESTRICT` осознанно:
+   курс/задание не могут остаться без преподавателя, счёт — документ учёта; рабочий сценарий —
+   обезличивание (`privacy.routes.ts`). В коде — безопасные фолбэки (`Не указан`, подпись записи
+   берётся у преподавателя курса).
+9. **D-3 / P2** — 79 `@@index([fk])` в `schema.prisma` и в миграции; на живой PostgreSQL
+   `pg_index` показывает 0 FK-колонок без ведущего индекса (было 79).
+10. **F-2 / P3** — `POST /api/uploads?purpose=certificate` возвращает рабочую ссылку
+    `/api/uploads/certificates/<file>` (только ADMIN, `nosniff`), а `toCertificate.fileUrl` —
+    `/api/certificates/:id/file`; `isCertificateFileUrl` принимает оба формата; старые записи
+    в `/uploads/...` продолжают открываться. 4 теста в `test/uploads-route.test.ts`.
+11. **F-3 / P3** — файл 0 байт → `400 BAD_REQUEST`, временный файл удаляется; 2 теста там же.
+12. **S-8 / P3** — битый JSON → `400 {"error":{"code":"BAD_REQUEST","message":"Некорректный формат JSON"}}`
+    в Express-слое и Nest-фильтре (`isJsonSyntaxError`/`sendJsonParseError` в `lib/errors.ts`);
+    5 тестов в `test/json-body.test.ts`. Формат ошибки оставлен единым для API (`error.code/message`).
+
 ### Требует отдельной задачи (в этом PR не менялось)
 
-8. **D-2/D-3 (P2)** — ревизия FK: индексы на 79 колонок, осознанное решение по 19 `RESTRICT`
-   (анонимизация вместо удаления либо `onDelete: Cascade` там, где это безопасно). Нужна миграция
-   и продуктовое решение по удалению аккаунта.
-9. **S-6 (P2)** — закрыть `/docs` и `/metrics` в `NODE_ENV=production` (или отдавать только с
-   loopback/по токену).
-10. **S-7 (P2)** — перейти на `morgan` с форматом, включающим `:remote-addr`, либо логировать
+13. **D-2 остаток (P2)** — три FK остались `RESTRICT` (`Course.teacherId`, `Homework.teacherId`,
+   `Invoice.studentId`). Нужно продуктовое решение: переназначение курсов/заданий перед жёстким
+   удалением и судьба бухгалтерских счетов. До этого удаление аккаунта — только обезличивание.
+14. **S-6 (P2)** — закрыть `/docs` и `/metrics` в `NODE_ENV=production` (или отдавать только с
+    loopback/по токену).
+15. **S-7 (P2)** — перейти на `morgan` с форматом, включающим `:remote-addr`, либо логировать
     `req.ip` структурно.
-11. **C-1 (P2)** — удалить 9 мёртвых файлов, 8 неиспользуемых зависимостей, 19 неиспользуемых
+16. **C-1 (P2)** — удалить 9 мёртвых файлов, 8 неиспользуемых зависимостей, 19 неиспользуемых
     импортов/переменных; после этого включить в `.oxlintrc.json` правило `no-unused-vars` как
     `error`, чтобы мёртвый код не возвращался.
 

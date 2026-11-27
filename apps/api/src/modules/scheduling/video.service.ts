@@ -825,6 +825,7 @@ export class VideoService implements OnModuleInit, OnModuleDestroy {
       where: { providerRoomId },
       include: {
         schedule: { include: { course: { select: { title: true, teacherId: true } } } },
+        // teacherId нужен как запасной автор записи, если создатель комнаты удалён.
       },
     })
     if (!room) return
@@ -875,7 +876,7 @@ export class VideoService implements OnModuleInit, OnModuleDestroy {
             provider: 'livedigital',
             status: 'RECORDING',
             transferStatus: 'PENDING',
-            startedById: room.createdById,
+            startedById: room.createdById ?? room.schedule.teacherId,
           },
         })
       } else {
@@ -930,7 +931,7 @@ export class VideoService implements OnModuleInit, OnModuleDestroy {
             roomId: room.id,
             egressId: recordId,
             transferStatus: 'PENDING',
-            startedById: room.createdById,
+            startedById: room.createdById ?? room.schedule.teacherId,
           },
         })
 

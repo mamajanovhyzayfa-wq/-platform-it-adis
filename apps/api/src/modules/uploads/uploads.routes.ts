@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, unlinkSync } from 'node:fs'
-import { extname, join, resolve } from 'node:path'
+import { basename, extname, join, resolve } from 'node:path'
 import { Router } from 'express'
 import multer from 'multer'
-import { badRequest, forbidden, payloadTooLarge, unauthorized } from '../../lib/errors.js'
+import { badRequest, forbidden, notFound, payloadTooLarge, unauthorized } from '../../lib/errors.js'
 import { requireAuth } from '../../middleware/auth.js'
 import { getTenant } from '../../lib/tenant.js'
 import { scanFile } from '../../lib/file-scan.js'
@@ -113,6 +113,17 @@ uploadsRouter.post('/', requireAuth, (req, res, next) => {
 
     void (async () => {
       const file = req.file!
+      // Пустой файл не является документом: 0 байт проходил мимо ограничения размера.
+      if (file.size === 0) {
+        try {
+          unlinkSync(file.path)
+        } catch {
+          // Файл мог быть уже удалён
+        }
+        next(badRequest('Файл пустой: загрузите документ с содержимым'))
+        return
+      }
+
       if (certificateUpload && !CERTIFICATE_MIME_TYPES.has(file.mimetype)) {
         try {
           unlinkSync(file.path)
@@ -174,12 +185,48 @@ uploadsRouter.post('/', requireAuth, (req, res, next) => {
       const origin = `${req.protocol}://${req.get('host')}`
       res.status(201).json({
         name: file.originalname.slice(0, 255),
-        url: `${origin}/uploads/${certificateUpload ? 'certificates/' : ''}${file.filename}?t=${signFileToken(file.filename, ownerId)}`,
+        // Сертификаты не отдаются статикой: ссылка ведёт на API-эндпоинт,
+        // который проверяет роль и существует ли файл.
+        url: certificateUpload
+          ? `${origin}/api/uploads/certificates/${file.filename}`
+          : `${origin}/uploads/${file.filename}?t=${signFileToken(file.filename, ownerId)}`,
         mimeType: file.mimetype,
         size: file.size,
         isImage: file.mimetype.startsWith('image/'),
         scanStatus: scan.status,
       })
     })().catch(next)
+  })
+})
+
+/**
+ * Готовый сертификат по ссылке из ответа POST /api/uploads?purpose=certificate.
+ *
+ * Каталог certificates/ не отдаётся статикой: файл доступен только
+ * администратору через API. Имя файла — uuid + расширение, путь собирается
+ * через basename, поэтому обход каталога невозможен.
+ */
+uploadsRouter.get('/certificates/:name', requireAuth, (req, res, next) => {
+  if (req.auth?.role !== 'ADMIN') {
+    next(forbidden('Файл сертификата доступен только администратору'))
+    return
+  }
+  let name: string
+  try {
+    name = basename(decodeURIComponent(String(req.params.name ?? '')))
+  } catch {
+    next(badRequest('Некорректное имя файла'))
+    return
+  }
+  const base = getTenant()?.uploadsDir ?? uploadsDir
+  const file = resolve(base, 'certificates', name)
+  if (!name || name.startsWith('.') || !existsSync(file)) {
+    next(notFound('Файл сертификата не найден'))
+    return
+  }
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('Cache-Control', 'private, no-store')
+  res.sendFile(file, (error) => {
+    if (error) next(error)
   })
 })

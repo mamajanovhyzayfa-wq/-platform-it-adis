@@ -26,6 +26,11 @@ const certificateInclude = {
 
 type CertificateRow = Prisma.CertificateGetPayload<{ include: typeof certificateInclude }>
 
+/** Подпись сотрудника: после удаления аккаунта ссылка на него обнуляется. */
+function staffName(user: { firstName: string; lastName: string } | null): string {
+  return user ? `${user.firstName} ${user.lastName}`.trim() : 'Не указан'
+}
+
 function toCertificate(row: CertificateRow) {
   return {
     id: row.id,
@@ -43,11 +48,12 @@ function toCertificate(row: CertificateRow) {
     },
     course: row.course,
     hasFile: Boolean(row.fileUrl),
-    fileUrl: row.fileUrl,
+    // Клиенту отдаётся рабочая ссылка на API; путь в /uploads остаётся внутренним ключом.
+    fileUrl: row.fileUrl ? `/api/certificates/${row.id}/file` : null,
     fileName: row.fileName,
     mimeType: row.mimeType,
     fileSize: row.fileSize,
-    issuedBy: `${row.issuedBy.firstName} ${row.issuedBy.lastName}`.trim(),
+    issuedBy: staffName(row.issuedBy),
   }
 }
 
@@ -181,7 +187,7 @@ export class CertificatesService {
       expiresAt: certificate.expiresAt,
       revokedAt: certificate.revokedAt,
       revokeReason: certificate.revokeReason,
-      issuedBy: `${certificate.issuedBy.firstName} ${certificate.issuedBy.lastName}`.trim(),
+      issuedBy: staffName(certificate.issuedBy),
     }
   }
 
@@ -335,11 +341,16 @@ export class CertificatesService {
     } catch {
       throw notFound('Ссылка на файл сертификата некорректна')
     }
-    if (!pathname.startsWith('/uploads/')) throw notFound('Файл сертификата не найден')
+    // Новый формат ссылки — /api/uploads/certificates/<file>, старый — /uploads/...
+    const fromUploadsApi = pathname.startsWith('/api/uploads/certificates/')
+    if (!fromUploadsApi && !pathname.startsWith('/uploads/')) {
+      throw notFound('Файл сертификата не найден')
+    }
 
     const root = getTenant()?.uploadsDir ?? resolve(process.env.UPLOADS_DIR ?? 'uploads')
     // Новые сертификаты лежат в uploads/certificates и не отдаются статикой.
-    const file = pathname.startsWith('/uploads/certificates/')
+    const inCertificatesDir = fromUploadsApi || pathname.startsWith('/uploads/certificates/')
+    const file = inCertificatesDir
       ? resolve(root, 'certificates', basename(pathname))
       : resolve(root, basename(pathname))
     const info = await stat(file).catch(() => null)
@@ -384,7 +395,7 @@ export class CertificatesService {
       status: certificate.status,
       revokedAt: certificate.revokedAt,
       revokeReason: certificate.revokeReason,
-      issuedByName: `${certificate.issuedBy.firstName} ${certificate.issuedBy.lastName}`.trim(),
+      issuedByName: staffName(certificate.issuedBy),
     })
   }
 
