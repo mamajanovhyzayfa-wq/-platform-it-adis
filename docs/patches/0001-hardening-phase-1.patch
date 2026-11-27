@@ -1,13 +1,13 @@
-From 5fb2295b037f099435dd06f830bea973e3cf869b Mon Sep 17 00:00:00 2001
+From 63d2ba6992eb7f73b3b9c0da29f0ee43fd40f8cb Mon Sep 17 00:00:00 2001
 From: huzayfa <mamajanovhyzayfa@gmail.com>
-Date: Fri, 27 Nov 2026 05:20:43 +0000
+Date: Fri, 27 Nov 2026 05:22:18 +0000
 Subject: [PATCH] Harden the administrator bootstrap and gate Phase 1 with
  real CI
 
 Phase 1 hardening: real-Postgres CI for the admin bootstrap, a full
-production compose stack with smoke and log gates, a real pg_dump/pg_restore
-round-trip, bats tests for the deploy preflight, and a live probe of the
-published site.
+production compose stack with smoke, log-error, log-secret and backup/restore
+gates, bats tests for the deploy preflight, and a live probe of the published
+site.
 
 bootstrap-admin rejects bcrypt cost factors outside 04-31 and refuses to promote
 an existing non-ADMIN account, so a typo in PLATFORM_ADMIN_EMAIL can no longer
@@ -17,27 +17,27 @@ behind them, and CI greps the literal passwordHash read from the database
 instead of the $2[aby]$ pattern.
 
 ---
- .github/workflows/ci.yml                  | 265 ++++++++++++++++++++++++++++++
- .github/workflows/production-health.yml   |  80 +++++++++
+ .github/workflows/ci.yml                  | 297 ++++++++++++++++++++++++++++++
+ .github/workflows/production-health.yml   |  80 ++++++++
  .oxlintrc.json                            |  15 +-
- apps/api/scripts/ci-bootstrap-postgres.sh | 214 ++++++++++++++++++++++++
- apps/api/src/lib/bootstrap-admin.ts       |  29 +++-
+ apps/api/scripts/ci-bootstrap-postgres.sh | 214 +++++++++++++++++++++
+ apps/api/src/lib/bootstrap-admin.ts       |  29 ++-
  apps/api/test/admin-routes.test.ts        |  14 +-
- apps/api/test/bootstrap-admin.test.ts     |  40 +++++
+ apps/api/test/bootstrap-admin.test.ts     |  40 ++++
  apps/web/src/pages/AiCenter.tsx           |  21 ++-
  docker-compose.prod.yml                   |  27 ++-
- docs/patches/README.md                    |  74 +++++++++
+ docs/patches/README.md                    |  74 ++++++++
  docs/testing/strategy.md                  |  53 ++++++
  infrastructure/README.md                  |  43 ++++-
  infrastructure/ci/docker-compose.ci.yml   |  21 +++
- infrastructure/tests/deploy.bats          | 136 +++++++++++++++
- 14 files changed, 1012 insertions(+), 20 deletions(-)
+ infrastructure/tests/deploy.bats          | 136 ++++++++++++++
+ 14 files changed, 1044 insertions(+), 20 deletions(-)
 
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 7def3c7..23daa72 100644
+index 7def3c7..272abda 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
-@@ -103,8 +103,252 @@ jobs:
+@@ -103,8 +103,284 @@ jobs:
              await prisma.$disconnect()
            }
            NODE
@@ -262,6 +262,38 @@ index 7def3c7..23daa72 100644
 +            psql "$src" -v ON_ERROR_STOP=1 -qAt -c "DROP DATABASE itadis_restore_check"
 +            echo "Резервная копия и восстановление: OK"
 +          '
++      - name: Значения секретов из env-файла не попадают в логи стека
++        run: |
++          compose() {
++            docker compose --env-file "$COMPOSE_ENV" \
++              -f docker-compose.prod.yml \
++              -f infrastructure/ci/docker-compose.ci.yml "$@"
++          }
++
++          # Логи собираем из stdout и stderr в один файл и ищем в нём буквальные
++          # значения секретов из того же env-файла, с которым поднят стек:
++          # паттерн «password=» дал бы ложные срабатывания, а так проверяется
++          # именно то, что генерировал CI.
++          compose logs --no-color backend admin edge bootstrap migrate \
++            >/tmp/stack-logs.txt 2>&1
++
++          leaked=0
++          while IFS='=' read -r key value; do
++            case "$key" in
++              POSTGRES_PASSWORD|JWT_ACCESS_SECRET|JWT_REFRESH_SECRET|DATA_ENCRYPTION_KEY|S3_SECRET_KEY|PLATFORM_ADMIN_PASSWORD) ;;
++              *) continue ;;
++            esac
++            [[ -n $value ]] || continue
++            if grep -qF -- "$value" /tmp/stack-logs.txt; then
++              echo "Значение $key попало в логи стека"
++              leaked=1
++            fi
++          done <"$COMPOSE_ENV"
++
++          if ((leaked)); then
++            exit 1
++          fi
++          echo 'Секретов из env-файла в логах нет'
 +      - name: В логах приложения нет ERROR/FATAL/Unhandled
 +        run: |
 +          compose() {
@@ -290,7 +322,7 @@ index 7def3c7..23daa72 100644
    e2e:
      runs-on: ubuntu-latest
      timeout-minutes: 25
-@@ -282,6 +526,21 @@ jobs:
+@@ -282,6 +558,21 @@ jobs:
        - run: npm ci
        - run: npm run build
  
@@ -312,7 +344,7 @@ index 7def3c7..23daa72 100644
    mobile:
      runs-on: ubuntu-latest
      timeout-minutes: 20
-@@ -332,6 +591,12 @@ jobs:
+@@ -332,6 +623,12 @@ jobs:
            printf 'Проверяю: %s\n' "${scripts[*]}"
            "$shellcheck_bin" --version
            "$shellcheck_bin" -x "${scripts[@]}"
