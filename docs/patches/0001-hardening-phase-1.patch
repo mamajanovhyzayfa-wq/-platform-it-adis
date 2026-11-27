@@ -1,6 +1,6 @@
-From e964058450d732a4167231a670f7eec1f177171e Mon Sep 17 00:00:00 2001
+From 99b98c8ca3304beff7fa9bd54edbd5974f349a08 Mon Sep 17 00:00:00 2001
 From: huzayfa <mamajanovhyzayfa@gmail.com>
-Date: Fri, 27 Nov 2026 05:23:01 +0000
+Date: Fri, 27 Nov 2026 05:28:43 +0000
 Subject: [PATCH] Harden the administrator bootstrap and gate Phase 1 with
  real CI
 
@@ -29,10 +29,10 @@ instead of the $2[aby]$ pattern.
  docker-compose.prod.yml                   |  27 ++-
  docs/patches/README.md                    |  74 ++++++++
  docs/testing/strategy.md                  |  53 ++++++
- infrastructure/README.md                  |  43 ++++-
+ infrastructure/README.md                  |  62 ++++++-
  infrastructure/ci/docker-compose.ci.yml   |  21 +++
  infrastructure/tests/deploy.bats          | 136 ++++++++++++++
- 14 files changed, 1081 insertions(+), 20 deletions(-)
+ 14 files changed, 1100 insertions(+), 20 deletions(-)
 
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
 index 7def3c7..272abda 100644
@@ -1106,7 +1106,7 @@ index 3667bef..f5d1aa6 100644
  
  ```bash
 diff --git a/infrastructure/README.md b/infrastructure/README.md
-index 5636782..ee6bc37 100644
+index 5636782..febf9a4 100644
 --- a/infrastructure/README.md
 +++ b/infrastructure/README.md
 @@ -60,6 +60,14 @@ Google/Apple, календари, бухгалтерию, платёжные а
@@ -1124,7 +1124,33 @@ index 5636782..ee6bc37 100644
  ### Одной командой: `infrastructure/scripts/deploy.sh`
  
  Скрипт закрывает весь подготовительный этап: считает `PUBLIC_HOSTNAME` из IP
-@@ -284,7 +292,26 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
+@@ -115,6 +123,25 @@ infrastructure/scripts/deploy.sh --check
+ провал. Без `--origin` проверка печатает `SKIP` и считается в итоговой строке
+ `пропущено`, а не молча проходит.
+ 
++После шага 8 сайт проксирует `/api` на `API_ORIGIN`, а API определяет филиал
++только по `Host` (`tenant.middleware.ts`), поэтому `PRIMARY_DOMAIN` в
++`.env.production` должен совпадать с доменом самого API (`PUBLIC_HOSTNAME`).
++Проверка тем же `Host`, с которым приходит запрос через воркер:
++
++```bash
++curl -sS -o /dev/null -w '%{http_code}\n' -X POST \
++  -H 'Host: 203-0-113-10.sslip.io' -H 'content-type: application/json' \
++  -d '{"identifier":"probe@example.com"}' \
++  https://203-0-113-10.sslip.io/api/auth/password/request
++```
++
++Ожидаемо `202` и тело
++`{"channel":"email","message":"Если аккаунт существует, код восстановления отправлен"}`.
++Несуществующий адрес получает тот же `202` — ответ не раскрывает наличие
++аккаунта. Ответ `404` с кодом `BRANCH_NOT_FOUND` означает, что `Host` не
++совпал ни с `PRIMARY_DOMAIN`, ни с доменом филиала: на этом домене API
++отвечать не будет, и сайт покажет «Сервер ITadis временно недоступен».
++
+ Те же проверки deploy-пути выполняет job `infrastructure` в CI на каждый PR:
+ `shellcheck -x` по `infrastructure/**/*.sh`, `docker compose config -q` с
+ одноразовым env из фиктивных значений и `caddy validate` для `caddy/Caddyfile`.
+@@ -284,7 +311,26 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
  - Планировщик в backend включается `BACKUP_SCHEDULER_ENABLED=true`.
  - По умолчанию БД копируется ежедневно; частота/срок хранения/файлы — поля
    `Branch` (`backupFrequencyHours`, `backupRetentionDays`, `backupIncludeFiles`).
@@ -1152,7 +1178,7 @@ index 5636782..ee6bc37 100644
  - Каждая копия получает SHA-256; целостность проверяется `pg_restore --list`
    или `tar -tzf`, результат — `verifiedAt`.
  - Retention удаляет старые файлы копий (и объекты S3), записи истории остаются.
-@@ -307,6 +334,20 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
+@@ -307,6 +353,20 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
  восстанавливаемой; в production используйте отдельный `CONTROL_DATABASE_URL`.
  Перед production-restore сделайте свежую копию и проверьте её.
  
