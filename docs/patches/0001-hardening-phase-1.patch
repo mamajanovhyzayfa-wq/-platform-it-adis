@@ -1,13 +1,13 @@
-From 99b98c8ca3304beff7fa9bd54edbd5974f349a08 Mon Sep 17 00:00:00 2001
+From 80d8d03031aa166cf818e271459def08242964b0 Mon Sep 17 00:00:00 2001
 From: huzayfa <mamajanovhyzayfa@gmail.com>
-Date: Fri, 27 Nov 2026 05:28:43 +0000
+Date: Fri, 27 Nov 2026 05:32:54 +0000
 Subject: [PATCH] Harden the administrator bootstrap and gate Phase 1 with
  real CI
 
 Phase 1 hardening: real-Postgres CI for the admin bootstrap, a full
-production compose stack with smoke, log-error, log-secret and backup/restore
-gates, bats tests for the deploy preflight, and a live probe of the published
-site.
+production compose stack split into pull/build/up phases with smoke,
+log-error, log-secret and backup/restore gates, bats tests for the deploy
+preflight, and a live probe of the published site.
 
 bootstrap-admin rejects bcrypt cost factors outside 04-31 and the $2x$ prefix,
 and refuses to promote an existing non-ADMIN account (STUDENT and TEACHER are
@@ -18,27 +18,27 @@ behind them, and CI greps the literal passwordHash read from the database
 instead of the $2[aby]$ pattern.
 
 ---
- .github/workflows/ci.yml                  | 297 ++++++++++++++++++++++++++++++
+ .github/workflows/ci.yml                  | 324 ++++++++++++++++++++++++++++++
  .github/workflows/production-health.yml   |  80 ++++++++
  .oxlintrc.json                            |  15 +-
- apps/api/scripts/ci-bootstrap-postgres.sh | 214 +++++++++++++++++++++
+ apps/api/scripts/ci-bootstrap-postgres.sh | 214 ++++++++++++++++++++
  apps/api/src/lib/bootstrap-admin.ts       |  29 ++-
  apps/api/test/admin-routes.test.ts        |  14 +-
- apps/api/test/bootstrap-admin.test.ts     |  77 ++++++++
- apps/web/src/pages/AiCenter.tsx           |  21 ++-
+ apps/api/test/bootstrap-admin.test.ts     |  77 +++++++
+ apps/web/src/pages/AiCenter.tsx           |  21 +-
  docker-compose.prod.yml                   |  27 ++-
- docs/patches/README.md                    |  74 ++++++++
- docs/testing/strategy.md                  |  53 ++++++
- infrastructure/README.md                  |  62 ++++++-
- infrastructure/ci/docker-compose.ci.yml   |  21 +++
- infrastructure/tests/deploy.bats          | 136 ++++++++++++++
- 14 files changed, 1100 insertions(+), 20 deletions(-)
+ docs/patches/README.md                    |  74 +++++++
+ docs/testing/strategy.md                  |  53 +++++
+ infrastructure/README.md                  |  62 +++++-
+ infrastructure/ci/docker-compose.ci.yml   |  21 ++
+ infrastructure/tests/deploy.bats          | 136 +++++++++++++
+ 14 files changed, 1127 insertions(+), 20 deletions(-)
 
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 7def3c7..272abda 100644
+index 7def3c7..8f8b2a3 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
-@@ -103,8 +103,284 @@ jobs:
+@@ -103,8 +103,311 @@ jobs:
              await prisma.$disconnect()
            }
            NODE
@@ -162,14 +162,41 @@ index 7def3c7..272abda 100644
 +          echo "COMPOSE_ENV=$env_file" >>"$GITHUB_ENV"
 +      - name: Домен основного филиала на localhost
 +        run: echo '127.0.0.1 primary.local' | sudo tee -a /etc/hosts
-+      - name: Собрать и поднять стек
++      # Три фазы отдельными шагами: упавшая фаза сразу видна в UI и в её
++      # логе есть только своя ошибка, а не общий «exit code 1» от compose.
++      - name: Скачать образы
 +        run: |
 +          docker compose --env-file "$COMPOSE_ENV" \
 +            -f docker-compose.prod.yml \
 +            -f infrastructure/ci/docker-compose.ci.yml \
-+            up -d --build \
++            pull --ignore-buildable
++      - name: Собрать образы
++        run: |
++          docker compose --env-file "$COMPOSE_ENV" \
++            -f docker-compose.prod.yml \
++            -f infrastructure/ci/docker-compose.ci.yml \
++            build
++      - name: Поднять стек
++        run: |
++          compose() {
++            docker compose --env-file "$COMPOSE_ENV" \
++              -f docker-compose.prod.yml \
++              -f infrastructure/ci/docker-compose.ci.yml "$@"
++          }
++
++          # --no-build: образы уже собраны предыдущим шагом. up завершается с
++          # кодом 1 и когда упала зависимость (service_completed_successfully /
++          # service_healthy), но сам этого не объясняет — печатаем состояние
++          # и логи.
++          if ! compose up -d --no-build \
 +            postgres pgbouncer redis minio minio-init migrate bootstrap \
-+            clamav antivirus backend admin edge
++            clamav antivirus backend admin edge; then
++            echo '--- compose ps -a ---'
++            compose ps -a || true
++            echo '--- логи сервисов ---'
++            compose logs --no-color --tail=200 || true
++            exit 1
++          fi
 +      - name: Дождаться /healthz и проверить состояние сервисов
 +        run: |
 +          compose() {
@@ -323,7 +350,7 @@ index 7def3c7..272abda 100644
    e2e:
      runs-on: ubuntu-latest
      timeout-minutes: 25
-@@ -282,6 +558,21 @@ jobs:
+@@ -282,6 +585,21 @@ jobs:
        - run: npm ci
        - run: npm run build
  
@@ -345,7 +372,7 @@ index 7def3c7..272abda 100644
    mobile:
      runs-on: ubuntu-latest
      timeout-minutes: 20
-@@ -332,6 +623,12 @@ jobs:
+@@ -332,6 +650,12 @@ jobs:
            printf 'Проверяю: %s\n' "${scripts[*]}"
            "$shellcheck_bin" --version
            "$shellcheck_bin" -x "${scripts[@]}"
