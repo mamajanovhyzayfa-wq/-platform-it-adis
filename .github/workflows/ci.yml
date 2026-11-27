@@ -324,6 +324,38 @@ jobs:
             psql "$src" -v ON_ERROR_STOP=1 -qAt -c "DROP DATABASE itadis_restore_check"
             echo "Резервная копия и восстановление: OK"
           '
+      - name: Значения секретов из env-файла не попадают в логи стека
+        run: |
+          compose() {
+            docker compose --env-file "$COMPOSE_ENV" \
+              -f docker-compose.prod.yml \
+              -f infrastructure/ci/docker-compose.ci.yml "$@"
+          }
+
+          # Логи собираем из stdout и stderr в один файл и ищем в нём буквальные
+          # значения секретов из того же env-файла, с которым поднят стек:
+          # паттерн «password=» дал бы ложные срабатывания, а так проверяется
+          # именно то, что генерировал CI.
+          compose logs --no-color backend admin edge bootstrap migrate \
+            >/tmp/stack-logs.txt 2>&1
+
+          leaked=0
+          while IFS='=' read -r key value; do
+            case "$key" in
+              POSTGRES_PASSWORD|JWT_ACCESS_SECRET|JWT_REFRESH_SECRET|DATA_ENCRYPTION_KEY|S3_SECRET_KEY|PLATFORM_ADMIN_PASSWORD) ;;
+              *) continue ;;
+            esac
+            [[ -n $value ]] || continue
+            if grep -qF -- "$value" /tmp/stack-logs.txt; then
+              echo "Значение $key попало в логи стека"
+              leaked=1
+            fi
+          done <"$COMPOSE_ENV"
+
+          if ((leaked)); then
+            exit 1
+          fi
+          echo 'Секретов из env-файла в логах нет'
       - name: В логах приложения нет ERROR/FATAL/Unhandled
         run: |
           compose() {
