@@ -20,6 +20,11 @@ import type {
 
 const INVITE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
+/** Нарушение уникального индекса PostgreSQL (Prisma P2002). */
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'P2002'
+}
+
 function inviteCode(): string {
   let code = ''
   for (let index = 0; index < 8; index += 1) code += INVITE_ALPHABET[randomInt(INVITE_ALPHABET.length)]
@@ -79,33 +84,42 @@ export class AccessService {
       invitedRole = invitation.role
     }
 
-    const created = await this.prisma.client.registrationRequest.create({
-      data: {
-        firstName: input.firstName,
-        lastName: input.lastName,
-        email: input.email,
-        phone: input.phone ?? null,
-        passwordHash: await hashPassword(input.password),
-        requestedRole: invitedRole ?? input.role,
-        message: input.message ?? null,
-        birthDate: input.birthDate,
-        guardianName: input.guardianName ? encryptSensitive(input.guardianName) : null,
-        guardianPhone: input.guardianPhone ? encryptSensitive(input.guardianPhone) : null,
-        locale: input.locale,
-        inviteId,
-        consentAcceptedAt: new Date(),
-        consentVersions: {
-          terms: '1.2',
-          privacy: '1.2',
-          dataProcessing: '1.2',
-          marketing: input.acceptMarketing ? '1.0' : null,
-          guardian: input.guardianConsent ? '1.1' : null,
+    // Вставка атомарна: частичный уникальный индекс `lower(email)` для PENDING
+    // превращает вторую одновременную заявку в P2002, а не в дубль в очереди.
+    const created = await this.prisma.client.registrationRequest
+      .create({
+        data: {
+          firstName: input.firstName,
+          lastName: input.lastName,
+          email: input.email,
+          phone: input.phone ?? null,
+          passwordHash: await hashPassword(input.password),
+          requestedRole: invitedRole ?? input.role,
+          message: input.message ?? null,
+          birthDate: input.birthDate,
+          guardianName: input.guardianName ? encryptSensitive(input.guardianName) : null,
+          guardianPhone: input.guardianPhone ? encryptSensitive(input.guardianPhone) : null,
+          locale: input.locale,
+          inviteId,
+          consentAcceptedAt: new Date(),
+          consentVersions: {
+            terms: '1.2',
+            privacy: '1.2',
+            dataProcessing: '1.2',
+            marketing: input.acceptMarketing ? '1.0' : null,
+            guardian: input.guardianConsent ? '1.1' : null,
+          },
+          marketingOptIn: input.acceptMarketing,
+          ip: meta.ip ?? null,
         },
-        marketingOptIn: input.acceptMarketing,
-        ip: meta.ip ?? null,
-      },
-      select: { id: true, status: true, email: true, createdAt: true },
-    })
+        select: { id: true, status: true, email: true, createdAt: true },
+      })
+      .catch((error: unknown): never => {
+        if (isUniqueViolation(error)) {
+          throw conflict('Заявка с таким email уже отправлена и ждёт рассмотрения администратором')
+        }
+        throw error
+      })
 
     await writeAudit({
       action: 'registration.request',

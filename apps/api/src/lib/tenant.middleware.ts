@@ -2,7 +2,9 @@ import { existsSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import type { RequestHandler } from 'express'
 import { env } from '../config/env.js'
+import type { RoleName } from '@prisma/client'
 import { verifyAccessToken, verifyFileToken } from './security.js'
+import { canReadAttachment, findAttachmentOwner } from './attachment-access.js'
 import { writeFileAudit } from './file-audit.js'
 import { getPrimaryBranch, normalizeHost, resolveBranchByDomain } from './branch-registry.js'
 import { defaultPrisma } from './prisma.js'
@@ -91,15 +93,6 @@ export const tenantMiddleware: RequestHandler = (req, res, next) => {
   })().catch(next)
 }
 
-function isValidAccessToken(token: string): boolean {
-  try {
-    verifyAccessToken(token)
-    return true
-  } catch {
-    return false
-  }
-}
-
 /** Статика вложений из каталога текущего филиала. */
 export const tenantUploadsStatic: RequestHandler = (req, res, next) => {
   const dir = getTenant()?.uploadsDir
@@ -119,37 +112,64 @@ export const tenantUploadsStatic: RequestHandler = (req, res, next) => {
     res.status(404).end()
     return
   }
-  // Файлы отдаются только владельцу/участнику с Bearer-токеном или по короткой подписанной ссылке ?t=.
-  const queryToken = typeof req.query.t === 'string' ? req.query.t : ''
-  const bearer = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : ''
-  const authorized = (bearer && isValidAccessToken(bearer)) || (queryToken && verifyFileToken(queryToken, name))
-  if (!authorized) {
-    res.status(401).json({ error: 'UNAUTHORIZED', message: 'Требуется авторизация для просмотра файла' })
-    return
-  }
-  // Вложения чата и решений не должны исполняться как HTML/SVG в браузере.
-  // Приватные документы (библиотека, сертификаты) идут только через API с ACL.
-  res.setHeader('X-Content-Type-Options', 'nosniff')
-  res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'; sandbox")
-  res.setHeader('Cross-Origin-Resource-Policy', 'same-site')
-  res.setHeader('Cache-Control', 'private, no-store')
-  if (!/\.(jpe?g|png|webp|gif|heic|mp4|webm|mov|mkv|mp3|m4a|wav|ogg|pdf|txt|md|docx?|xlsx?|pptx?|zip)$/i.test(name)) {
-    res.setHeader('Content-Disposition', 'attachment')
-  }
-  let userId: string | undefined
-  if (bearer && isValidAccessToken(bearer)) userId = verifyAccessToken(bearer).sub
-
-  res.sendFile(file, (error) => {
-    if (!error) {
-      void writeFileAudit({
-        userId,
-        action: 'DOWNLOAD',
-        fileName: name,
-        url: req.path,
-        ip: req.ip,
-        userAgent: req.get('user-agent') ?? null,
-      })
+  void (async () => {
+    // Владелец файла берётся из Bearer-токена либо из подписанной ссылки ?t=,
+    // где он зашит в sub и которую нельзя выпустить на чужой файл.
+    const bearer = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : ''
+    let userId: string | null = null
+    let role: RoleName | null = null
+    if (bearer) {
+      try {
+        const payload = verifyAccessToken(bearer)
+        userId = payload.sub
+        role = payload.role
+      } catch {
+        // Недействительный токен не даёт доступа.
+      }
     }
-    if (error) next(error)
-  })
+
+    const queryToken = typeof req.query.t === 'string' ? req.query.t : ''
+    const fileToken = queryToken ? verifyFileToken(queryToken, name) : null
+    if (!userId && !fileToken) {
+      res.status(401).json({ error: 'UNAUTHORIZED', message: 'Требуется авторизация для просмотра файла' })
+      return
+    }
+
+    const ownerId = await findAttachmentOwner(name)
+    let authorized = canReadAttachment({ ownerId, userId, role })
+    // Ссылка выпущена владельцу файла и подтверждает его. Если запрос пришёл
+    // с Bearer другого пользователя, чужой ссылкой воспользоваться нельзя.
+    if (!authorized && fileToken) {
+      authorized = canReadAttachment({ ownerId, userId: fileToken.sub, role: null })
+      if (authorized && userId && userId !== fileToken.sub) authorized = false
+    }
+    if (!authorized) {
+      res.status(403).json({ error: 'FORBIDDEN', message: 'Файл принадлежит другому пользователю' })
+      return
+    }
+
+    // Вложения чата и решений не должны исполняться как HTML/SVG в браузере.
+    // Приватные документы (библиотека, сертификаты) идут только через API с ACL.
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'; sandbox")
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-site')
+    res.setHeader('Cache-Control', 'private, no-store')
+    if (!/\.(jpe?g|png|webp|gif|heic|mp4|webm|mov|mkv|mp3|m4a|wav|ogg|pdf|txt|md|docx?|xlsx?|pptx?|zip)$/i.test(name)) {
+      res.setHeader('Content-Disposition', 'attachment')
+    }
+
+    res.sendFile(file, (error) => {
+      if (!error) {
+        void writeFileAudit({
+          userId: userId ?? fileToken?.sub,
+          action: 'DOWNLOAD',
+          fileName: name,
+          url: req.path,
+          ip: req.ip,
+          userAgent: req.get('user-agent') ?? null,
+        })
+      }
+      if (error) next(error)
+    })
+  })().catch(next)
 }

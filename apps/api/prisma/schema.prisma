@@ -497,6 +497,7 @@ model User {
   assessmentEvents      AssessmentEvent[]         @relation("AssessmentEventActor")
   twoFactorBackupCodes  TwoFactorBackupCode[]
   registrationRequests  RegistrationRequest[]     @relation("RegistrationDecider")
+  attachments           Attachment[]              @relation("AttachmentOwner")
   authoredCourses       Course[]                  @relation("CourseAuthor")
   lessonNotes           LessonNote[]
   materialBookmarks     MaterialBookmark[]
@@ -2985,6 +2986,30 @@ model RegistrationRequest {
 
   @@index([status, createdAt])
   @@index([email])
+  // Дополнительно в миграции 20261127120000 создан частичный уникальный индекс
+  // "RegistrationRequest_pending_email_key" ON (lower(email)) WHERE status = 'PENDING':
+  // Prisma не умеет описывать частичные индексы в схеме, но без него две
+  // одновременные заявки с одним email создают две записи PENDING.
+}
+
+/// Вложение, загруженное через POST /api/uploads.
+///
+/// Файл лежит в каталоге филиала, а запись хранит владельца: без неё любой
+/// авторизованный пользователь скачивал чужой файл по имени из /uploads.
+/// Старые файлы, загруженные до появления таблицы, доступны только администратору.
+model Attachment {
+  id           String   @id @default(uuid())
+  /// Имя файла на диске (uuid + расширение), в пределах БД филиала уникально.
+  name         String   @unique
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  ownerId      String
+  createdAt    DateTime @default(now())
+
+  owner User @relation("AttachmentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
 }
 
 enum InvitationChannel {

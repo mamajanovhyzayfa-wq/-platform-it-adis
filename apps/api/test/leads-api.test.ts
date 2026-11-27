@@ -183,6 +183,19 @@ describe('POST /api/leads: создание и CRM', () => {
     expect(aiFake.triggerEvent).toHaveBeenCalledWith('LEAD_CREATED', expect.objectContaining({ leadStatus: 'NEW' }))
   })
 
+  it('сохраняет имя и сообщение без HTML-разметки (S-5)', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/leads')
+      .send({
+        ...validLead,
+        name: '<script>alert(1)</script>Иван',
+        message: '<img src=x onerror=alert(1)>Нужна консультация',
+      })
+
+    expect(response.status).toBe(201)
+    expect(rows[0]).toMatchObject({ name: 'Иван', message: 'Нужна консультация' })
+  })
+
   it('созданная заявка появляется в списке CRM менеджера', async () => {
     const created = await request(app.getHttpServer()).post('/api/leads').send(validLead)
     expect(created.status).toBe(201)

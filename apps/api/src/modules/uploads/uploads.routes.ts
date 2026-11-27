@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, unlinkSync } from 'node:fs'
 import { extname, join, resolve } from 'node:path'
 import { Router } from 'express'
 import multer from 'multer'
-import { badRequest, forbidden, payloadTooLarge } from '../../lib/errors.js'
+import { badRequest, forbidden, payloadTooLarge, unauthorized } from '../../lib/errors.js'
 import { requireAuth } from '../../middleware/auth.js'
 import { getTenant } from '../../lib/tenant.js'
 import { scanFile } from '../../lib/file-scan.js'
@@ -123,9 +123,20 @@ uploadsRouter.post('/', requireAuth, (req, res, next) => {
         return
       }
 
+      const ownerId = req.auth?.userId
+      if (!ownerId) {
+        try {
+          unlinkSync(file.path)
+        } catch {
+          // Файл мог быть уже удалён
+        }
+        next(unauthorized('Не удалось определить владельца файла'))
+        return
+      }
+
       const scan = await scanFile(file.path)
       await writeFileAudit({
-        userId: req.auth?.userId,
+        userId: ownerId,
         action: 'UPLOAD',
         fileName: file.originalname,
         mimeType: file.mimetype,
@@ -146,10 +157,24 @@ uploadsRouter.post('/', requireAuth, (req, res, next) => {
         return
       }
 
+      // Владелец записывается до выдачи ссылки: без записи файл не скачать.
+      const tenant = getTenant()
+      if (tenant) {
+        await tenant.prisma.attachment.create({
+          data: {
+            name: file.filename,
+            originalName: file.originalname.slice(0, 255),
+            mimeType: file.mimetype,
+            sizeBytes: file.size,
+            ownerId,
+          },
+        })
+      }
+
       const origin = `${req.protocol}://${req.get('host')}`
       res.status(201).json({
         name: file.originalname.slice(0, 255),
-        url: `${origin}/uploads/${certificateUpload ? 'certificates/' : ''}${file.filename}?t=${signFileToken(file.filename)}`,
+        url: `${origin}/uploads/${certificateUpload ? 'certificates/' : ''}${file.filename}?t=${signFileToken(file.filename, ownerId)}`,
         mimeType: file.mimetype,
         size: file.size,
         isImage: file.mimetype.startsWith('image/'),

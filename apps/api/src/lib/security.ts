@@ -81,18 +81,40 @@ export function verifyStepUpToken(token: string): string {
   return payload.sub
 }
 
-/** Короткоживущая подпись ссылки на вложение: привязана к имени файла, живёт 10 минут. */
-export function signFileToken(fileName: string) {
-  // Ссылка сохраняется в данных (вложения, материалы), поэтому живёт долго; доступ всё равно только к своему файлу.
-  return jwt.sign({ scope: 'file', name: fileName }, env.JWT_ACCESS_SECRET, { expiresIn: '365d' })
+/** Время жизни подписанной ссылки на вложение. */
+export const FILE_TOKEN_TTL = '15m'
+
+export interface FileTokenPayload {
+  scope: 'file'
+  name: string
+  /** Владелец файла: ссылка действительна только для его вложения. */
+  sub: string
 }
 
-export function verifyFileToken(token: string, fileName: string): boolean {
+/**
+ * Короткоживущая подпись ссылки на вложение: привязана к имени файла и владельцу.
+ *
+ * 15 минут достаточно, чтобы открыть файл сразу после загрузки, а утёкшая
+ * ссылка перестаёт работать и не даёт вечного доступа (раньше было 365 дней).
+ */
+export function signFileToken(fileName: string, ownerId: string) {
+  return jwt.sign({ scope: 'file', name: fileName, sub: ownerId }, env.JWT_ACCESS_SECRET, {
+    expiresIn: FILE_TOKEN_TTL,
+  })
+}
+
+/**
+ * Проверяет подпись, срок и имя файла. Возвращает владельца из `sub` либо null.
+ * Токены старого формата (без `sub`) отклоняются: их нельзя привязать к владельцу.
+ */
+export function verifyFileToken(token: string, fileName: string): FileTokenPayload | null {
   try {
-    const payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as Partial<{ scope: string; name: string }>
-    return payload.scope === 'file' && payload.name === fileName
+    const payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as Partial<FileTokenPayload>
+    if (payload.scope !== 'file' || payload.name !== fileName) return null
+    if (typeof payload.sub !== 'string' || payload.sub.length === 0) return null
+    return { scope: 'file', name: payload.name, sub: payload.sub }
   } catch {
-    return false
+    return null
   }
 }
 

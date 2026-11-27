@@ -3,6 +3,7 @@ import { Prisma, type LeadAudience, type LeadSource, type LeadStatus } from '@pr
 import { z } from 'zod'
 import { AppError, badRequest, notFound } from '../../lib/errors.js'
 import { writeAudit } from '../../lib/audit.js'
+import { sanitizePlainText } from '../../lib/sanitize.js'
 import { isApyHubConfigured, verifyEmailDeliverability } from '../../integrations/adapters/apyhub.adapter.js'
 import { IntegrationError } from '../../integrations/core/errors.js'
 import { PrismaService } from '../../nest/prisma/prisma.service.js'
@@ -19,11 +20,23 @@ const phoneSchema = z
 
 export const leadCreateSchema = z
   .object({
-    name: z.string().trim().min(2, 'Минимум 2 символа').max(80, 'Не больше 80 символов'),
+    // Текст с публичной формы санитизируется до записи: HTML-разметка в имени
+    // или сообщении заявки не должна попадать в БД, CRM и уведомления.
+    name: z
+      .string()
+      .trim()
+      .max(80, 'Не больше 80 символов')
+      .transform(sanitizePlainText)
+      .refine((value) => value.length >= 2, 'Минимум 2 символа'),
     phone: phoneSchema,
     email: z.union([z.string().trim().email('Некорректный email').max(160), z.literal('')]).optional(),
     audience: z.enum(['STUDENT', 'PARENT', 'PARTNER']).default('STUDENT'),
-    message: z.string().trim().max(1000, 'Не больше 1000 символов').optional(),
+    message: z
+      .string()
+      .trim()
+      .max(1000, 'Не больше 1000 символов')
+      .transform(sanitizePlainText)
+      .optional(),
     consent: z.boolean().refine((value) => value, 'Нужно согласие на обработку данных'),
   })
   .strict()
@@ -40,7 +53,7 @@ export const leadsQuerySchema = z
 export const leadUpdateSchema = z
   .object({
     status: z.enum(['NEW', 'CONTACTED', 'CONVERTED', 'REJECTED']).optional(),
-    note: z.string().trim().max(2000).nullable().optional(),
+    note: z.string().trim().max(2000).transform(sanitizePlainText).nullable().optional(),
     assignedToId: z.string().uuid().nullable().optional(),
   })
   .strict()
