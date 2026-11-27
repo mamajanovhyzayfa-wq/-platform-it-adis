@@ -252,6 +252,46 @@ describe('bootstrapAdmin', () => {
     expect(fake.users.size).toBe(0)
   })
 
+  it('принимает cost 04–31 и отклоняет cost вне диапазона', () => {
+    const hashWithCost = (cost: string) => `$2b$${cost}$${'a'.repeat(53)}`
+
+    for (const cost of ['04', '05', '10', '12', '31']) {
+      expect(isBcryptHash(hashWithCost(cost)), `cost ${cost} должен приниматься`).toBe(true)
+    }
+    // 00–03 bcryptjs отвергает, 32+ невыполнимо: такой хеш не должен попасть в БД.
+    for (const cost of ['00', '01', '03', '32', '99']) {
+      expect(isBcryptHash(hashWithCost(cost)), `cost ${cost} должен отклоняться`).toBe(false)
+    }
+  })
+
+  it('не повышает до ADMIN существующего пользователя с другой ролью', async () => {
+    const fake = createFakePrisma()
+    const studentEmail = 'student@itadis.kg'
+    const studentHash = await bcrypt.hash('Student-Pass-2026', 10)
+    fake.users.set(studentEmail, {
+      id: 'user-existing-student',
+      email: studentEmail,
+      passwordHash: studentHash,
+      role: 'STUDENT',
+      firstName: 'Ученик',
+      lastName: '',
+      isActive: false,
+      deletedAt: null,
+      emailVerifiedAt: null,
+    })
+
+    await expect(
+      bootstrapAdmin(fake.prisma, { email: studentEmail, password: PASSWORD, log: () => {} }),
+    ).rejects.toThrow(/STUDENT/)
+
+    const user = fake.users.get(studentEmail)
+    expect(user?.role).toBe('STUDENT')
+    expect(user?.passwordHash).toBe(studentHash)
+    // Отказ не должен заодно реактивировать или «починить» чужую учётную запись.
+    expect(user?.isActive).toBe(false)
+    expect(fake.users.size).toBe(1)
+  })
+
   it('не печатает пароль или хеш в лог', async () => {
     const fake = createFakePrisma()
     const logs: string[] = []

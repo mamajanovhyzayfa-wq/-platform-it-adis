@@ -105,6 +105,152 @@ jobs:
           NODE
       - run: npm test
 
+  # Bootstrap администратора на реальном PostgreSQL: пять сценариев, каждый —
+  # с проверкой состояния таблиц SQL до и после запуска CLI. In-memory двойник
+  # из unit-тестов здесь не участвует.
+  bootstrap-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: itadis
+          POSTGRES_PASSWORD: itadis
+          POSTGRES_DB: itadis
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U itadis -d itadis"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public
+      PGPASSWORD: itadis
+      NODE_ENV: production
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run build
+      - name: Пять сценариев bootstrap с SQL до/после
+        run: bash scripts/ci-bootstrap-postgres.sh
+
+  # Полный production-стек в docker compose. Запускаются настоящие PostgreSQL,
+  # PgBouncer, Redis, MinIO, ClamAV, migrate, bootstrap, backend, admin и nginx
+  # edge; Caddy не поднимается, потому что Let's Encrypt не выдаст сертификат
+  # на runner, и edge публикуется напрямую (infrastructure/ci/docker-compose.ci.yml).
+  full-stack-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Подготовить .env.production для стека
+        run: |
+          env_file="$RUNNER_TEMP/production.env"
+          {
+            echo 'POSTGRES_USER=itadis'
+            echo 'POSTGRES_DB=itadis'
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+            echo 'PUBLIC_HOSTNAME=primary.local'
+            echo 'ACME_EMAIL=ci@example.com'
+            echo 'APP_ORIGIN=http://primary.local:8080'
+            echo 'ADMIN_WEB_ORIGIN=http://primary.local:8080'
+            echo 'API_PUBLIC_URL=http://primary.local:8080'
+            echo 'PRIMARY_DOMAIN=primary.local'
+            echo 'PLATFORM_DOMAIN=primary.local'
+            echo 'ALLOW_PRIMARY_FALLBACK=false'
+            echo "JWT_ACCESS_SECRET=$(openssl rand -hex 32)"
+            echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)"
+            echo "DATA_ENCRYPTION_KEY=$(openssl rand -hex 32)"
+            echo 'S3_ACCESS_KEY=ci-minio-access-key'
+            echo 'S3_SECRET_KEY=ci-minio-secret-key-0123456789abcdef'
+            echo 'S3_BUCKET=itadis'
+            echo 'PLATFORM_ADMIN_EMAIL=platform@example.com'
+            echo 'PLATFORM_ADMIN_PASSWORD=ci-platform-admin-password-0123'
+          } >"$env_file"
+          echo "COMPOSE_ENV=$env_file" >>"$GITHUB_ENV"
+      - name: Домен основного филиала на localhost
+        run: echo '127.0.0.1 primary.local' | sudo tee -a /etc/hosts
+      - name: Собрать и поднять стек
+        run: |
+          docker compose --env-file "$COMPOSE_ENV" \
+            -f docker-compose.prod.yml \
+            -f infrastructure/ci/docker-compose.ci.yml \
+            up -d --build \
+            postgres pgbouncer redis minio minio-init migrate bootstrap \
+            clamav antivirus backend admin edge
+      - name: Дождаться /healthz и проверить состояние сервисов
+        run: |
+          compose() {
+            docker compose --env-file "$COMPOSE_ENV" \
+              -f docker-compose.prod.yml \
+              -f infrastructure/ci/docker-compose.ci.yml "$@"
+          }
+
+          for attempt in $(seq 1 240); do
+            if curl -fsS --max-time 5 http://primary.local:8080/healthz | grep -q '"status":"ok"'; then
+              echo "healthz ответил на попытке $attempt"
+              break
+            fi
+            if ((attempt == 240)); then
+              echo 'healthz не ответил за 20 минут'
+              compose ps -a
+              exit 1
+            fi
+            sleep 5
+          done
+
+          states=$(compose ps -a --format '{{.Service}} {{.State}} {{.ExitCode}}')
+          printf '%s\n' "$states"
+          for service in postgres pgbouncer redis minio antivirus backend admin edge; do
+            if ! grep -qE "^$service running " <<<"$states"; then
+              echo "Сервис $service не запущен"
+              exit 1
+            fi
+          done
+          for service in migrate bootstrap; do
+            if ! grep -qE "^$service exited 0$" <<<"$states"; then
+              echo "Сервис $service завершился с ошибкой (ожидался код 0)"
+              exit 1
+            fi
+          done
+      - name: Smoke через edge
+        run: infrastructure/scripts/smoke.sh http://primary.local:8080 --origin http://primary.local:8080
+      - name: В логах приложения нет ERROR/FATAL/Unhandled
+        run: |
+          compose() {
+            docker compose --env-file "$COMPOSE_ENV" \
+              -f docker-compose.prod.yml \
+              -f infrastructure/ci/docker-compose.ci.yml "$@"
+          }
+          if compose logs --no-color backend admin edge bootstrap migrate | grep -E 'Unhandled|FATAL|ERROR'; then
+            echo 'В логах стека есть ошибки'
+            exit 1
+          fi
+          echo 'Ошибок в логах нет'
+      - name: Логи стека при ошибке
+        if: failure()
+        run: |
+          docker compose --env-file "$COMPOSE_ENV" \
+            -f docker-compose.prod.yml \
+            -f infrastructure/ci/docker-compose.ci.yml logs --no-color --tail=300
+      - name: Остановить стек
+        if: always()
+        run: |
+          docker compose --env-file "$COMPOSE_ENV" \
+            -f docker-compose.prod.yml \
+            -f infrastructure/ci/docker-compose.ci.yml down -v --remove-orphans
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -332,6 +478,12 @@ jobs:
           printf 'Проверяю: %s\n' "${scripts[*]}"
           "$shellcheck_bin" --version
           "$shellcheck_bin" -x "${scripts[@]}"
+      - name: bats для preflight deploy.sh
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats
+          bats --version
+          bats infrastructure/tests/deploy.bats
       - name: docker compose config -q для production
         run: |
           # Одноразовый env: значения фиктивные, но нужной формы.

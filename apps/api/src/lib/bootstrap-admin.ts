@@ -15,8 +15,15 @@ import { bootstrapRbac } from '../../prisma/bootstrap-rbac.js'
  * email, роль и факт изменения.
  */
 
-/** bcrypt-хеши начинаются с $2a$, $2b$ или $2y$ — по префиксу отличаем хеш от пароля. */
-export const BCRYPT_HASH = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/
+/**
+ * bcrypt-хеши начинаются с $2a$, $2b$ или $2y$ — по префиксу отличаем хеш от пароля.
+ *
+ * Cost factor ограничен диапазоном 04–31: bcryptjs не принимает значения ниже 4
+ * (genSalt округляет их, а compare падает на некорректной соли), а значение
+ * выше 31 физически невыполнимо. Хеш с cost 32+ отклоняется до обращения к БД,
+ * иначе bootstrap «принял» бы хеш, по которому невозможно войти.
+ */
+export const BCRYPT_HASH = /^\$2[aby]\$(0[4-9]|[12]\d|3[01])\$[./A-Za-z0-9]{53}$/
 
 /** Минимальная длина пароля администратора основной БД. */
 export const MIN_ADMIN_PASSWORD_LENGTH = 12
@@ -74,8 +81,9 @@ export async function bootstrapAdmin(
 
   if (rawHash && !isBcryptHash(rawHash)) {
     throw new Error(
-      'PLATFORM_ADMIN_PASSWORD_HASH не похож на bcrypt-хеш: ожидается префикс $2a$/$2b$/$2y$. ' +
-        'В .env.production символы $ нужно удваивать ($$2b$$...), иначе compose их подставит как переменные.',
+      'PLATFORM_ADMIN_PASSWORD_HASH не похож на bcrypt-хеш: ожидается $2a$/$2b$/$2y$, cost 04–31 ' +
+        'и 53 символа соли и хеша. В .env.production символы $ нужно удваивать ($$2b$$...), ' +
+        'иначе compose их подставит как переменные.',
     )
   }
   if (!providedHash && !plainPassword) {
@@ -97,8 +105,19 @@ export async function bootstrapAdmin(
 
   const existing = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, passwordHash: true },
+    select: { id: true, passwordHash: true, role: true },
   })
+
+  // Bootstrap создаёт администратора, но не повышает чужие учётные записи:
+  // молчаливая смена роли STUDENT/TEACHER → ADMIN по совпадению email была бы
+  // эскалацией прав при опечатке в PLATFORM_ADMIN_EMAIL.
+  if (existing && existing.role !== 'ADMIN') {
+    throw new Error(
+      `Пользователь ${email} уже существует с ролью ${existing.role}. ` +
+        'Bootstrap администратора не меняет роль существующих пользователей: ' +
+        'укажите другой PLATFORM_ADMIN_EMAIL или назначьте роль ADMIN вручную.',
+    )
+  }
 
   // Хеш bcrypt недетерминирован (соль), поэтому «пароль не изменился»
   // проверяется сравнением, а не равенством строк — иначе каждый прогон

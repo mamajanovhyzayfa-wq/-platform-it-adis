@@ -1,0 +1,14 @@
+# CI-оверрайд для полного стека (job full-stack-e2e).
+#
+# Отличия от production ровно два, и оба — про отсутствие публичного домена
+# на runner-е, а не про подмену сервисов:
+#   * `caddy` не поднимается: Let's Encrypt не выдаст сертификат на 127.0.0.1,
+#     а без TLS Caddy бесполезен. HTTP-вход `edge` публикуется напрямую;
+#   * порт 8080 вместо 80/443, чтобы не занимать привилегированные порты.
+#
+# Все остальные сервисы (PostgreSQL, PgBouncer, Redis, MinIO, ClamAV, antivirus,
+# migrate, bootstrap, backend, admin) запускаются штатным compose без заглушек.
+services:
+  edge:
+    ports:
+      - '${CI_EDGE_PORT:-8080}:80'

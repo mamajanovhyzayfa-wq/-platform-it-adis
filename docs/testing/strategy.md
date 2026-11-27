@@ -107,6 +107,27 @@ npm run test:e2e
 Локально второй филиал создаётся штатным provisioner или записью в реестре
 филиалов; API должен быть доступен по его домену.
 
+## CI-гейты hardening
+
+Помимо `backend`, `e2e`, `admin`, `mobile` и `infrastructure` в
+`.github/workflows/ci.yml` добавлены три проверки, которые нельзя выполнить
+подменой Prisma-клиента или без Docker:
+
+- `bootstrap-postgres` — пять сценариев первого администратора на реальном
+  PostgreSQL 16: создание, идемпотентный повтор, ротация пароля, отказ
+  повышать существующего не-ADMIN и готовый bcrypt-хеш. Каждый сценарий
+  сверяет строку в БД через `psql` до и после запуска CLI
+  (`apps/api/scripts/ci-bootstrap-postgres.sh`).
+- `full-stack-e2e` — production compose целиком (PostgreSQL, PgBouncer, Redis,
+  MinIO, ClamAV, migrate, bootstrap, backend, admin, edge), `/healthz`, exit-коды
+  одноразовых сервисов, `infrastructure/scripts/smoke.sh` через edge и
+  отсутствие `ERROR/FATAL/Unhandled` в логах. Caddy не поднимается (нет
+  публичного домена для ACME), порт edge публикуется оверрайдом
+  `infrastructure/ci/docker-compose.ci.yml`.
+- `bats` в job `infrastructure` — 11 проверок preflight `deploy.sh` без Docker
+  и сети (`infrastructure/tests/deploy.bats`): обязательные переменные, запись
+  `PUBLIC_HOSTNAME`, предупреждения и отсутствие секретов в выводе.
+
 ## Команды проверки
 
 ```bash
