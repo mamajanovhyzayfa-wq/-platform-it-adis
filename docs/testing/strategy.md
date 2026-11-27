@@ -156,8 +156,9 @@ npm run test:e2e
 
 Правила линтера, которые ловят типовые ошибки без запуска тестов, включены в
 `.oxlintrc.json`: плагин `typescript` и `typescript/no-explicit-any`,
-`typescript/no-floating-promises`. `npm run lint` завершается с кодом 0 только
-при отсутствии ошибок (предупреждения react-hooks не блокируют).
+`typescript/no-floating-promises`. Проверяет их job `lint` (корневой `npm ci` и
+`npm run lint`); он зелёный только при отсутствии ошибок — предупреждения
+react-hooks не блокируют.
 
 ## Команды проверки
 
