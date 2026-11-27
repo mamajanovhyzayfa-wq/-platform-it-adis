@@ -1,6 +1,6 @@
-From e0b4724d8c2b51e0d9ac5d3b32db458caf31c7b4 Mon Sep 17 00:00:00 2001
+From f1762bdf939589a83672f05ce937430cfe29eda8 Mon Sep 17 00:00:00 2001
 From: huzayfa <mamajanovhyzayfa@gmail.com>
-Date: Fri, 27 Nov 2026 07:07:16 +0000
+Date: Fri, 27 Nov 2026 07:12:14 +0000
 Subject: [PATCH] Harden the administrator bootstrap and gate Phase 1 with
  real CI
 
@@ -22,8 +22,11 @@ package.json (nodemailer 7.0.13 vs ^10.6.1, prisma 6.16 vs ^6.19.3) and the
 backend image, which installs only apps/api, failed to build with
 "npm error code EUSAGE". The backend job now reproduces that install.
 
-Failing bring-up steps publish the tail of their output as a check-run
-annotation, because downloading job logs needs admin rights on the repository.
+The pooled DATABASE_URL no longer carries schema=public: Prisma sends it as a
+search_path startup parameter and PgBouncer in transaction mode rejects it, so
+the backend crash-looped instead of becoming healthy. Failing bring-up steps
+publish the tail of their output as a check-run annotation, because downloading
+job logs needs admin rights on the repository.
 
 ---
  .github/workflows/ci.yml                  | 359 +++++++++++++
@@ -35,14 +38,14 @@ annotation, because downloading job logs needs admin rights on the repository.
  apps/api/test/admin-routes.test.ts        |  14 +-
  apps/api/test/bootstrap-admin.test.ts     |  77 +++
  apps/web/src/pages/AiCenter.tsx           |  21 +-
- docker-compose.prod.yml                   |  27 +-
+ docker-compose.prod.yml                   |  35 +-
  docs/patches/README.md                    |  86 ++++
  docs/testing/strategy.md                  |  53 ++
- infrastructure/README.md                  |  62 ++-
+ infrastructure/README.md                  |  69 ++-
  infrastructure/ci/docker-compose.ci.yml   |  21 +
  infrastructure/ci/run-annotated.sh        |  40 ++
  infrastructure/tests/deploy.bats          | 136 +++++
- 16 files changed, 1732 insertions(+), 311 deletions(-)
+ 16 files changed, 1746 insertions(+), 312 deletions(-)
 
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
 index 7def3c7..fd54a5b 100644
@@ -2421,7 +2424,7 @@ index 6317dc1..6acc49b 100644
      if (listening) { recognitionRef.current?.stop(); setListening(false); return }
      const recognition = new Speech()
 diff --git a/docker-compose.prod.yml b/docker-compose.prod.yml
-index 4c0996b..f552a9d 100644
+index 4c0996b..17fe490 100644
 --- a/docker-compose.prod.yml
 +++ b/docker-compose.prod.yml
 @@ -128,7 +128,9 @@ services:
@@ -2476,6 +2479,21 @@ index 4c0996b..f552a9d 100644
      environment:
        S3_ACCESS_KEY: ${S3_ACCESS_KEY}
        S3_SECRET_KEY: ${S3_SECRET_KEY}
+@@ -263,7 +272,13 @@ services:
+       NODE_ENV: production
+       PORT: 4000
+       # Приложение ходит только через PgBouncer.
+-      DATABASE_URL: "postgresql://${POSTGRES_USER:-itadis}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-itadis}?schema=public&connection_limit=${DATABASE_CONNECTION_LIMIT:-10}&pool_timeout=${DATABASE_POOL_TIMEOUT:-10}"
++      # `schema=public` в этом URL — ошибка: Prisma передаёт его стартовым
++      # параметром search_path, а PgBouncer в transaction mode отвергает
++      # необъявленные стартовые параметры (`FATAL: unsupported startup
++      # parameter: search_path`) и backend не стартует. Схема по умолчанию у
++      # Prisma и у пользователя БД — public, поэтому параметр не нужен;
++      # branchDatabaseUrl() его тоже не ставит.
++      DATABASE_URL: "postgresql://${POSTGRES_USER:-itadis}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-itadis}?connection_limit=${DATABASE_CONNECTION_LIMIT:-10}&pool_timeout=${DATABASE_POOL_TIMEOUT:-10}"
+       # Прямое подключение нужно только pg_dump/pg_restore и провижинингу.
+       DIRECT_DATABASE_URL: "postgresql://${POSTGRES_USER:-itadis}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-itadis}?schema=public"
+       DATABASE_CONNECTION_LIMIT: ${DATABASE_CONNECTION_LIMIT:-10}
 diff --git a/docs/patches/README.md b/docs/patches/README.md
 new file mode 100644
 index 0000000..e0c1ddf
@@ -2633,7 +2651,7 @@ index 3667bef..f5d1aa6 100644
  
  ```bash
 diff --git a/infrastructure/README.md b/infrastructure/README.md
-index 5636782..febf9a4 100644
+index 5636782..c8a193d 100644
 --- a/infrastructure/README.md
 +++ b/infrastructure/README.md
 @@ -60,6 +60,14 @@ Google/Apple, календари, бухгалтерию, платёжные а
@@ -2677,7 +2695,21 @@ index 5636782..febf9a4 100644
  Те же проверки deploy-пути выполняет job `infrastructure` в CI на каждый PR:
  `shellcheck -x` по `infrastructure/**/*.sh`, `docker compose config -q` с
  одноразовым env из фиктивных значений и `caddy validate` для `caddy/Caddyfile`.
-@@ -284,7 +311,26 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
+@@ -255,6 +282,13 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
+ `?pgbouncer=true` к `DATABASE_URL`; в образе 1.24 подготовленные выражения
+ включены через `MAX_PREPARED_STATEMENTS`.
+ 
++В `DATABASE_URL`, который смотрит на PgBouncer, не должно быть `schema=`:
++Prisma шлёт его стартовым параметром `search_path`, а PgBouncer в transaction
++mode такие параметры не принимает (`FATAL: unsupported startup parameter:
++search_path`) — backend уходит в `restarting`. Схема по умолчанию и у Prisma,
++и у пользователя БД — `public`. Для прямого подключения (`DIRECT_DATABASE_URL`,
++`migrate`, `bootstrap`) `schema=public` допустим: там нет PgBouncer.
++
+ ## Базы данных филиалов
+ 
+ - `Branch` в управляющей БД содержит домен, имя БД, `storagePrefix`.
+@@ -284,7 +318,26 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
  - Планировщик в backend включается `BACKUP_SCHEDULER_ENABLED=true`.
  - По умолчанию БД копируется ежедневно; частота/срок хранения/файлы — поля
    `Branch` (`backupFrequencyHours`, `backupRetentionDays`, `backupIncludeFiles`).
@@ -2705,7 +2737,7 @@ index 5636782..febf9a4 100644
  - Каждая копия получает SHA-256; целостность проверяется `pg_restore --list`
    или `tar -tzf`, результат — `verifiedAt`.
  - Retention удаляет старые файлы копий (и объекты S3), записи истории остаются.
-@@ -307,6 +353,20 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
+@@ -307,6 +360,20 @@ docker compose --env-file .env.production -f docker-compose.prod.yml exec pgboun
  восстанавливаемой; в production используйте отдельный `CONTROL_DATABASE_URL`.
  Перед production-restore сделайте свежую копию и проверьте её.
  
