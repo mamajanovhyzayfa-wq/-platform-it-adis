@@ -25,6 +25,7 @@ import { startNotificationDigestLoop } from './jobs/notification-digest.js'
 import { openApiDocument } from './docs/openapi.js'
 import { closeRealtime, initRealtime } from './websocket/realtime.js'
 import { metricsMiddleware, renderMetrics } from './lib/metrics.js'
+import { rejectNulBytes } from './lib/input-guard.js'
 import { startBackupScheduler } from './modules/backups/backup.service.js'
 import { ensurePrimaryBranch } from './lib/primary-branch.js'
 
@@ -33,6 +34,12 @@ const logger = new Logger('Bootstrap')
 async function bootstrap(): Promise<void> {
   // bodyParser отключён: вебхукам LiveDigital нужно сырое тело до express.json.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false })
+
+  // req.ip и req.protocol берутся из X-Forwarded-* только если явно указано,
+  // сколько прокси перед приложением доверять. Без этого лимит запросов был
+  // общим на всех клиентов (они виделись адресом контейнера nginx), а ссылки на
+  // вложения собирались со схемой http за TLS-терминатором.
+  if (env.TRUST_PROXY_HOPS > 0) app.set('trust proxy', env.TRUST_PROXY_HOPS)
 
   // cross-origin нужен, чтобы вложения из /uploads открывались в мобильном приложении и панели.
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
@@ -60,6 +67,8 @@ async function bootstrap(): Promise<void> {
     financeWebhookRouter,
   )
   app.use(express.json({ limit: '1mb' }))
+  // NUL-байт в любом поле давал 500 от PostgreSQL, а не 400: отклоняем до маршрутов.
+  app.use(rejectNulBytes)
   if (env.NODE_ENV !== 'test') app.use(morgan('tiny'))
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument))
 

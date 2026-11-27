@@ -271,6 +271,11 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
+      # Два доверенных прокси до backend: edge и admin (caddy терминирует TLS,
+      # edge и admin пробрасывают X-Forwarded-For/X-Forwarded-Proto). Без этого
+      # Express видел всех клиентов как адрес контейнера: общий лимит 120
+      # запросов/мин на всю платформу и ссылки на файлы со схемой http.
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-2}
       # Приложение ходит только через PgBouncer.
       # `schema=public` в этом URL — ошибка: Prisma передаёт его стартовым
       # параметром search_path, а PgBouncer в transaction mode отвергает

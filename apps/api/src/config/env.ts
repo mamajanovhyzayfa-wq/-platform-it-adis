@@ -8,6 +8,12 @@ const emptyToUndefined = (value: unknown) => (value === '' ? undefined : value)
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
+  // Сколько прокси перед API считать доверенными. Express без этого значения
+  // берёт req.ip из сокета: за nginx все клиенты выглядели одним IP, из-за
+  // чего общий лимит запросов и логи привязывались к адресу контейнера.
+  // В production цепочка caddy → edge → admin → backend, то есть 2 доверенных
+  // хопа от сокета backend. 0 — заголовкам X-Forwarded-* не верить (dev, тесты).
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
   APP_ORIGIN: z.string().default('http://localhost:8081'),
   DATABASE_URL: z.string().default('postgresql://itadis:itadis@localhost:5432/itadis?schema=public'),
   // Прямое подключение для миграций, pg_dump/pg_restore и провижининга филиалов.

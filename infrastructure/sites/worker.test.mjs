@@ -101,6 +101,35 @@ test('глубокие ссылки получают SPA-фолбэк, оста�
   assert.equal(missingPost.status, 404)
 })
 
+test('/healthz без API_ORIGIN не отдаёт 200 из SPA-фолбэка', async () => {
+  const response = await call('/healthz')
+
+  assert.equal(response.status, 503)
+  const body = await response.json()
+  assert.equal(body.error.code, 'API_NOT_CONFIGURED')
+})
+
+test('/healthz с API_ORIGIN проксируется на backend', async () => {
+  const calls = []
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async (request) => {
+    calls.push({ url: request.url, method: request.method })
+    return new Response(JSON.stringify({ status: 'ok' }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+
+  try {
+    const response = await call('/healthz', { env: { API_ORIGIN: 'https://api.test' } })
+
+    assert.equal(response.status, 200)
+    assert.deepEqual(calls, [{ url: 'https://api.test/healthz', method: 'GET' }])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 test('/app редиректит на /app/', async () => {
   const response = await worker.fetch(new Request(`${SITE}/app`), { ASSETS: staticAssets() })
 

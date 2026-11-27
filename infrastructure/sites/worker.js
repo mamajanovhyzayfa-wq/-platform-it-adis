@@ -2,11 +2,14 @@
  * Cloudflare Worker для сайта ITadis.
  *
  * Корень отдаёт лендинг, /app/ — полноценный веб-кабинет. Если задан
- * API_ORIGIN, запросы /api и /socket.io проксируются на backend; иначе
- * клиент получает ответ о ненастроенном сервере.
+ * API_ORIGIN, запросы /api, /socket.io и /healthz проксируются на backend;
+ * иначе клиент получает ответ о ненастроенном сервере.
  */
 const APP_PREFIX = '/app/'
 const LEADS_PATH = '/api/leads'
+// Проверка живости API. Раньше путь уходил в SPA-фолбэк и отвечал 200 с
+// index.html: мониторинг считал сайт здоровым, хотя backend был недоступен.
+const HEALTH_PATH = '/healthz'
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -25,6 +28,18 @@ export default {
 
     if (url.pathname === '/app') {
       return Response.redirect(new URL(APP_PREFIX, url), 308)
+    }
+
+    if (url.pathname === HEALTH_PATH) {
+      if (!env.API_ORIGIN) {
+        return json(503, {
+          error: {
+            code: 'API_NOT_CONFIGURED',
+            message: 'Сервер ITadis временно недоступен. Попробуйте позже или свяжитесь с администратором.',
+          },
+        })
+      }
+      return fetch(new Request(new URL(HEALTH_PATH, env.API_ORIGIN), request))
     }
 
     if (isApiRequest(url.pathname)) {
