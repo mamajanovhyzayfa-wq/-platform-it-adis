@@ -123,6 +123,25 @@ infrastructure/scripts/deploy.sh --check
 провал. Без `--origin` проверка печатает `SKIP` и считается в итоговой строке
 `пропущено`, а не молча проходит.
 
+После шага 8 сайт проксирует `/api` на `API_ORIGIN`, а API определяет филиал
+только по `Host` (`tenant.middleware.ts`), поэтому `PRIMARY_DOMAIN` в
+`.env.production` должен совпадать с доменом самого API (`PUBLIC_HOSTNAME`).
+Проверка тем же `Host`, с которым приходит запрос через воркер:
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' -X POST \
+  -H 'Host: 203-0-113-10.sslip.io' -H 'content-type: application/json' \
+  -d '{"identifier":"probe@example.com"}' \
+  https://203-0-113-10.sslip.io/api/auth/password/request
+```
+
+Ожидаемо `202` и тело
+`{"channel":"email","message":"Если аккаунт существует, код восстановления отправлен"}`.
+Несуществующий адрес получает тот же `202` — ответ не раскрывает наличие
+аккаунта. Ответ `404` с кодом `BRANCH_NOT_FOUND` означает, что `Host` не
+совпал ни с `PRIMARY_DOMAIN`, ни с доменом филиала: на этом домене API
+отвечать не будет, и сайт покажет «Сервер ITadis временно недоступен».
+
 Те же проверки deploy-пути выполняет job `infrastructure` в CI на каждый PR:
 `shellcheck -x` по `infrastructure/**/*.sh`, `docker compose config -q` с
 одноразовым env из фиктивных значений и `caddy validate` для `caddy/Caddyfile`.
