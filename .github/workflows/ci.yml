@@ -274,10 +274,23 @@ jobs:
             printf '%s\n' "$states"
             echo '--- логи сервисов ---'
             compose logs --no-color --tail=200 || true
-            # Та же причина, что и у обёртки выше: логи шага снаружи недоступны.
-            summary=${states//'%'/'%25'}
-            summary=${summary//$'\n'/'%0A'}
-            echo "::error title=Поднять стек::${summary}"
+            # Та же причина, что и у обёртки выше: логи шага снаружи недоступны,
+            # а аннотации check-run'а читаются через API без токена.
+            annotate() {
+              local title=$1 body=$2
+              body=${body//'%'/'%25'}
+              body=${body//$'\n'/'%0A'}
+              echo "::error title=${title}::${body}"
+            }
+            annotate 'Поднять стек' "$states"
+
+            # Причина падения — не состояние, а вывод контейнера: печатаем хвост
+            # логов каждого сервиса, который не running и не exited 0.
+            broken=$(printf '%s\n' "$states" | awk '($2 != "running" && $2 != "exited") || ($2 == "exited" && $3 != 0) {print $1}')
+            for service in $broken; do
+              # shellcheck disable=SC2086 -- имена сервисов разделены пробелами
+              annotate "Логи $service" "$(compose logs --no-color --tail=120 "$service" 2>&1 | tail -c 4000)"
+            done
             exit 1
           fi
       - name: Дождаться /healthz и проверить состояние сервисов
