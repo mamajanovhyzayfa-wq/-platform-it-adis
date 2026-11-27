@@ -225,15 +225,20 @@ jobs:
         run: echo '127.0.0.1 primary.local' | sudo tee -a /etc/hosts
       # Три фазы отдельными шагами: упавшая фаза сразу видна в UI и в её
       # логе есть только своя ошибка, а не общий «exit code 1» от compose.
+      # Обёртка дублирует вывод в лог шага и при ошибке публикует хвост
+      # аннотацией check-run'а: сами логи job'а через API требуют прав
+      # администратора репозитория, а аннотации читаются без токена.
       - name: Скачать образы
         run: |
-          docker compose --env-file "$COMPOSE_ENV" \
+          infrastructure/ci/run-annotated.sh 'Скачать образы' \
+            docker compose --env-file "$COMPOSE_ENV" \
             -f docker-compose.prod.yml \
             -f infrastructure/ci/docker-compose.ci.yml \
             pull --ignore-buildable
       - name: Собрать образы
         run: |
-          docker compose --env-file "$COMPOSE_ENV" \
+          infrastructure/ci/run-annotated.sh 'Собрать образы' \
+            docker compose --env-file "$COMPOSE_ENV" \
             -f docker-compose.prod.yml \
             -f infrastructure/ci/docker-compose.ci.yml \
             build
@@ -253,9 +258,14 @@ jobs:
             postgres pgbouncer redis minio minio-init migrate bootstrap \
             clamav antivirus backend admin edge; then
             echo '--- compose ps -a ---'
-            compose ps -a || true
+            states=$(compose ps -a --format '{{.Service}} {{.State}} {{.ExitCode}}' || true)
+            printf '%s\n' "$states"
             echo '--- логи сервисов ---'
             compose logs --no-color --tail=200 || true
+            # Та же причина, что и у обёртки выше: логи шага снаружи недоступны.
+            summary=${states//'%'/'%25'}
+            summary=${summary//$'\n'/'%0A'}
+            echo "::error title=Поднять стек::${summary}"
             exit 1
           fi
       - name: Дождаться /healthz и проверить состояние сервисов
