@@ -262,6 +262,43 @@ describe('bootstrapAdmin', () => {
     for (const cost of ['00', '01', '03', '32', '99']) {
       expect(isBcryptHash(hashWithCost(cost)), `cost ${cost} должен отклоняться`).toBe(false)
     }
+
+    // Префиксы: bcryptjs понимает 2a/2b/2y, а устаревший $2x$ не проверяет —
+    // такой хеш нельзя принимать, иначе вход по нему невозможен.
+    const hashWithPrefix = (prefix: string) => `${prefix}10$${'a'.repeat(53)}`
+    for (const prefix of ['$2a$', '$2b$', '$2y$']) {
+      expect(isBcryptHash(hashWithPrefix(prefix)), `${prefix} должен приниматься`).toBe(true)
+    }
+    for (const prefix of ['$2x$', '$2z$', '$1a$', '$3b$']) {
+      expect(isBcryptHash(hashWithPrefix(prefix)), `${prefix} должен отклоняться`).toBe(false)
+    }
+  })
+
+  it('не повышает до ADMIN существующего TEACHER', async () => {
+    const fake = createFakePrisma()
+    const teacherEmail = 'teacher@itadis.kg'
+    const teacherHash = await bcrypt.hash('Teacher-Pass-2026', 10)
+    fake.users.set(teacherEmail, {
+      id: 'user-existing-teacher',
+      email: teacherEmail,
+      passwordHash: teacherHash,
+      role: 'TEACHER',
+      firstName: 'Учитель',
+      lastName: '',
+      isActive: true,
+      deletedAt: null,
+      emailVerifiedAt: null,
+    })
+
+    await expect(
+      bootstrapAdmin(fake.prisma, { email: teacherEmail, password: PASSWORD, log: () => {} }),
+    ).rejects.toThrow(/TEACHER/)
+
+    const user = fake.users.get(teacherEmail)
+    expect(user?.role).toBe('TEACHER')
+    expect(user?.passwordHash).toBe(teacherHash)
+    // Активная учётная запись не должна пострадать от неудачного запуска.
+    expect(user?.isActive).toBe(true)
   })
 
   it('не повышает до ADMIN существующего пользователя с другой ролью', async () => {
