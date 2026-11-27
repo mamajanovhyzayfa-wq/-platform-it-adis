@@ -1,0 +1,780 @@
+From 8037c07795719b41f3437235b75b3adfcb5dd973 Mon Sep 17 00:00:00 2001
+From: huzayfa <mamajanovhyzayfa@gmail.com>
+Date: Fri, 27 Nov 2026 04:11:55 +0000
+Subject: [PATCH] Harden admin bootstrap and gate it with real-Postgres CI
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+bootstrap-admin now rejects bcrypt cost factors outside 04-31 and refuses to
+promote an existing non-ADMIN account, so a typo in PLATFORM_ADMIN_EMAIL can no
+longer silently escalate a student or teacher to ADMIN.
+
+Phase 1 adds CI coverage that cannot be faked with an in-memory Prisma: five
+bootstrap scenarios on a real PostgreSQL 16 with before/after SQL assertions, a
+full production compose stack with smoke checks through edge, and bats tests for
+the deploy.sh preflight. The patch and apply instructions live in docs/patches.
+
+Generated with Codebuff 🤖
+Co-Authored-By: Codebuff <noreply@codebuff.com>
+---
+ .github/workflows/ci.yml                  | 152 +++++++++++++++
+ apps/api/scripts/ci-bootstrap-postgres.sh | 214 ++++++++++++++++++++++
+ apps/api/src/lib/bootstrap-admin.ts       |  29 ++-
+ apps/api/test/bootstrap-admin.test.ts     |  40 ++++
+ docs/patches/README.md                    |  46 +++++
+ docs/testing/strategy.md                  |  21 +++
+ infrastructure/ci/docker-compose.ci.yml   |  14 ++
+ infrastructure/tests/deploy.bats          | 136 ++++++++++++++
+ 8 files changed, 647 insertions(+), 5 deletions(-)
+ create mode 100755 apps/api/scripts/ci-bootstrap-postgres.sh
+ create mode 100644 docs/patches/README.md
+ create mode 100644 infrastructure/ci/docker-compose.ci.yml
+ create mode 100644 infrastructure/tests/deploy.bats
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 7def3c7..25c5ca1 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -105,6 +105,152 @@ jobs:
+           NODE
+       - run: npm test
+ 
++  # Bootstrap администратора на реальном PostgreSQL: пять сценариев, каждый —
++  # с проверкой состояния таблиц SQL до и после запуска CLI. In-memory двойник
++  # из unit-тестов здесь не участвует.
++  bootstrap-postgres:
++    runs-on: ubuntu-latest
++    timeout-minutes: 15
++    services:
++      postgres:
++        image: postgres:16-alpine
++        env:
++          POSTGRES_USER: itadis
++          POSTGRES_PASSWORD: itadis
++          POSTGRES_DB: itadis
++        ports: ['5432:5432']
++        options: >-
++          --health-cmd "pg_isready -U itadis -d itadis"
++          --health-interval 5s
++          --health-timeout 5s
++          --health-retries 10
++    env:
++      DATABASE_URL: postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public
++      PGPASSWORD: itadis
++      NODE_ENV: production
++    defaults:
++      run:
++        working-directory: apps/api
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 24
++          cache: npm
++          cache-dependency-path: apps/api/package-lock.json
++      - run: npm ci
++      - run: npx prisma generate
++      - run: npx prisma migrate deploy
++      - run: npm run build
++      - name: Пять сценариев bootstrap с SQL до/после
++        run: bash scripts/ci-bootstrap-postgres.sh
++
++  # Полный production-стек в docker compose. Запускаются настоящие PostgreSQL,
++  # PgBouncer, Redis, MinIO, ClamAV, migrate, bootstrap, backend, admin и nginx
++  # edge; Caddy не поднимается, потому что Let's Encrypt не выдаст сертификат
++  # на runner, и edge публикуется напрямую (infrastructure/ci/docker-compose.ci.yml).
++  full-stack-e2e:
++    runs-on: ubuntu-latest
++    timeout-minutes: 50
++    steps:
++      - uses: actions/checkout@v4
++      - name: Подготовить .env.production для стека
++        run: |
++          env_file="$RUNNER_TEMP/production.env"
++          {
++            echo 'POSTGRES_USER=itadis'
++            echo 'POSTGRES_DB=itadis'
++            echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
++            echo 'PUBLIC_HOSTNAME=primary.local'
++            echo 'ACME_EMAIL=ci@example.com'
++            echo 'APP_ORIGIN=http://primary.local:8080'
++            echo 'ADMIN_WEB_ORIGIN=http://primary.local:8080'
++            echo 'API_PUBLIC_URL=http://primary.local:8080'
++            echo 'PRIMARY_DOMAIN=primary.local'
++            echo 'PLATFORM_DOMAIN=primary.local'
++            echo 'ALLOW_PRIMARY_FALLBACK=false'
++            echo "JWT_ACCESS_SECRET=$(openssl rand -hex 32)"
++            echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)"
++            echo "DATA_ENCRYPTION_KEY=$(openssl rand -hex 32)"
++            echo 'S3_ACCESS_KEY=ci-minio-access-key'
++            echo 'S3_SECRET_KEY=ci-minio-secret-key-0123456789abcdef'
++            echo 'S3_BUCKET=itadis'
++            echo 'PLATFORM_ADMIN_EMAIL=platform@example.com'
++            echo 'PLATFORM_ADMIN_PASSWORD=ci-platform-admin-password-0123'
++          } >"$env_file"
++          echo "COMPOSE_ENV=$env_file" >>"$GITHUB_ENV"
++      - name: Домен основного филиала на localhost
++        run: echo '127.0.0.1 primary.local' | sudo tee -a /etc/hosts
++      - name: Собрать и поднять стек
++        run: |
++          docker compose --env-file "$COMPOSE_ENV" \
++            -f docker-compose.prod.yml \
++            -f infrastructure/ci/docker-compose.ci.yml \
++            up -d --build \
++            postgres pgbouncer redis minio minio-init migrate bootstrap \
++            clamav antivirus backend admin edge
++      - name: Дождаться /healthz и проверить состояние сервисов
++        run: |
++          compose() {
++            docker compose --env-file "$COMPOSE_ENV" \
++              -f docker-compose.prod.yml \
++              -f infrastructure/ci/docker-compose.ci.yml "$@"
++          }
++
++          for attempt in $(seq 1 240); do
++            if curl -fsS --max-time 5 http://primary.local:8080/healthz | grep -q '"status":"ok"'; then
++              echo "healthz ответил на попытке $attempt"
++              break
++            fi
++            if ((attempt == 240)); then
++              echo 'healthz не ответил за 20 минут'
++              compose ps -a
++              exit 1
++            fi
++            sleep 5
++          done
++
++          states=$(compose ps -a --format '{{.Service}} {{.State}} {{.ExitCode}}')
++          printf '%s\n' "$states"
++          for service in postgres pgbouncer redis minio antivirus backend admin edge; do
++            if ! grep -qE "^$service running " <<<"$states"; then
++              echo "Сервис $service не запущен"
++              exit 1
++            fi
++          done
++          for service in migrate bootstrap; do
++            if ! grep -qE "^$service exited 0$" <<<"$states"; then
++              echo "Сервис $service завершился с ошибкой (ожидался код 0)"
++              exit 1
++            fi
++          done
++      - name: Smoke через edge
++        run: infrastructure/scripts/smoke.sh http://primary.local:8080 --origin http://primary.local:8080
++      - name: В логах приложения нет ERROR/FATAL/Unhandled
++        run: |
++          compose() {
++            docker compose --env-file "$COMPOSE_ENV" \
++              -f docker-compose.prod.yml \
++              -f infrastructure/ci/docker-compose.ci.yml "$@"
++          }
++          if compose logs --no-color backend admin edge bootstrap migrate | grep -E 'Unhandled|FATAL|ERROR'; then
++            echo 'В логах стека есть ошибки'
++            exit 1
++          fi
++          echo 'Ошибок в логах нет'
++      - name: Логи стека при ошибке
++        if: failure()
++        run: |
++          docker compose --env-file "$COMPOSE_ENV" \
++            -f docker-compose.prod.yml \
++            -f infrastructure/ci/docker-compose.ci.yml logs --no-color --tail=300
++      - name: Остановить стек
++        if: always()
++        run: |
++          docker compose --env-file "$COMPOSE_ENV" \
++            -f docker-compose.prod.yml \
++            -f infrastructure/ci/docker-compose.ci.yml down -v --remove-orphans
++
+   e2e:
+     runs-on: ubuntu-latest
+     timeout-minutes: 25
+@@ -332,6 +478,12 @@ jobs:
+           printf 'Проверяю: %s\n' "${scripts[*]}"
+           "$shellcheck_bin" --version
+           "$shellcheck_bin" -x "${scripts[@]}"
++      - name: bats для preflight deploy.sh
++        run: |
++          sudo apt-get update -qq
++          sudo apt-get install -y -qq bats
++          bats --version
++          bats infrastructure/tests/deploy.bats
+       - name: docker compose config -q для production
+         run: |
+           # Одноразовый env: значения фиктивные, но нужной формы.
+diff --git a/apps/api/scripts/ci-bootstrap-postgres.sh b/apps/api/scripts/ci-bootstrap-postgres.sh
+new file mode 100755
+index 0000000..d83f10a
+--- /dev/null
++++ b/apps/api/scripts/ci-bootstrap-postgres.sh
+@@ -0,0 +1,214 @@
++#!/usr/bin/env bash
++# Пять сценариев bootstrap администратора на реальном PostgreSQL.
++#
++# Запускается в CI (.github/workflows/ci.yml, job bootstrap-postgres) и локально:
++#
++#   DATABASE_URL=postgresql://itadis:itadis@127.0.0.1:5432/itadis \
++#     bash scripts/ci-bootstrap-postgres.sh
++#
++# Требования: применённые миграции (`npx prisma migrate deploy`), собранный
++# `dist/src/bootstrap.js` (`npm run build`), клиент psql.
++#
++# Сценарии проверяют не только вывод CLI, но и состояние таблиц до/после через
++# SQL: количество пользователей, роль, isActive и хеш пароля. Поэтому «команда
++# сказала created» без реальной строки в БД здесь не пройдёт.
++set -euo pipefail
++
++cd -- "$(dirname -- "$0")/.."
++
++: "${DATABASE_URL:?DATABASE_URL не задан}"
++command -v psql >/dev/null 2>&1 || {
++  echo 'нужен psql (postgresql-client)' >&2
++  exit 2
++}
++[[ -f dist/src/bootstrap.js ]] || {
++  echo 'нет dist/src/bootstrap.js: сначала npm run build' >&2
++  exit 2
++}
++
++# Параметр ?schema=public понимает Prisma, а libpq на незнакомый параметр
++# отвечает ошибкой — для psql строку подключения обрезаем.
++DB_URL=${DATABASE_URL%%\?*}
++PSQL=(psql "$DB_URL" -v ON_ERROR_STOP=1 -tAq)
++
++PASSWORD='ci-bootstrap-password-0123456789'
++ROTATED='ci-bootstrap-password-rotated-9876543210'
++STUDENT_PASSWORD='ci-existing-student-password-1234'
++FAILED=0
++LOG=$(mktemp)
++trap 'rm -f -- "$LOG"' EXIT
++
++sql() { "${PSQL[@]}" -c "$1"; }
++
++pass() { printf '  PASS %s\n' "$1"; }
++fail() {
++  printf '  FAIL %s: %s\n' "$1" "$2" >&2
++  FAILED=1
++}
++
++expect() { # <имя> <ожидаемое> <фактическое>
++  if [[ $3 == "$2" ]]; then
++    pass "$1"
++  else
++    fail "$1" "ожидалось '$2', получено '$3'"
++  fi
++}
++
++expect_in_log() { # <имя> <регэксп>
++  if grep -qE -- "$2" "$LOG"; then
++    pass "$1"
++  else
++    fail "$1" "в выводе нет /$2/: $(tr '\n' ' ' <"$LOG")"
++  fi
++}
++
++# bcrypt_matches <хеш> <пароль>
++bcrypt_matches() {
++  HASH=$1 PLAIN=$2 node --input-type=module -e '
++    import bcrypt from "bcryptjs"
++    const { HASH, PLAIN } = process.env
++    try {
++      process.exit((await bcrypt.compare(PLAIN, HASH)) ? 0 : 1)
++    } catch {
++      process.exit(1)
++    }
++  ' >/dev/null 2>&1
++}
++
++# run_bootstrap <email> <пароль> <хеш>
++run_bootstrap() {
++  PLATFORM_ADMIN_EMAIL=$1 \
++    PLATFORM_ADMIN_PASSWORD=${2:-} \
++    PLATFORM_ADMIN_PASSWORD_HASH=${3:-} \
++    NODE_ENV=production \
++    node dist/src/bootstrap.js
++}
++
++hash_of() { # <email> — хеш пароля из БД
++  sql "SELECT \"passwordHash\" FROM \"User\" WHERE email = '$1'"
++}
++
++role_of() { # <email>
++  sql "SELECT role FROM \"User\" WHERE email = '$1'"
++}
++
++active_of() { # <email>
++  sql "SELECT \"isActive\" FROM \"User\" WHERE email = '$1'"
++}
++
++user_count() { # <email>
++  sql "SELECT count(*) FROM \"User\" WHERE email = '$1'"
++}
++
++bcrypt_hash() { # <пароль>
++  PLAIN=$1 node --input-type=module -e '
++    import bcrypt from "bcryptjs"
++    process.stdout.write(await bcrypt.hash(process.env.PLAIN, 10))
++  '
++}
++
++echo '== 1. Чистая БД: создаётся ровно один ADMIN с рабочим паролем =='
++expect 'до запуска пользователей нет' '0' "$(sql 'SELECT count(*) FROM "User"')"
++if run_bootstrap bootstrap@example.com "$PASSWORD" >"$LOG" 2>&1; then
++  pass 'bootstrap завершился с кодом 0'
++else
++  fail 'bootstrap завершился с кодом 0' "$(tr '\n' ' ' <"$LOG")"
++fi
++expect_in_log 'в логе action created' '→ created'
++expect 'в БД ровно один пользователь' '1' "$(user_count bootstrap@example.com)"
++expect 'роль пользователя ADMIN' 'ADMIN' "$(role_of bootstrap@example.com)"
++expect 'пользователь активен' 't' "$(active_of bootstrap@example.com)"
++expect 'хеш bcrypt длиной 60' '60' "$(sql 'SELECT length("passwordHash") FROM "User" WHERE email = '\''bootstrap@example.com'\''')"
++if bcrypt_matches "$(hash_of bootstrap@example.com)" "$PASSWORD"; then
++  pass 'пароль совпадает с сохранённым хешем'
++else
++  fail 'пароль совпадает с сохранённым хешем' 'bcrypt.compare вернул false'
++fi
++GRANTS=$(sql "SELECT count(*) FROM \"RolePermission\" WHERE role = 'ADMIN'")
++PERMISSIONS=$(sql 'SELECT count(*) FROM "Permission"')
++expect 'ADMIN получил все права каталога' "$PERMISSIONS" "$GRANTS"
++
++echo '== 2. Повторный запуск с тем же паролем идемпотентен =='
++HASH_BEFORE=$(hash_of bootstrap@example.com)
++if run_bootstrap bootstrap@example.com "$PASSWORD" >"$LOG" 2>&1; then
++  pass 'повторный bootstrap завершился с кодом 0'
++else
++  fail 'повторный bootstrap завершился с кодом 0' "$(tr '\n' ' ' <"$LOG")"
++fi
++expect_in_log 'в логе action unchanged' '→ unchanged'
++expect 'второй пользователь не создан' '1' "$(user_count bootstrap@example.com)"
++expect 'хеш пароля не перезаписан' "$HASH_BEFORE" "$(hash_of bootstrap@example.com)"
++
++echo '== 3. Смена пароля обновляет хеш, старый пароль перестаёт работать =='
++if run_bootstrap bootstrap@example.com "$ROTATED" >"$LOG" 2>&1; then
++  pass 'bootstrap с новым паролем завершился с кодом 0'
++else
++  fail 'bootstrap с новым паролем завершился с кодом 0' "$(tr '\n' ' ' <"$LOG")"
++fi
++expect_in_log 'в логе action password-updated' '→ password-updated'
++expect 'пользователь по-прежнему один' '1' "$(user_count bootstrap@example.com)"
++if bcrypt_matches "$(hash_of bootstrap@example.com)" "$ROTATED"; then
++  pass 'новый пароль совпадает с хешем'
++else
++  fail 'новый пароль совпадает с хешем' 'bcrypt.compare вернул false'
++fi
++if bcrypt_matches "$(hash_of bootstrap@example.com)" "$PASSWORD"; then
++  fail 'старый пароль перестал работать' 'bcrypt.compare со старым паролем вернул true'
++else
++  pass 'старый пароль перестал работать'
++fi
++
++echo '== 4. Существующий не-ADMIN не повышается молча =='
++STUDENT_HASH=$(bcrypt_hash "$STUDENT_PASSWORD")
++sql "INSERT INTO \"User\" (id, email, \"passwordHash\", \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\") VALUES ('00000000-0000-0000-0000-000000000123', 'existing-student@example.com', '$STUDENT_HASH', 'Existing', 'Student', 'STUDENT', false, now(), now())"
++expect 'до запуска роль STUDENT' 'STUDENT' "$(role_of existing-student@example.com)"
++if run_bootstrap existing-student@example.com "$PASSWORD" >"$LOG" 2>&1; then
++  fail 'bootstrap отказался менять чужую роль' 'код возврата 0'
++else
++  pass 'bootstrap отказался менять чужую роль (код 1)'
++fi
++expect_in_log 'в ошибке названа текущая роль' 'с ролью STUDENT'
++expect_in_log 'в ошибке объяснён отказ' 'не меняет роль существующих пользователей'
++expect 'роль осталась STUDENT' 'STUDENT' "$(role_of existing-student@example.com)"
++expect 'пароль не перезаписан' "$STUDENT_HASH" "$(hash_of existing-student@example.com)"
++expect 'учётная запись не реактивирована' 'f' "$(active_of existing-student@example.com)"
++expect 'пользователь не задублирован' '1' "$(user_count existing-student@example.com)"
++
++echo '== 5. Готовый bcrypt-хеш принимается как есть, cost вне 04–31 отклоняется =='
++PRECOMPUTED=$(bcrypt_hash "$PASSWORD")
++if run_bootstrap hash-admin@example.com '' "$PRECOMPUTED" >"$LOG" 2>&1; then
++  pass 'bootstrap с PLATFORM_ADMIN_PASSWORD_HASH завершился с кодом 0'
++else
++  fail 'bootstrap с PLATFORM_ADMIN_PASSWORD_HASH завершился с кодом 0' "$(tr '\n' ' ' <"$LOG")"
++fi
++expect_in_log 'в логе action created' '→ created'
++expect 'хеш сохранён без повторного хеширования' "$PRECOMPUTED" "$(hash_of hash-admin@example.com)"
++if bcrypt_matches "$(hash_of hash-admin@example.com)" "$PASSWORD"; then
++  pass 'пароль совпадает с готовым хешем'
++else
++  fail 'пароль совпадает с готовым хешем' 'bcrypt.compare вернул false'
++fi
++
++BAD_LOW="\$2b\$03\$$(printf 'a%.0s' $(seq 1 53))"
++if run_bootstrap bad-cost-low@example.com '' "$BAD_LOW" >"$LOG" 2>&1; then
++  fail 'хеш с cost 03 отклонён' 'код возврата 0'
++else
++  pass 'хеш с cost 03 отклонён (код 1)'
++fi
++expect_in_log 'в ошибке упомянут bcrypt' 'bcrypt'
++expect 'пользователь с неверным хешем не создан' '0' "$(user_count bad-cost-low@example.com)"
++
++BAD_HIGH="\$2b\$32\$$(printf 'a%.0s' $(seq 1 53))"
++if run_bootstrap bad-cost-high@example.com '' "$BAD_HIGH" >"$LOG" 2>&1; then
++  fail 'хеш с cost 32 отклонён' 'код возврата 0'
++else
++  pass 'хеш с cost 32 отклонён (код 1)'
++fi
++expect 'пользователь с cost 32 не создан' '0' "$(user_count bad-cost-high@example.com)"
++
++echo
++if ((FAILED)); then
++  echo 'Bootstrap на PostgreSQL: есть провалы' >&2
++  exit 1
++fi
++echo 'Bootstrap на PostgreSQL: все 5 сценариев прошли'
+diff --git a/apps/api/src/lib/bootstrap-admin.ts b/apps/api/src/lib/bootstrap-admin.ts
+index d7fa41c..9556d61 100644
+--- a/apps/api/src/lib/bootstrap-admin.ts
++++ b/apps/api/src/lib/bootstrap-admin.ts
+@@ -15,8 +15,15 @@ import { bootstrapRbac } from '../../prisma/bootstrap-rbac.js'
+  * email, роль и факт изменения.
+  */
+ 
+-/** bcrypt-хеши начинаются с $2a$, $2b$ или $2y$ — по префиксу отличаем хеш от пароля. */
+-export const BCRYPT_HASH = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/
++/**
++ * bcrypt-хеши начинаются с $2a$, $2b$ или $2y$ — по префиксу отличаем хеш от пароля.
++ *
++ * Cost factor ограничен диапазоном 04–31: bcryptjs не принимает значения ниже 4
++ * (genSalt округляет их, а compare падает на некорректной соли), а значение
++ * выше 31 физически невыполнимо. Хеш с cost 32+ отклоняется до обращения к БД,
++ * иначе bootstrap «принял» бы хеш, по которому невозможно войти.
++ */
++export const BCRYPT_HASH = /^\$2[aby]\$(0[4-9]|[12]\d|3[01])\$[./A-Za-z0-9]{53}$/
+ 
+ /** Минимальная длина пароля администратора основной БД. */
+ export const MIN_ADMIN_PASSWORD_LENGTH = 12
+@@ -74,8 +81,9 @@ export async function bootstrapAdmin(
+ 
+   if (rawHash && !isBcryptHash(rawHash)) {
+     throw new Error(
+-      'PLATFORM_ADMIN_PASSWORD_HASH не похож на bcrypt-хеш: ожидается префикс $2a$/$2b$/$2y$. ' +
+-        'В .env.production символы $ нужно удваивать ($$2b$$...), иначе compose их подставит как переменные.',
++      'PLATFORM_ADMIN_PASSWORD_HASH не похож на bcrypt-хеш: ожидается $2a$/$2b$/$2y$, cost 04–31 ' +
++        'и 53 символа соли и хеша. В .env.production символы $ нужно удваивать ($$2b$$...), ' +
++        'иначе compose их подставит как переменные.',
+     )
+   }
+   if (!providedHash && !plainPassword) {
+@@ -97,9 +105,20 @@ export async function bootstrapAdmin(
+ 
+   const existing = await prisma.user.findUnique({
+     where: { email },
+-    select: { id: true, passwordHash: true },
++    select: { id: true, passwordHash: true, role: true },
+   })
+ 
++  // Bootstrap создаёт администратора, но не повышает чужие учётные записи:
++  // молчаливая смена роли STUDENT/TEACHER → ADMIN по совпадению email была бы
++  // эскалацией прав при опечатке в PLATFORM_ADMIN_EMAIL.
++  if (existing && existing.role !== 'ADMIN') {
++    throw new Error(
++      `Пользователь ${email} уже существует с ролью ${existing.role}. ` +
++        'Bootstrap администратора не меняет роль существующих пользователей: ' +
++        'укажите другой PLATFORM_ADMIN_EMAIL или назначьте роль ADMIN вручную.',
++    )
++  }
++
+   // Хеш bcrypt недетерминирован (соль), поэтому «пароль не изменился»
+   // проверяется сравнением, а не равенством строк — иначе каждый прогон
+   // перезаписывал бы строку пользователя.
+diff --git a/apps/api/test/bootstrap-admin.test.ts b/apps/api/test/bootstrap-admin.test.ts
+index b2cbb5c..a344ae7 100644
+--- a/apps/api/test/bootstrap-admin.test.ts
++++ b/apps/api/test/bootstrap-admin.test.ts
+@@ -252,6 +252,46 @@ describe('bootstrapAdmin', () => {
+     expect(fake.users.size).toBe(0)
+   })
+ 
++  it('принимает cost 04–31 и отклоняет cost вне диапазона', () => {
++    const hashWithCost = (cost: string) => `$2b$${cost}$${'a'.repeat(53)}`
++
++    for (const cost of ['04', '05', '10', '12', '31']) {
++      expect(isBcryptHash(hashWithCost(cost)), `cost ${cost} должен приниматься`).toBe(true)
++    }
++    // 00–03 bcryptjs отвергает, 32+ невыполнимо: такой хеш не должен попасть в БД.
++    for (const cost of ['00', '01', '03', '32', '99']) {
++      expect(isBcryptHash(hashWithCost(cost)), `cost ${cost} должен отклоняться`).toBe(false)
++    }
++  })
++
++  it('не повышает до ADMIN существующего пользователя с другой ролью', async () => {
++    const fake = createFakePrisma()
++    const studentEmail = 'student@itadis.kg'
++    const studentHash = await bcrypt.hash('Student-Pass-2026', 10)
++    fake.users.set(studentEmail, {
++      id: 'user-existing-student',
++      email: studentEmail,
++      passwordHash: studentHash,
++      role: 'STUDENT',
++      firstName: 'Ученик',
++      lastName: '',
++      isActive: false,
++      deletedAt: null,
++      emailVerifiedAt: null,
++    })
++
++    await expect(
++      bootstrapAdmin(fake.prisma, { email: studentEmail, password: PASSWORD, log: () => {} }),
++    ).rejects.toThrow(/STUDENT/)
++
++    const user = fake.users.get(studentEmail)
++    expect(user?.role).toBe('STUDENT')
++    expect(user?.passwordHash).toBe(studentHash)
++    // Отказ не должен заодно реактивировать или «починить» чужую учётную запись.
++    expect(user?.isActive).toBe(false)
++    expect(fake.users.size).toBe(1)
++  })
++
+   it('не печатает пароль или хеш в лог', async () => {
+     const fake = createFakePrisma()
+     const logs: string[] = []
+diff --git a/docs/patches/README.md b/docs/patches/README.md
+new file mode 100644
+index 0000000..69f0ef7
+--- /dev/null
++++ b/docs/patches/README.md
+@@ -0,0 +1,46 @@
++# Патчи хардненинга
++
++Изменения Phase 1 собраны в `0001-hardening-phase-1.patch` — его можно
++применить к `main` без доступа к GitHub:
++
++```bash
++git checkout main
++git am docs/patches/0001-hardening-phase-1.patch
++```
++
++Если патч не применяется из-за локальных изменений, проверьте их тем же
++набором команд, что и CI:
++
++```bash
++cd apps/api && npm ci && npx prisma generate && npm run build && npm test
++bats infrastructure/tests/deploy.bats   # apt: bats
++
++# пять сценариев bootstrap на реальном PostgreSQL
++DATABASE_URL=postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public \
++  bash apps/api/scripts/ci-bootstrap-postgres.sh
++```
++
++## Что в патче
++
++- `apps/api/src/lib/bootstrap-admin.ts` — cost factor bcrypt ограничен
++  диапазоном 04–31 (`isBcryptHash`), существующий не-ADMIN пользователь больше
++  не повышается до ADMIN молча: bootstrap падает с объяснением и не меняет
++  роль, пароль и `isActive`.
++- `apps/api/test/bootstrap-admin.test.ts` — границы cost 03/04/31/32 и отказ
++  повышать `STUDENT`.
++- `apps/api/scripts/ci-bootstrap-postgres.sh` — пять сценариев на реальном
++  PostgreSQL с SQL-проверками до/после (создание, идемпотентность, ротация
++  пароля, отказ не-ADMIN, готовый хеш и отклонение cost вне 04–31).
++- `.github/workflows/ci.yml` — jobs `bootstrap-postgres` и `full-stack-e2e`
++  (production compose, smoke через edge, ошибки в логах), шаг `bats` для
++  preflight `deploy.sh`.
++- `infrastructure/ci/docker-compose.ci.yml` — публикует `edge` на 8080 и не
++  поднимает Caddy: в CI нет публичного домена для ACME.
++- `infrastructure/tests/deploy.bats` — 11 проверок preflight без Docker и сети.
++
++## Ограничения
++
++Job `full-stack-e2e` поднимает настоящие ClamAV/MinIO/PgBouncer, поэтому он
++идёт 20–40 минут и зависит от сети runner-а (freshclam скачивает сигнатуры).
++Патч не деплоит ничего и не меняет `main`: ветка `fix/hardening-2026-11-26`
++готова к PR.
+diff --git a/docs/testing/strategy.md b/docs/testing/strategy.md
+index 3667bef..cd46b09 100644
+--- a/docs/testing/strategy.md
++++ b/docs/testing/strategy.md
+@@ -107,6 +107,27 @@ npm run test:e2e
+ Локально второй филиал создаётся штатным provisioner или записью в реестре
+ филиалов; API должен быть доступен по его домену.
+ 
++## CI-гейты hardening
++
++Помимо `backend`, `e2e`, `admin`, `mobile` и `infrastructure` в
++`.github/workflows/ci.yml` добавлены три проверки, которые нельзя выполнить
++подменой Prisma-клиента или без Docker:
++
++- `bootstrap-postgres` — пять сценариев первого администратора на реальном
++  PostgreSQL 16: создание, идемпотентный повтор, ротация пароля, отказ
++  повышать существующего не-ADMIN и готовый bcrypt-хеш. Каждый сценарий
++  сверяет строку в БД через `psql` до и после запуска CLI
++  (`apps/api/scripts/ci-bootstrap-postgres.sh`).
++- `full-stack-e2e` — production compose целиком (PostgreSQL, PgBouncer, Redis,
++  MinIO, ClamAV, migrate, bootstrap, backend, admin, edge), `/healthz`, exit-коды
++  одноразовых сервисов, `infrastructure/scripts/smoke.sh` через edge и
++  отсутствие `ERROR/FATAL/Unhandled` в логах. Caddy не поднимается (нет
++  публичного домена для ACME), порт edge публикуется оверрайдом
++  `infrastructure/ci/docker-compose.ci.yml`.
++- `bats` в job `infrastructure` — 11 проверок preflight `deploy.sh` без Docker
++  и сети (`infrastructure/tests/deploy.bats`): обязательные переменные, запись
++  `PUBLIC_HOSTNAME`, предупреждения и отсутствие секретов в выводе.
++
+ ## Команды проверки
+ 
+ ```bash
+diff --git a/infrastructure/ci/docker-compose.ci.yml b/infrastructure/ci/docker-compose.ci.yml
+new file mode 100644
+index 0000000..cbf8845
+--- /dev/null
++++ b/infrastructure/ci/docker-compose.ci.yml
+@@ -0,0 +1,14 @@
++# CI-оверрайд для полного стека (job full-stack-e2e).
++#
++# Отличия от production ровно два, и оба — про отсутствие публичного домена
++# на runner-е, а не про подмену сервисов:
++#   * `caddy` не поднимается: Let's Encrypt не выдаст сертификат на 127.0.0.1,
++#     а без TLS Caddy бесполезен. HTTP-вход `edge` публикуется напрямую;
++#   * порт 8080 вместо 80/443, чтобы не занимать привилегированные порты.
++#
++# Все остальные сервисы (PostgreSQL, PgBouncer, Redis, MinIO, ClamAV, antivirus,
++# migrate, bootstrap, backend, admin) запускаются штатным compose без заглушек.
++services:
++  edge:
++    ports:
++      - '${CI_EDGE_PORT:-8080}:80'
+diff --git a/infrastructure/tests/deploy.bats b/infrastructure/tests/deploy.bats
+new file mode 100644
+index 0000000..57f1818
+--- /dev/null
++++ b/infrastructure/tests/deploy.bats
+@@ -0,0 +1,136 @@
++#!/usr/bin/env bats
++# Проверки preflight `infrastructure/scripts/deploy.sh` без Docker и без сети.
++#
++# deploy.sh сначала требует docker/docker compose/docker info, поэтому в PATH
++# подставляются заглушки docker и ss: они отвечают успехом и ничего не делают.
++# Так проверяется логика самого скрипта (переменные, PUBLIC_HOSTNAME, отказы),
++# а не docker. Реальный деплой эти тесты не выполняют.
++#
++#   bats infrastructure/tests/deploy.bats
++
++setup() {
++  REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
++  DEPLOY="$REPO_ROOT/infrastructure/scripts/deploy.sh"
++  ENV_FILE="$BATS_TEST_TMPDIR/production.env"
++  FAKE_BIN="$BATS_TEST_TMPDIR/bin"
++  mkdir -p "$FAKE_BIN"
++
++  # docker: любой вызов (compose version/info/config/ps) — успех без вывода.
++  cat >"$FAKE_BIN/docker" <<'SH'
++#!/usr/bin/env bash
++exit 0
++SH
++  # ss: пустой список слушающих сокетов — порты 80/443/8080 считаются свободными.
++  cat >"$FAKE_BIN/ss" <<'SH'
++#!/usr/bin/env bash
++exit 0
++SH
++  chmod +x "$FAKE_BIN/docker" "$FAKE_BIN/ss"
++}
++
++run_deploy() {
++  run env PATH="$FAKE_BIN:$PATH" "$DEPLOY" --env-file "$ENV_FILE" "$@"
++}
++
++write_env() {
++  cat >"$ENV_FILE" <<'EOF'
++POSTGRES_USER=itadis
++POSTGRES_DB=itadis
++POSTGRES_PASSWORD=ci-postgres-password-value-0123456789
++JWT_ACCESS_SECRET=ci-access-secret-value-0123456789abcdef
++JWT_REFRESH_SECRET=ci-refresh-secret-value-0123456789abcdef
++DATA_ENCRYPTION_KEY=ci-encryption-key-value-0123456789abcdef
++APP_ORIGIN=https://203-0-113-10.sslip.io
++PRIMARY_DOMAIN=203-0-113-10.sslip.io
++PLATFORM_ADMIN_EMAIL=platform@example.com
++PLATFORM_ADMIN_PASSWORD=ci-platform-admin-password
++S3_ACCESS_KEY=ci-s3-access-key
++S3_SECRET_KEY=ci-s3-secret-key-value-0123456789
++ACME_EMAIL=ci@example.com
++EOF
++}
++
++@test "deploy.sh --help печатает справку и выходит с кодом 0" {
++  run_deploy --help
++  [ "$status" -eq 0 ]
++  [[ "$output" == *"Использование:"* ]]
++  [[ "$output" == *"--check"* ]]
++}
++
++@test "deploy.sh отвергает неизвестный аргумент" {
++  run_deploy --nope
++  [ "$status" -eq 1 ]
++  [[ "$output" == *"неизвестный аргумент"* ]]
++}
++
++@test "deploy.sh требует значение для --ip" {
++  run_deploy --ip
++  [ "$status" -eq 1 ]
++  [[ "$output" == *"--ip требует значение"* ]]
++}
++
++@test "deploy.sh отвергает --ip не в формате IPv4" {
++  write_env
++  run_deploy --check --ip 203.0.113
++  [ "$status" -eq 1 ]
++  [[ "$output" == *"должен быть IPv4"* ]]
++}
++
++@test "deploy.sh без .env.production подсказывает шаблон" {
++  run_deploy --check --ip 203.0.113.10
++  [ "$status" -eq 1 ]
++  [[ "$output" == *".env.production.example"* ]]
++}
++
++@test "deploy.sh --check проходит и записывает PUBLIC_HOSTNAME из --ip" {
++  write_env
++  run_deploy --check --ip 203.0.113.10
++  [ "$status" -eq 0 ]
++  [[ "$output" == *"preflight пройден"* ]]
++  grep -q '^PUBLIC_HOSTNAME=203-0-113-10\.sslip\.io$' "$ENV_FILE"
++}
++
++@test "deploy.sh перечисляет все незаполненные обязательные переменные" {
++  printf 'S3_ACCESS_KEY=only-this-one\n' >"$ENV_FILE"
++  run_deploy --check --ip 203.0.113.10
++  [ "$status" -eq 1 ]
++  for key in POSTGRES_PASSWORD JWT_ACCESS_SECRET JWT_REFRESH_SECRET DATA_ENCRYPTION_KEY APP_ORIGIN S3_SECRET_KEY ACME_EMAIL; do
++    [[ "$output" == *"  - $key"* ]]
++  done
++}
++
++@test "deploy.sh не печатает значения секретов" {
++  write_env
++  run_deploy --check --ip 203.0.113.10
++  [ "$status" -eq 0 ]
++  [[ "$output" != *"ci-postgres-password-value-0123456789"* ]]
++  [[ "$output" != *"ci-access-secret-value-0123456789abcdef"* ]]
++  [[ "$output" != *"ci-platform-admin-password"* ]]
++}
++
++@test "deploy.sh предупреждает о коротком пароле администратора" {
++  write_env
++  sed -i 's/^PLATFORM_ADMIN_PASSWORD=.*/PLATFORM_ADMIN_PASSWORD=short/' "$ENV_FILE"
++  run_deploy --check --ip 203.0.113.10
++  [ "$status" -eq 0 ]
++  [[ "$output" == *"PLATFORM_ADMIN_PASSWORD короче 12 символов"* ]]
++}
++
++@test "deploy.sh предупреждает о fallback и пустом администраторе платформы" {
++  write_env
++  printf 'ALLOW_PRIMARY_FALLBACK=true\nPLATFORM_ADMIN_EMAIL=\nPLATFORM_ADMIN_PASSWORD=\n' >>"$ENV_FILE"
++  run_deploy --check --ip 203.0.113.10
++  [ "$status" -eq 0 ]
++  [[ "$output" == *"ALLOW_PRIMARY_FALLBACK=true"* ]]
++  [[ "$output" == *"PLATFORM_ADMIN_EMAIL пуст"* ]]
++  [[ "$output" == *"сервис bootstrap не создаст администратора"* ]]
++}
++
++@test "deploy.sh сохраняет PUBLIC_HOSTNAME из .env.production без --ip" {
++  write_env
++  printf 'PUBLIC_HOSTNAME=198-51-100-7.sslip.io\n' >>"$ENV_FILE"
++  run_deploy --check
++  [ "$status" -eq 0 ]
++  [[ "$output" == *"PUBLIC_HOSTNAME=198-51-100-7.sslip.io"* ]]
++  grep -q '^PUBLIC_HOSTNAME=198-51-100-7\.sslip\.io$' "$ENV_FILE"
++}
+-- 
+2.43.0
+
