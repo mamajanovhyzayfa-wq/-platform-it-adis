@@ -128,7 +128,9 @@ services:
     volumes:
       - clamav_signatures:/var/lib/clamav
     healthcheck:
-      test: ['CMD-SHELL', 'clamdscan --ping 5 >/dev/null 2>&1 || exit 1']
+      # Официальная проверка из образа: nc по TCP 3310, тому же порту, куда
+      # ходит HTTP-обёртка antivirus. Свой clamdscan --ping здесь не нужен.
+      test: ['CMD', 'clamdcheck.sh']
       interval: 30s
       timeout: 10s
       retries: 20
@@ -168,8 +170,13 @@ services:
     networks: [internal]
     logging: *logging
 
+  # Официальные образы minio/minio и minio/mc удалены с Docker Hub в сентябре
+  # 2026, а quay.io отдаёт их только с логином, поэтому стек использует
+  # поддерживаемый форк MinIO — Silo: тот же S3 API, те же MINIO_* переменные и
+  # тот же формат данных на диске. В образ входят curl и mcli (симлинк mc),
+  # поэтому отдельный клиентский образ для инициализации bucket не нужен.
   minio:
-    image: minio/minio:latest
+    image: pgsty/silo:RELEASE.2026-11-12T00-00-00Z
     restart: unless-stopped
     command: server /data --console-address :9001
     environment:
@@ -186,16 +193,18 @@ services:
     logging: *logging
 
   minio-init:
-    image: minio/mc:latest
+    # Тот же образ, что у сервера: внутри есть sh и mc, версия клиента совпадает
+    # с версией сервера, а ещё один реестр в цепочке поставки не появляется.
+    image: pgsty/silo:RELEASE.2026-11-12T00-00-00Z
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 $$S3_ACCESS_KEY $$S3_SECRET_KEY &&
-      mc mb -p local/$$S3_BUCKET || true &&
-      mc anonymous set none local/$$S3_BUCKET
-      "
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - >
+        mc alias set local http://minio:9000 "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" &&
+        { mc mb -p "local/$$S3_BUCKET" || true; } &&
+        mc anonymous set none "local/$$S3_BUCKET"
     environment:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}

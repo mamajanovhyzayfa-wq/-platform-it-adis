@@ -1,14 +1,21 @@
 # CI-оверрайд для полного стека (job full-stack-e2e).
 #
-# Отличия от production ровно два, и оба — про отсутствие публичного домена
-# на runner-е, а не про подмену сервисов:
+# Отличия от production ровно три, и ни одно не подменяет сервис заглушкой:
 #   * `caddy` не поднимается: Let's Encrypt не выдаст сертификат на 127.0.0.1,
 #     а без TLS Caddy бесполезен. HTTP-вход `edge` публикуется напрямую;
-#   * порт 8080 вместо 80/443, чтобы не занимать привилегированные порты.
+#   * порт 8080 вместо 80/443, чтобы не занимать привилегированные порты;
+#   * планировщик резервных копий выключен: сразу после старта он делает
+#     pg_dump и выгрузку в S3, то есть проверяет не то, что проверяет этот job,
+#     и добавляет минуты и случайные ошибки в лог. В production он включён.
 #
-# Все остальные сервисы (PostgreSQL, PgBouncer, Redis, MinIO, ClamAV, antivirus,
-# migrate, bootstrap, backend, admin) запускаются штатным compose без заглушек.
+# Все сервисы (PostgreSQL, PgBouncer, Redis, MinIO-совместимое хранилище,
+# ClamAV, antivirus, migrate, bootstrap, backend, admin) запускаются штатным
+# compose и проверяются по-настоящему.
 services:
   edge:
     ports:
       - '${CI_EDGE_PORT:-8080}:80'
+
+  backend:
+    environment:
+      BACKUP_SCHEDULER_ENABLED: 'false'

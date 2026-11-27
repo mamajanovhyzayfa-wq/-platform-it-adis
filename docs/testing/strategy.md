@@ -119,11 +119,19 @@ npm run test:e2e
   сверяет строку в БД через `psql` до и после запуска CLI
   (`apps/api/scripts/ci-bootstrap-postgres.sh`).
 - `full-stack-e2e` — production compose целиком (PostgreSQL, PgBouncer, Redis,
-  MinIO, ClamAV, migrate, bootstrap, backend, admin, edge), `/healthz`, exit-коды
-  одноразовых сервисов, `infrastructure/scripts/smoke.sh` через edge и
+  S3-хранилище, ClamAV, migrate, bootstrap, backend, admin, edge), `/healthz`,
+  exit-коды одноразовых сервисов, `infrastructure/scripts/smoke.sh` через edge и
   отсутствие `ERROR/FATAL/Unhandled` в логах. Caddy не поднимается (нет
   публичного домена для ACME), порт edge публикуется оверрайдом
-  `infrastructure/ci/docker-compose.ci.yml`.
+  `infrastructure/ci/docker-compose.ci.yml`; там же выключен планировщик
+  резервных копий, чтобы job проверял стек, а не фоновый pg_dump.
+  Ожидание `/healthz` — до 30 минут с ранним падением, если сервис уже
+  завершился или упал.
+  Хранилище — `pgsty/silo`, поддерживаемый форк MinIO: образы `minio/minio` и
+  `minio/mc` удалены с Docker Hub в сентябре 2026, а `quay.io/minio/*` требует
+  логин. Форк сохраняет S3 API, переменные `MINIO_*` и формат данных, а в образе
+  есть `curl` и `mc`, поэтому healthcheck и инициализация bucket не требуют
+  отдельных клиентов. Версия образа закреплена тегом `RELEASE.*`.
 - `bats` в job `infrastructure` — 11 проверок preflight `deploy.sh` без Docker
   и сети (`infrastructure/tests/deploy.bats`): обязательные переменные, запись
   `PUBLIC_HOSTNAME`, предупреждения и отсутствие секретов в выводе.

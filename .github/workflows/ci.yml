@@ -127,7 +127,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public
       PGPASSWORD: itadis
-      NODE_ENV: production
+      # NODE_ENV здесь намеренно не задан: npm ci с NODE_ENV=production
+      # пропускает devDependencies, и сборка падает на отсутствующем tsc.
+      # Каждый запуск bootstrap сам выставляет NODE_ENV=production.
     defaults:
       run:
         working-directory: apps/api
@@ -160,7 +162,8 @@ jobs:
   # на runner, и edge публикуется напрямую (infrastructure/ci/docker-compose.ci.yml).
   full-stack-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    # Запас на сборку образов и на первичную загрузку баз ClamAV.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Подготовить .env.production для стека
@@ -209,20 +212,41 @@ jobs:
               -f infrastructure/ci/docker-compose.ci.yml "$@"
           }
 
-          for attempt in $(seq 1 240); do
+          # {{.Service}} {{.State}} {{.ExitCode}} — штатные поля шаблона
+          # docker compose ps: "running 0" или "exited 0".
+          states() { compose ps -a --format '{{.Service}} {{.State}} {{.ExitCode}}'; }
+
+          ready=0
+          for attempt in $(seq 1 360); do
             if curl -fsS --max-time 5 http://primary.local:8080/healthz | grep -q '"status":"ok"'; then
               echo "healthz ответил на попытке $attempt"
+              ready=1
               break
             fi
-            if ((attempt == 240)); then
-              echo 'healthz не ответил за 20 минут'
+
+            # Не ждём полчаса, если сервис уже упал: показываем причину сразу.
+            # Одноразовые сервисы с кодом 0 под условие не попадают, а с
+            # ненулевым — это реальная ошибка (migrate/bootstrap/minio-init).
+            current=$(states || true)
+            broken=$(printf '%s\n' "$current" | awk '($2 == "exited" && $3 != 0) || $2 == "dead" {print $1}')
+            if [[ -n $broken ]]; then
+              echo "Сервисы завершились с ошибкой: $broken"
               compose ps -a
+              # shellcheck disable=SC2086 -- имена сервисов разделены пробелами
+              compose logs --no-color --tail=200 $broken
               exit 1
             fi
             sleep 5
           done
 
-          states=$(compose ps -a --format '{{.Service}} {{.State}} {{.ExitCode}}')
+          if [[ $ready != 1 ]]; then
+            echo 'healthz не ответил за 30 минут'
+            compose ps -a
+            compose logs --no-color --tail=200
+            exit 1
+          fi
+
+          states=$(states)
           printf '%s\n' "$states"
           for service in postgres pgbouncer redis minio antivirus backend admin edge; do
             if ! grep -qE "^$service running " <<<"$states"; then
@@ -230,7 +254,7 @@ jobs:
               exit 1
             fi
           done
-          for service in migrate bootstrap; do
+          for service in migrate bootstrap minio-init; do
             if ! grep -qE "^$service exited 0$" <<<"$states"; then
               echo "Сервис $service завершился с ошибкой (ожидался код 0)"
               exit 1

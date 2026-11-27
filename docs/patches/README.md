@@ -34,13 +34,19 @@ DATABASE_URL=postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public \
 - `.github/workflows/ci.yml` — jobs `bootstrap-postgres` и `full-stack-e2e`
   (production compose, smoke через edge, ошибки в логах), шаг `bats` для
   preflight `deploy.sh`.
-- `infrastructure/ci/docker-compose.ci.yml` — публикует `edge` на 8080 и не
-  поднимает Caddy: в CI нет публичного домена для ACME.
+- `infrastructure/ci/docker-compose.ci.yml` — публикует `edge` на 8080, не
+  поднимает Caddy (в CI нет публичного домена для ACME) и выключает планировщик
+  резервных копий: job проверяет стек, а не фоновый pg_dump и выгрузку в S3.
+- `docker-compose.prod.yml` — S3-хранилище на `pgsty/silo` (поддерживаемый форк
+  MinIO) вместо удалённых с Docker Hub в сентябре 2026 `minio/minio` и
+  `minio/mc`; healthcheck ClamAV — штатный `clamdcheck.sh` из образа.
 - `infrastructure/tests/deploy.bats` — 11 проверок preflight без Docker и сети.
 
 ## Ограничения
 
-Job `full-stack-e2e` поднимает настоящие ClamAV/MinIO/PgBouncer, поэтому он
-идёт 20–40 минут и зависит от сети runner-а (freshclam скачивает сигнатуры).
+Job `full-stack-e2e` поднимает настоящие ClamAV/PgBouncer/S3-хранилище, поэтому
+он идёт 20–40 минут и зависит от сети runner-а (сборка образов и, при первом
+запуске, обновление сигнатур freshclam). Ожидание `/healthz` — до 30 минут,
+лимит job — 60 минут.
 Патч не деплоит ничего и не меняет `main`: ветка `fix/hardening-2026-11-26`
 готова к PR.
