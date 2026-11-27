@@ -34,6 +34,18 @@ DATABASE_URL=postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public \
 - `.github/workflows/ci.yml` — jobs `bootstrap-postgres` и `full-stack-e2e`
   (production compose, smoke через edge, ошибки в логах), шаг `bats` для
   preflight `deploy.sh`.
+- `apps/api/package-lock.json` — пересобран отдельно от workspace. Он отставал
+  от `package.json` (`nodemailer` 7.0.13 вместо `^10.6.1`, `prisma`/`@prisma/client`
+  `^6.16.0` вместо `^6.19.3`). В job'ах `npm ci` идёт по корневому lockfile и этого
+  не видит, а образ `backend` собирается только из `apps/api` и падал с
+  `npm error code EUSAGE` на шаге `RUN npm ci` (`full-stack-e2e`, «Собрать
+  образы»). Новый шаг job'а `backend` ставит только манифесты `apps/api` во
+  временном каталоге — ровно так же, как это делает Docker.
+- `infrastructure/ci/run-annotated.sh` — шаг CI, упав, публикует хвост вывода
+  аннотацией check-run'а (её читает `GET /check-runs/{id}/annotations`), потому
+  что скачивание логов job'а требует прав администратора репозитория. Обёрнуты
+  «Скачать образы» и «Собрать образы», а «Поднять стек» печатает аннотацией
+  состояние сервисов при неудачном `compose up`.
 - `infrastructure/ci/docker-compose.ci.yml` — публикует `edge` на 8080, не
   поднимает Caddy (в CI нет публичного домена для ACME) и выключает планировщик
   резервных копий: job проверяет стек, а не фоновый pg_dump и выгрузку в S3.

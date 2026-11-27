@@ -55,6 +55,18 @@ jobs:
       - run: npx prisma generate
       - run: npx prisma migrate deploy
       - run: npm run build
+      - name: Манифесты apps/api ставятся отдельно, как в Docker-образе
+        run: |
+          # apps/api — член workspace, поэтому `npm ci` в этом job'е идёт по
+          # корневому lockfile и не замечает устаревший apps/api/package-lock.json.
+          # Docker собирает только apps/api: там этот lockfile единственный, и
+          # при рассинхроне с package.json `npm ci` падает с EUSAGE.
+          dir="$RUNNER_TEMP/api-image-install"
+          rm -rf "$dir"
+          mkdir -p "$dir"
+          cp package.json package-lock.json "$dir"/
+          cd "$dir"
+          npm ci --ignore-scripts --no-audit --no-fund
       - name: Bootstrap администратора на чистой БД (идемпотентность и логи)
         env:
           NODE_ENV: production
