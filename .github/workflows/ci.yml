@@ -223,14 +223,41 @@ jobs:
           echo "COMPOSE_ENV=$env_file" >>"$GITHUB_ENV"
       - name: Домен основного филиала на localhost
         run: echo '127.0.0.1 primary.local' | sudo tee -a /etc/hosts
-      - name: Собрать и поднять стек
+      # Три фазы отдельными шагами: упавшая фаза сразу видна в UI и в её
+      # логе есть только своя ошибка, а не общий «exit code 1» от compose.
+      - name: Скачать образы
         run: |
           docker compose --env-file "$COMPOSE_ENV" \
             -f docker-compose.prod.yml \
             -f infrastructure/ci/docker-compose.ci.yml \
-            up -d --build \
+            pull --ignore-buildable
+      - name: Собрать образы
+        run: |
+          docker compose --env-file "$COMPOSE_ENV" \
+            -f docker-compose.prod.yml \
+            -f infrastructure/ci/docker-compose.ci.yml \
+            build
+      - name: Поднять стек
+        run: |
+          compose() {
+            docker compose --env-file "$COMPOSE_ENV" \
+              -f docker-compose.prod.yml \
+              -f infrastructure/ci/docker-compose.ci.yml "$@"
+          }
+
+          # --no-build: образы уже собраны предыдущим шагом. up завершается с
+          # кодом 1 и когда упала зависимость (service_completed_successfully /
+          # service_healthy), но сам этого не объясняет — печатаем состояние
+          # и логи.
+          if ! compose up -d --no-build \
             postgres pgbouncer redis minio minio-init migrate bootstrap \
-            clamav antivirus backend admin edge
+            clamav antivirus backend admin edge; then
+            echo '--- compose ps -a ---'
+            compose ps -a || true
+            echo '--- логи сервисов ---'
+            compose logs --no-color --tail=200 || true
+            exit 1
+          fi
       - name: Дождаться /healthz и проверить состояние сервисов
         run: |
           compose() {
