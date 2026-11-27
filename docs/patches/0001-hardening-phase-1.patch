@@ -1,7 +1,7 @@
 From 8037c07795719b41f3437235b75b3adfcb5dd973 Mon Sep 17 00:00:00 2001
 From: huzayfa <mamajanovhyzayfa@gmail.com>
 Date: Fri, 27 Nov 2026 04:11:55 +0000
-Subject: [PATCH] Harden admin bootstrap and gate it with real-Postgres CI
+Subject: [PATCH 1/2] Harden admin bootstrap and gate it with real-Postgres CI
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -22,13 +22,11 @@ Co-Authored-By: Codebuff <noreply@codebuff.com>
  apps/api/scripts/ci-bootstrap-postgres.sh | 214 ++++++++++++++++++++++
  apps/api/src/lib/bootstrap-admin.ts       |  29 ++-
  apps/api/test/bootstrap-admin.test.ts     |  40 ++++
- docs/patches/README.md                    |  46 +++++
  docs/testing/strategy.md                  |  21 +++
  infrastructure/ci/docker-compose.ci.yml   |  14 ++
  infrastructure/tests/deploy.bats          | 136 ++++++++++++++
- 8 files changed, 647 insertions(+), 5 deletions(-)
+ 7 files changed, 601 insertions(+), 5 deletions(-)
  create mode 100755 apps/api/scripts/ci-bootstrap-postgres.sh
- create mode 100644 docs/patches/README.md
  create mode 100644 infrastructure/ci/docker-compose.ci.yml
  create mode 100644 infrastructure/tests/deploy.bats
 
@@ -529,58 +527,6 @@ index b2cbb5c..a344ae7 100644
    it('не печатает пароль или хеш в лог', async () => {
      const fake = createFakePrisma()
      const logs: string[] = []
-diff --git a/docs/patches/README.md b/docs/patches/README.md
-new file mode 100644
-index 0000000..69f0ef7
---- /dev/null
-+++ b/docs/patches/README.md
-@@ -0,0 +1,46 @@
-+# Патчи хардненинга
-+
-+Изменения Phase 1 собраны в `0001-hardening-phase-1.patch` — его можно
-+применить к `main` без доступа к GitHub:
-+
-+```bash
-+git checkout main
-+git am docs/patches/0001-hardening-phase-1.patch
-+```
-+
-+Если патч не применяется из-за локальных изменений, проверьте их тем же
-+набором команд, что и CI:
-+
-+```bash
-+cd apps/api && npm ci && npx prisma generate && npm run build && npm test
-+bats infrastructure/tests/deploy.bats   # apt: bats
-+
-+# пять сценариев bootstrap на реальном PostgreSQL
-+DATABASE_URL=postgresql://itadis:itadis@127.0.0.1:5432/itadis?schema=public \
-+  bash apps/api/scripts/ci-bootstrap-postgres.sh
-+```
-+
-+## Что в патче
-+
-+- `apps/api/src/lib/bootstrap-admin.ts` — cost factor bcrypt ограничен
-+  диапазоном 04–31 (`isBcryptHash`), существующий не-ADMIN пользователь больше
-+  не повышается до ADMIN молча: bootstrap падает с объяснением и не меняет
-+  роль, пароль и `isActive`.
-+- `apps/api/test/bootstrap-admin.test.ts` — границы cost 03/04/31/32 и отказ
-+  повышать `STUDENT`.
-+- `apps/api/scripts/ci-bootstrap-postgres.sh` — пять сценариев на реальном
-+  PostgreSQL с SQL-проверками до/после (создание, идемпотентность, ротация
-+  пароля, отказ не-ADMIN, готовый хеш и отклонение cost вне 04–31).
-+- `.github/workflows/ci.yml` — jobs `bootstrap-postgres` и `full-stack-e2e`
-+  (production compose, smoke через edge, ошибки в логах), шаг `bats` для
-+  preflight `deploy.sh`.
-+- `infrastructure/ci/docker-compose.ci.yml` — публикует `edge` на 8080 и не
-+  поднимает Caddy: в CI нет публичного домена для ACME.
-+- `infrastructure/tests/deploy.bats` — 11 проверок preflight без Docker и сети.
-+
-+## Ограничения
-+
-+Job `full-stack-e2e` поднимает настоящие ClamAV/MinIO/PgBouncer, поэтому он
-+идёт 20–40 минут и зависит от сети runner-а (freshclam скачивает сигнатуры).
-+Патч не деплоит ничего и не меняет `main`: ветка `fix/hardening-2026-11-26`
-+готова к PR.
 diff --git a/docs/testing/strategy.md b/docs/testing/strategy.md
 index 3667bef..cd46b09 100644
 --- a/docs/testing/strategy.md
@@ -775,6 +721,75 @@ index 0000000..57f1818
 +  [[ "$output" == *"PUBLIC_HOSTNAME=198-51-100-7.sslip.io"* ]]
 +  grep -q '^PUBLIC_HOSTNAME=198-51-100-7\.sslip\.io$' "$ENV_FILE"
 +}
+-- 
+2.43.0
+
+
+From 0fdecb195bf331faa523b4ca3455fc84107a3ddd Mon Sep 17 00:00:00 2001
+From: huzayfa <mamajanovhyzayfa@gmail.com>
+Date: Fri, 27 Nov 2026 04:16:17 +0000
+Subject: [PATCH 2/2] Fix full-stack CI origin and install psql when missing
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Production env validation rejects an http APP_ORIGIN, so the full-stack job
+would have failed before the API started. The smoke Origin now matches the
+https value while requests still reach edge over http in CI.
+
+bootstrap-postgres no longer depends on psql being preinstalled on the runner.
+
+Generated with Codebuff 🤖
+Co-Authored-By: Codebuff <noreply@codebuff.com>
+---
+ .github/workflows/ci.yml | 20 ++++++++++++++++----
+ 1 file changed, 16 insertions(+), 4 deletions(-)
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 25c5ca1..3ac8e85 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -142,6 +142,15 @@ jobs:
+       - run: npx prisma generate
+       - run: npx prisma migrate deploy
+       - run: npm run build
++      - name: Клиент psql
++        run: |
++          # На ubuntu-latest psql обычно уже есть, но шаг не должен падать
++          # из-за образа runner-а, где клиент не установлен.
++          command -v psql >/dev/null 2>&1 || {
++            sudo apt-get update -qq
++            sudo apt-get install -y -qq postgresql-client
++          }
++          psql --version
+       - name: Пять сценариев bootstrap с SQL до/после
+         run: bash scripts/ci-bootstrap-postgres.sh
+ 
+@@ -163,9 +172,12 @@ jobs:
+             echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+             echo 'PUBLIC_HOSTNAME=primary.local'
+             echo 'ACME_EMAIL=ci@example.com'
+-            echo 'APP_ORIGIN=http://primary.local:8080'
+-            echo 'ADMIN_WEB_ORIGIN=http://primary.local:8080'
+-            echo 'API_PUBLIC_URL=http://primary.local:8080'
++            # Production-валидация требует https в APP_ORIGIN, а TLS в CI никто не
++            # терминирует: smoke идёт в edge по http. Origin — только строка
++            # заголовка, CORS сверяет её с APP_ORIGIN, поэтому схемы совпадают.
++            echo 'APP_ORIGIN=https://primary.local'
++            echo 'ADMIN_WEB_ORIGIN=https://primary.local'
++            echo 'API_PUBLIC_URL=https://primary.local'
+             echo 'PRIMARY_DOMAIN=primary.local'
+             echo 'PLATFORM_DOMAIN=primary.local'
+             echo 'ALLOW_PRIMARY_FALLBACK=false'
+@@ -225,7 +237,7 @@ jobs:
+             fi
+           done
+       - name: Smoke через edge
+-        run: infrastructure/scripts/smoke.sh http://primary.local:8080 --origin http://primary.local:8080
++        run: infrastructure/scripts/smoke.sh http://primary.local:8080 --origin https://primary.local
+       - name: В логах приложения нет ERROR/FATAL/Unhandled
+         run: |
+           compose() {
 -- 
 2.43.0
 
