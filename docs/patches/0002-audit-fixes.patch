@@ -1,4 +1,4 @@
-From 3cd08235a796086cff951ca588c03bfb0693b12a Mon Sep 17 00:00:00 2001
+From e85683725f61a75de56450dc44bc9c931bec7c88 Mon Sep 17 00:00:00 2001
 From: huzayfa <majanovhyzayfa@gmail.com>
 Date: Sat, 28 Nov 2026 02:53:59 +0000
 Subject: [PATCH] Close the audit findings and prepare the P0-1 deployment
@@ -237,6 +237,7 @@ API_NOT_CONFIGURED blocker.
  docker-compose.prod.yml                       |   13 +-
  docs/audit/2026-11-27-full-audit.md           |  376 +++
  docs/deployment/P0_fix.md                     |  265 ++
+ docs/deployment/pr-audit-2026-11-27.md        |  117 +
  docs/patches/0001-hardening-phase-1.patch     | 2168 ++++++++++++++++-
  docs/patches/README.md                        |   54 +
  docs/testing/strategy.md                      |   24 +
@@ -248,7 +249,7 @@ API_NOT_CONFIGURED blocker.
  package.json                                  |    2 -
  src/styles/landing/commercial.css             |    5 -
  src/styles/landing/modals.css                 |    7 -
- 223 files changed, 6142 insertions(+), 5361 deletions(-)
+ 224 files changed, 6259 insertions(+), 5361 deletions(-)
  create mode 100644 .github/workflows/production-health.yml
  create mode 100644 apps/api/prisma/migrations/20261127120000_attachment_owner_and_pending_email/migration.sql
  create mode 100644 apps/api/prisma/migrations/20261127150000_fk_delete_rules_and_indexes/migration.sql
@@ -273,6 +274,7 @@ API_NOT_CONFIGURED blocker.
  delete mode 100644 apps/web/src/pages/Courses.tsx
  create mode 100644 docs/audit/2026-11-27-full-audit.md
  create mode 100644 docs/deployment/P0_fix.md
+ create mode 100644 docs/deployment/pr-audit-2026-11-27.md
  create mode 100755 infrastructure/ci/run-annotated.sh
 
 diff --git a/.env.production.example b/.env.production.example
@@ -12473,6 +12475,129 @@ index 0000000..7187897
 +`API_ORIGIN` в панели freebuff.site (шаг 6) и `GH_TOKEN` в секретах проекта
 +(шаг 8). У агента нет ни доступа к серверу, ни прав на панель, ни креденшелов
 +GitHub, поэтому эти шаги нельзя выполнить автоматически.
+diff --git a/docs/deployment/pr-audit-2026-11-27.md b/docs/deployment/pr-audit-2026-11-27.md
+new file mode 100644
+index 0000000..d2551ad
+--- /dev/null
++++ b/docs/deployment/pr-audit-2026-11-27.md
+@@ -0,0 +1,117 @@
++# PR `audit/full-analysis-2026-11-27` → `main`: готовый текст
++
++Скопируйте блок «Заголовок» в поле title, блок «Описание» — в body. Ветка уже
++запушена (`7631be9`), база — `main` (`81577be`). Открыть PR можно только с
++`GH_TOKEN` (см. `docs/deployment/P0_fix.md`, шаг 8).
++
++## Заголовок
++
++```text
++Закрыть находки аудита 2026-11-27: IDOR вложений, FK-индексы, мёртвый код и ранбук P0-1
++```
++
++Альтернатива, если нужен более короткий: `Аудит 2026-11-27: безопасность вложений, схема БД, мёртвый код`.
++
++## Описание
++
++```markdown
++## Что это
++
++Ветка закрывает находки полного аудита от 27.11.2026 (отчёт —
++`docs/audit/2026-11-27-full-audit.md`) и содержит всю фазу 1 хардненинга из
++`fix/hardening-2026-11-26`, которая в `main` ещё не влита. Объём: 224 файла,
+++23 671 / −5 361 строка, из них ~17 500 строк — сам mbox-патч
++`docs/patches/0002-audit-fixes.patch` (артефакт для применения без GitHub);
++без него — 198 изменённых, 15 новых и 10 удалённых файлов.
++
++Продовый сайт при этом продолжает отдавать `503 API_NOT_CONFIGURED`: причина
++не в коде, а в отсутствии развёрнутого backend и переменной `API_ORIGIN`.
++Пошаговый вывод из этого состояния — `docs/deployment/P0_fix.md`.
++
++## Что вошло
++
++### Безопасность
++
++| ID | Что сделано |
++| --- | --- |
++| S-1 | IDOR вложений закрыт: модель `Attachment` записывает владельца, `/uploads/<name>` отдаётся только владельцу или `ADMIN`, файлы без записи в реестре — только админу (13 тестов) |
++| S-2 | Подписанная ссылка `?t=` живёт 15 минут вместо 365 дней и привязана к `sub`; чужой Bearer не даёт ей воспользоваться (8 тестов) |
++| S-3 / P1-1 | NUL-байт в body/query/params → `400` до обращения к PostgreSQL, а не `500` с алертом (6 тестов) |
++| S-5 | Значения заявок санитизируются до записи: `script`/`style` с содержимым, теги и управляющие символы вырезаются (8 тестов) |
++| S-6 | Swagger `/docs` и Prometheus `/metrics` выключены при `NODE_ENV=production` |
++| S-7 | В access-логе появился IP клиента: `:remote-addr` в формате morgan |
++| S-8 | Битый JSON → единый `400 {"error":{"code":"BAD_REQUEST","message":"Некорректный формат JSON"}}` без текста парсера (5 тестов) |
++
++### Данные и производительность БД
++
++| ID | Что сделано |
++| --- | --- |
++| D-1 | Гонка регистрации: частичный уникальный индекс `lower(email) WHERE status='PENDING'`, `P2002` → `409`; проверено двумя параллельными вставками на реальном PostgreSQL 16 |
++| D-2 | Правила удаления для 13 FK на `User`: 3 `CASCADE`, 10 `SET NULL`, безопасные фолбэки в коде (`Не указан`) |
++| D-3 | 79 индексов на FK-колонки; на живой БД `pg_index` показывает 0 таких колонок без ведущего индекса |
++| — | Миграция `20261127150000_fk_delete_rules_and_indexes` + `20261127120000_attachment_owner_and_pending_email`; `prisma migrate deploy` прогнан на чистой БД |
++| P-1 | Кабинет разбит на 53 ленивых маршрута: первая загрузка ~149 КБ gzip вместо 501 КБ |
++
++### Контракты API
++
++| ID | Что сделано |
++| --- | --- |
++| P1-2 / S-4 | `TRUST_PROXY_HOPS` и `trust proxy`: лимит 120 req/мин и `req.ip` снова на клиента, а не на контейнер nginx (A/B-проверка: реальный 429 только для своего клиента) |
++| P1-3 / F-1 | `/healthz` сайта проксируется на API или отдаёт `503` JSON вместо `200` с `index.html` (7 тестов воркера) |
++| F-2 | Сертификаты отдаются рабочей ссылкой `/api/uploads/certificates/<file>` (только ADMIN) и `/api/certificates/:id/file`; старые `/uploads/...` продолжают открываться |
++| F-3 | Файл 0 байт → `400` и удаление временного файла |
++| C-1 | Удалены мёртвые файлы и зависимости, `no-unused-vars: error` в `.oxlintrc.json` |
++
++### Инфраструктура и CI
++
++- `docker-compose.prod.yml`: S3-хранилище на поддерживаемом форке `pgsty/silo` (образы `minio/*` удалены с Docker Hub), штатный healthcheck ClamAV.
++- `.github/workflows/ci.yml`: jobs `bootstrap-postgres` (5 сценариев на реальном PostgreSQL) и `full-stack-e2e` (production compose, smoke через edge, `pg_dump`/`pg_restore`, проверка отсутствия секретов в логах), `bats` для preflight `deploy.sh`.
++- `.github/workflows/production-health.yml`: живая проверка опубликованного сайта, ловит `503 API_NOT_CONFIGURED`.
++- `apps/api/package-lock.json` синхронизирован с `package.json` — без этого падала сборка образа `backend`.
++- `docs/deployment/P0_fix.md` — ранбук владельца: VPS → `.env.production` → `deploy.sh` → `API_ORIGIN`; `docs/patches/` — mbox-патч и инструкция `git am`.
++
++## Проверки (локально, до последних коммитов с документацией; код с тех пор не менялся)
++
++- `npm run build` в `apps/api`, `apps/web`, `apps/landing` — зелёные.
++- API: 359 passed, 9 skipped; mobile: 20 passed; `npm run test:worker`: 7 passed.
++- `oxlint` — 0 errors, 116 warnings; `knip` — 0 неиспользуемых файлов, зависимостей, экспортов и типов.
++- Патч `docs/patches/0002-audit-fixes.patch` применяется к `main` через `git am` (exit 0), расхождение с веткой — только сам файл патча.
++- CI в этом PR запускается впервые: до появления PR check-runs нет, потому что workflow триггерится на `pull_request` и push в `main`.
++
++## Риски и как они сняты
++
++| Риск | Оценка | Что делать |
++| --- | --- | --- |
++| Миграция создаёт 79 индексов и меняет 13 FK на живой БД | Средний: на больших таблицах индексы строятся минутами и держат запись | Применить в окно обслуживания, до деплоя снять `pg_dump`, после — `REINDEX` не нужен; откат — `DROP INDEX` по именам из миграции |
++| Вложения без записи в `Attachment` теперь видит только админ | Средний: файлы, загруженные до миграции, у обычных пользователей откроются через 403 | Ожидаемо и задокументировано: постоянный доступ участникам чата/проверяющему — отдельная задача (гранты) |
++| Ссылки на файлы живут 15 минут вместо года | Низкий, но заметный: письма со старыми ссылками перестанут работать после деплоя | Ссылки в письмах генерируются в момент отправки; при жалобах — повторная отправка |
++| `Course.teacherId`, `Homework.teacherId`, `Invoice.studentId` остались `RESTRICT` | Низкий: жёсткое удаление таких пользователей по-прежнему невозможно | Удаление аккаунта идёт через обезличивание (`privacy.routes.ts`) — это же поведение, что и раньше |
++| 3 FK стали `CASCADE` (замены), 10 — `SET NULL` | Низкий: удаление пользователя больше не блокируется, часть полей станет `NULL` | В API и UI есть фолбэки; проверить список курсов/счетов после удаления тестового аккаунта |
++| `/docs` и `/metrics` отвечают `404` в production | Низкий для пользователей, но ломает внешний сбор метрик | Prometheus должен ходить на отдельный порт/loopback или получить отдельный маршрут — сейчас метрики только в dev |
++| `trust proxy = 2` (caddy → edge → backend) | Низкий: при другой топологии лимиты и IP будут неверными | Проверить `TRUST_PROXY_HOPS` в `.env.production` при смене прокси |
++| Ветка содержит не влитую `fix/hardening-2026-11-26` (фаза 1) | Низкий, но увеличивает диффы ревью | Ревьюить по коммитам: фаза 1 — `5164324`…`f3a74d5`, аудит — `289c1d1`…`7631be9` |
++| Продолжает отдавать 503 | Высокий для продукта, вне этого PR | Ранбук `docs/deployment/P0_fix.md`, шаги 1–6; мерж сам по себе сайт не поднимает |
++
++## Чек-лист после мержа
++
++1. `docker compose --env-file .env.production -f docker-compose.prod.yml run --rm migrate`
++   — миграции применились, `migrate status` без pending.
++2. `curl -fsS https://<PUBLIC_HOSTNAME>/healthz` → `{"status":"ok"}`.
++3. `curl -o /dev/null -w '%{http_code}' https://<PUBLIC_HOSTNAME>/docs` и `/metrics`
++   → `404`; в логах появился IP клиента (`:remote-addr`).
++4. Заявка с лендинга → `201`; повторная с тем же email в статусе `PENDING` → `409`.
++5. Вложение: загрузить, открыть владельцем (200), чужим аккаунтом (403), ссылкой `?t=` (200, через 16 минут — 401).
++6. Удалить тестового пользователя с заменой → `CASCADE`; с сертификатом → `issuedById = NULL`, запись на месте.
++7. `curl -s https://platform-it-adis-nmtovk.freebuff.site/api/healthz` → `200`;
++   `/healthz` сайта → JSON, а не `index.html`.
++8. Проверить workflow `production-health` (после задания `API_ORIGIN`).
++9. Индексы: `SELECT count(*) FROM pg_index i JOIN pg_attribute a ON a.attrelid=i.indrelid AND a.attnum=i.indkey[0] WHERE NOT i.indisprimary AND NOT EXISTS (...)` — ожидается 0 FK-колонок без ведущего индекса.
++10. Отозвать `GH_TOKEN` в GitHub, удалить секрет из Freebuff, удалить ветки `audit/full-analysis-2026-11-27` и `fix/hardening-2026-11-26`.
++
++## Что осталось вне этого PR
++
++- **P0-1** — развернуть backend и задать `API_ORIGIN` в панели сайта (владелец, `docs/deployment/P0_fix.md`).
++- Постоянный доступ к вложениям чата и решений для участников и проверяющего (гранты вместо 15-минутных ссылок).
++- Продуктовое решение по трём `RESTRICT`-FK: переназначение курсов/заданий и судьба счетов при удалении.
++- Проверка OAuth Google/Apple на тестовых аккаунтах и наблюдение за 5xx после деплоя (нужны доступы владельца).
++```
 diff --git a/docs/patches/0001-hardening-phase-1.patch b/docs/patches/0001-hardening-phase-1.patch
 index 15086a1..3e8fb61 100644
 --- a/docs/patches/0001-hardening-phase-1.patch
