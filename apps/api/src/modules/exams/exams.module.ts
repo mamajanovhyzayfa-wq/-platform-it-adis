@@ -8,7 +8,7 @@ import { ExamAssessmentController } from './exam-assessment.controller.js'
 import { ExamService } from './exam.service.js'
 import { GradingService } from './grading.service.js'
 
-export const examsOptions: ReadModelOptions = {
+const examsOptions: ReadModelOptions = {
   slug: 'exams',
   model: 'exam',
   entity: 'Экзамен',

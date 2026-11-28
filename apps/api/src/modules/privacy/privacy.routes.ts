@@ -39,7 +39,7 @@ interface ConsentDocument {
 }
 
 /** Версии документов. При изменении текста увеличьте версию и дату. */
-export const CONSENT_DOCUMENTS: ConsentDocument[] = [
+const CONSENT_DOCUMENTS: ConsentDocument[] = [
   {
     type: 'TERMS',
     title: 'Пользовательское соглашение',

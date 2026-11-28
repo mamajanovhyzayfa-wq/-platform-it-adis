@@ -103,7 +103,7 @@ export interface ScheduleDetail extends ScheduleCard {
   canManage: boolean
 }
 
-export interface Classroom {
+interface Classroom {
   id: string
   name: string
   capacity: number
@@ -131,7 +131,7 @@ export interface ScheduleTemplate {
   classroom: { id: string; name: string; capacity: number } | null
 }
 
-export interface CourseOption {
+interface CourseOption {
   id: string
   title: string
   teacherId: string
@@ -142,7 +142,7 @@ export interface CourseOption {
   endDate: string | null
 }
 
-export interface ScheduleChange {
+interface ScheduleChange {
   id: string
   type: 'RESCHEDULE' | 'CANCEL'
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
@@ -185,7 +185,7 @@ export interface CalendarEvent {
   cancelledBy?: { name: string } | null
 }
 
-export interface CalendarTask {
+interface CalendarTask {
   id: string
   title: string
   description: string | null
@@ -219,7 +219,7 @@ export interface Recording {
   schedule: { id: string; title: string; startsAt: string; course: { id: string; title: string } }
 }
 
-export interface VideoJoin {
+interface VideoJoin {
   provider: string
   roomName: string
   providerRoomId: string
@@ -232,14 +232,14 @@ export interface VideoJoin {
   course: { id: string; title: string }
 }
 
-export interface ScheduleChatMessage {
+interface ScheduleChatMessage {
   id: string
   body: string
   createdAt: string
   user: { id: string; name: string; role: string }
 }
 
-export interface ScheduleStats {
+interface ScheduleStats {
   period: { from: string; to: string }
   lessons: { total: number; conducted: number; cancelled: number; cancelRate: number; extra: number }
   attendance: { marked: number; present: number; absent: number; late: number; earlyLeave: number; totalHours: number }

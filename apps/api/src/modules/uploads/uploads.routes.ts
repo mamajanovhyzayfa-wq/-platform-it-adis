@@ -18,7 +18,7 @@ import { signFileToken } from '../../lib/security.js'
  * хранилище (S3/R2), интерфейс ответа при этом не меняется.
  */
 
-export const uploadsDir = resolve(process.env.UPLOADS_DIR ?? 'uploads')
+const uploadsDir = resolve(process.env.UPLOADS_DIR ?? 'uploads')
 if (!existsSync(uploadsDir)) mkdirSync(uploadsDir, { recursive: true })
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024

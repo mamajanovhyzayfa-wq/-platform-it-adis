@@ -2,7 +2,7 @@ import { http } from './client'
 
 export type Role = 'ADMIN' | 'MANAGER' | 'TEACHER' | 'STUDENT' | 'PARENT'
 
-export interface Dashboard {
+interface Dashboard {
   users: { students: number; teachers: number; admins: number; managers: number; parents: number; total: number }
   courses: { active: number; draft: number; completedEnrollments: number }
   upcomingLessons: number
@@ -25,14 +25,14 @@ export interface AdminUser {
   courses: number
 }
 
-export interface Paginated<T> {
+interface Paginated<T> {
   items: T[]
   total: number
   page: number
   limit: number
 }
 
-export interface AdminCourse {
+interface AdminCourse {
   id: string
   title: string
   description: string
@@ -45,7 +45,7 @@ export interface AdminCourse {
   modules: number
 }
 
-export interface AuditEntry {
+interface AuditEntry {
   id: string
   action: string
   entity: string
@@ -57,7 +57,7 @@ export interface AuditEntry {
   actorEmail: string | null
 }
 
-export interface AdminSubmission {
+interface AdminSubmission {
   id: string
   status: 'SUBMITTED' | 'REVIEWED' | 'RETURNED'
   attempt: number
@@ -71,7 +71,7 @@ export interface AdminSubmission {
   review: { score: number; comment: string | null; createdAt: string } | null
 }
 
-export interface AdminTestAttempt {
+interface AdminTestAttempt {
   id: string
   status: string
   score: number | null
@@ -82,7 +82,7 @@ export interface AdminTestAttempt {
   test: { id: string; title: string; passingScore: number; course: { id: string; title: string } }
 }
 
-export interface AdminCoinTransaction {
+interface AdminCoinTransaction {
   id: string
   amount: number
   reason: string
@@ -92,7 +92,7 @@ export interface AdminCoinTransaction {
   user: { id: string; firstName: string; lastName: string; email: string }
 }
 
-export interface AdminScheduleItem {
+interface AdminScheduleItem {
   id: string
   title: string
   startsAt: string
@@ -103,7 +103,7 @@ export interface AdminScheduleItem {
   teacher: string
 }
 
-export interface AdminShopOrder {
+interface AdminShopOrder {
   id: string
   status: 'NEW' | 'APPROVED' | 'ISSUED' | 'REJECTED'
   comment: string | null
@@ -112,7 +112,7 @@ export interface AdminShopOrder {
   user: { id: string; firstName: string; lastName: string; email: string }
 }
 
-export interface Analytics {
+interface Analytics {
   enrollments: Record<string, number>
   submissions: Record<string, number>
   testAttempts: { total: number; averageScore: number }

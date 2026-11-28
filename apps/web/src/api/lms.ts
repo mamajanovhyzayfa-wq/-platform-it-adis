@@ -31,7 +31,7 @@ export interface LmsBlock {
   allowDownload?: boolean
 }
 
-export interface LmsMaterial {
+interface LmsMaterial {
   id: string
   type: string
   title: string
@@ -41,7 +41,7 @@ export interface LmsMaterial {
   allowDownload: boolean
 }
 
-export interface LmsLesson {
+interface LmsLesson {
   id: string
   title: string
   description: string | null
@@ -55,7 +55,7 @@ export interface LmsLesson {
   studentsStarted: number
 }
 
-export interface LmsCoursePreview {
+interface LmsCoursePreview {
   id: string
   title: string
   description: string
@@ -81,7 +81,7 @@ export interface LmsCoursePreview {
   }>
 }
 
-export interface LmsCourseListItem {
+interface LmsCourseListItem {
   id: string
   title: string
   slug: string
@@ -99,7 +99,7 @@ export interface LmsCourseListItem {
   students: number
 }
 
-export interface LmsVersion {
+interface LmsVersion {
   id: string
   version: number
   note: string | null
@@ -107,7 +107,7 @@ export interface LmsVersion {
   createdById?: string
 }
 
-export interface LmsBuilderLesson {
+interface LmsBuilderLesson {
   id: string
   title: string
   description: string | null
@@ -122,7 +122,7 @@ export interface LmsBuilderLesson {
   homework: Array<{ id: string; title: string }>
 }
 
-export interface LearnCourse {
+interface LearnCourse {
   id: string
   title: string
   description: string
@@ -147,7 +147,7 @@ export interface LearnCourse {
   }>
 }
 
-export interface LearnLesson {
+interface LearnLesson {
   id: string
   title: string
   description: string | null
@@ -171,7 +171,7 @@ export interface LearnLesson {
   progress: { status: string; completedAt: string | null } | null
 }
 
-export interface LibraryData {
+interface LibraryData {
   saved: Array<{
     id: string
     title: string

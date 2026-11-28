@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { spacing, typography, useThemedStyles, type Palette } from '@/theme'
 import { Card } from './Card'
 
-export interface EmptyStateProps {
+interface EmptyStateProps {
   title: string
   hint?: string
   /** Эмодзи или иконка. */

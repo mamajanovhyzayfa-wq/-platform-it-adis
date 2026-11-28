@@ -73,12 +73,6 @@
   line-height: 1.5;
 }
 
-.form-note-icon {
-  width: 16px;
-  height: 16px;
-  flex: none;
-}
-
 .form-note a {
   color: var(--brand);
   font-weight: 600;
@@ -134,4 +128,3 @@
   font-size: 13.5px;
   line-height: 1.5;
 }
-

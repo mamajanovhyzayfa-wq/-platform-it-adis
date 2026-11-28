@@ -47,7 +47,7 @@ function paymentAdapter(input: PaymentAdapterInput): IntegrationAdapter {
 }
 
 /** FreedomPay Кыргызстан — Merchant API, оплата картой и Элсом. */
-export const freedomPayAdapter: IntegrationAdapter = paymentAdapter({
+const freedomPayAdapter: IntegrationAdapter = paymentAdapter({
   id: 'freedompay',
   name: 'FreedomPay Кыргызстан',
   description: 'Онлайн-оплата счетов картой через FreedomPay Merchant API.',
@@ -61,7 +61,7 @@ export const freedomPayAdapter: IntegrationAdapter = paymentAdapter({
 })
 
 /** Elsom (КИКБ) — интернет-эквайринг, партнёрский API. */
-export const elsomAdapter: IntegrationAdapter = paymentAdapter({
+const elsomAdapter: IntegrationAdapter = paymentAdapter({
   id: 'elsom',
   name: 'Elsom / КИКБ',
   description: 'Интернет-эквайринг Elsom: оплата счетов и возвраты.',

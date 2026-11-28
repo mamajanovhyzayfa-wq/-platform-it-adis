@@ -6,7 +6,7 @@ export interface Attachment {
   mimeType?: string
 }
 
-export interface ConversationItem {
+interface ConversationItem {
   id: string
   type: 'DIRECT' | 'COURSE' | 'GROUP' | 'TOPIC' | 'PARENT_TEACHER'
   title: string
@@ -31,7 +31,7 @@ export interface ChatMessage {
   status: 'SENT' | 'DELIVERED' | 'READ'
 }
 
-export interface MeetingRequest {
+interface MeetingRequest {
   id: string
   subject: string
   message: string | null
@@ -45,7 +45,7 @@ export interface MeetingRequest {
   course: { id: string; title: string } | null
 }
 
-export interface Announcement {
+interface Announcement {
   id: string
   title: string
   body: string
@@ -92,7 +92,7 @@ export interface CommunityEvent {
   }>
 }
 
-export interface Directory {
+interface Directory {
   courses: Array<{ id: string; title: string }>
   teachers: Array<{ id: string; firstName: string; lastName: string; email: string }>
   students: Array<{ id: string; firstName: string; lastName: string; email: string }>

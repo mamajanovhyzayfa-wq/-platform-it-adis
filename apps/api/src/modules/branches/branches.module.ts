@@ -4,7 +4,7 @@ import { createReadService } from '../read-model/read-model.service.js'
 import type { ReadModelOptions } from '../read-model/read-model.types.js'
 
 /** Реестр филиалов живёт в управляющей БД (control plane), не в БД филиала. */
-export const branchesOptions: ReadModelOptions = {
+const branchesOptions: ReadModelOptions = {
   slug: 'branches',
   model: 'branch',
   entity: 'Филиал',

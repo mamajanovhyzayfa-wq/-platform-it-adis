@@ -7,7 +7,7 @@ export interface TabItem<T extends string> {
   badge?: number
 }
 
-export interface TabsProps<T extends string> {
+interface TabsProps<T extends string> {
   items: TabItem<T>[]
   value: T
   onChange: (key: T) => void

@@ -1,5 +1,1 @@
 export { CommunityPage } from './CommunityPage'
-export { AnnouncementsPanel } from './AnnouncementsPanel'
-export { ChatsPanel } from './ChatsPanel'
-export { EventsPanel } from './EventsPanel'
-export { MeetingsPanel } from './MeetingsPanel'

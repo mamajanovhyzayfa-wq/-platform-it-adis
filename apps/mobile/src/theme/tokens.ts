@@ -43,22 +43,10 @@ export const fontWeight = {
   heavy: '800',
 } as const
 
-export const lineHeight = {
-  tight: 1.2,
-  normal: 1.45,
-  relaxed: 1.6,
-} as const
-
 /** Высота интерактивных элементов: минимум 44 pt по требованиям доступности. */
 export const control = {
   sm: 40,
   md: 50,
   lg: 56,
   touch: 44,
-} as const
-
-export const duration = {
-  fast: 140,
-  normal: 220,
-  slow: 320,
 } as const

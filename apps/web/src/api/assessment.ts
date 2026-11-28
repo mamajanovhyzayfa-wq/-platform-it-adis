@@ -7,7 +7,7 @@ export interface Attachment {
   size?: number
 }
 
-export interface HomeworkListItem {
+interface HomeworkListItem {
   id: string
   title: string
   description: string
@@ -129,7 +129,7 @@ export interface TestQuestion extends QuestionInput {
   options?: Array<{ id: string; text: string; isCorrect: boolean }>
 }
 
-export interface AttemptHistoryItem {
+interface AttemptHistoryItem {
   id: string
   status: string
   score: number | null
@@ -140,7 +140,7 @@ export interface AttemptHistoryItem {
   submittedAt: string | null
 }
 
-export interface TestListItem {
+interface TestListItem {
   id: string
   title: string
   description: string | null

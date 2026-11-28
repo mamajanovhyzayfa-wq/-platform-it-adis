@@ -13,7 +13,7 @@ import { aiRouter } from './modules/ai/ai.routes.js'
 import { privacyRouter } from './modules/privacy/privacy.routes.js'
 import { filesRouter } from './modules/files/files.routes.js'
 
-export interface LegacyMount {
+interface LegacyMount {
   prefix: string
   router: Router
 }

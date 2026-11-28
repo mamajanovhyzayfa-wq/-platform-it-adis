@@ -42,10 +42,6 @@ export function sendJsonParseError(res: Response) {
   })
 }
 
-export function notFoundHandler(_req: Request, res: Response) {
-  res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Маршрут не найден' } })
-}
-
 export function errorHandler(error: unknown, _req: Request, res: Response, _next: NextFunction) {
   if (isJsonSyntaxError(error)) {
     sendJsonParseError(res)

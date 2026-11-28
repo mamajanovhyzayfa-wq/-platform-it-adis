@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Animated, Easing, StyleSheet, View, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native'
 import { radius, spacing, useTheme, useThemedStyles, type Palette } from '@/theme'
 
-export interface SkeletonProps {
+interface SkeletonProps {
   width?: DimensionValue
   height?: number
   /** Радиус скругления; для круга передайте circle. */

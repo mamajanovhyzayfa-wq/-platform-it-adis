@@ -94,7 +94,7 @@ export async function clearQueue() {
   await writeQueue([])
 }
 
-export async function removeQueueItem(id: string) {
+async function removeQueueItem(id: string) {
   await writeQueue((await readQueue()).filter((item) => item.id !== id))
 }
 
@@ -117,7 +117,7 @@ function isNetworkError(error: unknown): boolean {
   return axios.isAxiosError(error) && !error.response
 }
 
-export interface FlushResult {
+interface FlushResult {
   sent: number
   conflicts: number
   remaining: number

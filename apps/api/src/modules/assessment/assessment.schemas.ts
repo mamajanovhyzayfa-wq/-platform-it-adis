@@ -109,7 +109,7 @@ export const testCreateSchema = z.object({
 
 export const testUpdateSchema = testCreateSchema.omit({ courseId: true }).partial()
 
-export const attemptAnswerSchema = z.object({
+const attemptAnswerSchema = z.object({
   questionId: z.string().uuid(),
   value: z.unknown(),
 })
@@ -197,8 +197,3 @@ export const gradingScaleSchema = z.object({
     .min(1, 'Добавьте хотя бы один диапазон')
     .max(20),
 })
-
-export type HomeworkCreateInput = z.infer<typeof homeworkCreateSchema>
-export type QuestionInput = z.infer<typeof questionSchema>
-export type TestCreateInput = z.infer<typeof testCreateSchema>
-export type ExamCreateInput = z.infer<typeof examCreateSchema>

@@ -18,7 +18,7 @@ export interface AdminSession {
   locale?: string
 }
 
-export const STANDARD_ROLES: SessionRole[] = ['STUDENT', 'TEACHER', 'MANAGER', 'ADMIN', 'PARENT']
+const STANDARD_ROLES: SessionRole[] = ['STUDENT', 'TEACHER', 'MANAGER', 'ADMIN', 'PARENT']
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
@@ -75,16 +75,12 @@ export function setStepUpToken(token: string) {
   sessionStorage.setItem(STEP_UP_KEY, token)
 }
 
-export function getStepUpToken(): string | null {
+function getStepUpToken(): string | null {
   return sessionStorage.getItem(STEP_UP_KEY)
 }
 
-export function clearStepUpToken() {
-  sessionStorage.removeItem(STEP_UP_KEY)
-}
-
 /** Базовый путь приложения: пустой для корня или /app для совместного деплоя. */
-export const appBasePath = import.meta.env.BASE_URL.replace(/\/$/, '')
+const appBasePath = import.meta.env.BASE_URL.replace(/\/$/, '')
 
 export function appUrl(path: string): string {
   const suffix = path.startsWith('/') ? path : `/${path}`

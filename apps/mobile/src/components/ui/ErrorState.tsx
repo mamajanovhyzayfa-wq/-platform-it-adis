@@ -1,9 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text } from 'react-native'
 import { spacing, typography, useThemedStyles, type Palette } from '@/theme'
 import { Button } from './Button'
 import { Card } from './Card'
 
-export interface ErrorStateProps {
+interface ErrorStateProps {
   message?: string
   title?: string
   onRetry?: () => void

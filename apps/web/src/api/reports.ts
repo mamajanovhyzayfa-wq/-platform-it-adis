@@ -1,11 +1,11 @@
 import { http } from './client'
 
-export interface ReportPeriod {
+interface ReportPeriod {
   from: string
   to: string
 }
 
-export interface OverviewReport {
+interface OverviewReport {
   period: ReportPeriod
   users: Record<string, number>
   courses: Record<string, number>
@@ -17,7 +17,7 @@ export interface OverviewReport {
   attendance: Record<string, number>
 }
 
-export interface FinanceReport {
+interface FinanceReport {
   period: ReportPeriod
   payments: Array<{ method: string; amount: number; count: number }>
   expenses: Array<{ category: string; amount: number; count: number }>
@@ -25,7 +25,7 @@ export interface FinanceReport {
   outstandingInvoices: { amount: number; count: number }
 }
 
-export interface AcademicReport {
+interface AcademicReport {
   period: ReportPeriod
   attendance: Record<string, number>
   submissions: Record<string, number>

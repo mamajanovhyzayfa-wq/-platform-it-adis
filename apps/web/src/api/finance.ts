@@ -21,7 +21,7 @@ export interface InvoiceTotals {
   overpaid: number
 }
 
-export interface InvoiceRefund {
+interface InvoiceRefund {
   id: string
   amount: number
   status: 'REQUESTED' | 'APPROVED' | 'REJECTED'
@@ -73,7 +73,7 @@ export interface FinanceInvoice {
   payments: InvoicePayment[]
 }
 
-export interface StudentOption {
+interface StudentOption {
   id: string
   name: string
   email: string
@@ -94,7 +94,7 @@ export interface FinancePaymentRow extends InvoicePayment {
   pendingRefund: number
 }
 
-export interface FinanceRefundRow {
+interface FinanceRefundRow {
   id: string
   amount: number
   reason: string
@@ -115,7 +115,7 @@ export interface FinanceRefundRow {
   reviewedBy: string | null
 }
 
-export interface FinanceExpense {
+interface FinanceExpense {
   id: string
   category: FinanceExpenseCategory
   categoryLabel: string
@@ -139,7 +139,7 @@ export interface FinancePricingCourse {
   studentsCount: number
 }
 
-export interface FinancePriceHistory {
+interface FinancePriceHistory {
   id: string
   course: { id: string; title: string } | null
   previousPrice: number
@@ -166,7 +166,7 @@ export interface ProviderAccount {
   docsUrl: string | null
 }
 
-export interface ProviderAccountsResponse {
+interface ProviderAccountsResponse {
   items: ProviderAccount[]
   providers: Array<{ value: 'freedompay' | 'elsom'; label: string; docsUrl: string; webhookPath: string }>
   note: string
@@ -183,7 +183,7 @@ export interface TeacherEarning {
   earnedKgs: number
 }
 
-export interface CheckoutResult {
+interface CheckoutResult {
   paymentId: string
   invoiceId: string
   provider: string
@@ -223,7 +223,7 @@ export interface FinanceOverview {
   provider: FinanceProviderStatus
 }
 
-export interface Paginated<T> {
+interface Paginated<T> {
   items: T[]
   total: number
   page: number
@@ -232,7 +232,7 @@ export interface Paginated<T> {
   currency: string
 }
 
-export interface MeFinance {
+interface MeFinance {
   currency: string
   invoices: FinanceInvoice[]
   summary: { outstanding: number; paid: number; refunded: number }

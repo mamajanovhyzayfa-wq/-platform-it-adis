@@ -95,7 +95,7 @@ export interface BranchBackupSettings {
   recentRestores: RestoreRequest[]
 }
 
-export interface BackupsOverview {
+interface BackupsOverview {
   storageDriver: string
   backup: { directory: string; driver: string; command: string }
   branches: BranchBackupSettings[]

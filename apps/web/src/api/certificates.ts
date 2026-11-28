@@ -1,7 +1,7 @@
 import { http } from './client'
 
 export type CertificateStatus = 'ISSUED' | 'REVOKED'
-export type CertificateMimeType = 'application/pdf' | 'image/jpeg' | 'image/png' | 'image/webp'
+type CertificateMimeType = 'application/pdf' | 'image/jpeg' | 'image/png' | 'image/webp'
 
 export interface Certificate {
   id: string
@@ -23,7 +23,7 @@ export interface Certificate {
   fileSize: number | null
 }
 
-export interface CertificateList {
+interface CertificateList {
   items: Certificate[]
   total: number
   page: number
@@ -31,21 +31,21 @@ export interface CertificateList {
   pages: number
 }
 
-export interface CertificateCandidate {
+interface CertificateCandidate {
   id: string
   name: string
   email: string
   courses: Array<{ id: string; title: string }>
 }
 
-export interface CertificateUpload {
+interface CertificateUpload {
   url: string
   name: string
   mimeType: CertificateMimeType
   size: number
 }
 
-export interface CertificateVerification {
+interface CertificateVerification {
   valid: boolean
   expired: boolean
   status: CertificateStatus

@@ -1,7 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import type { Request } from 'express'
-import type { z } from 'zod'
 import { Public, CurrentUser } from '../../nest/common/decorators.js'
 import { zodBody } from '../../nest/common/zod.pipe.js'
 import {

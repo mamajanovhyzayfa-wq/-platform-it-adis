@@ -9,7 +9,7 @@ import { signTwoFactorChallenge } from '../../lib/security.js'
 import { PrismaService } from '../../nest/prisma/prisma.service.js'
 import { AuthService, type RequestMeta } from '../auth/auth.service.js'
 
-export type OAuthProvider = 'google' | 'apple'
+type OAuthProvider = 'google' | 'apple'
 
 interface ProviderProfile {
   email: string

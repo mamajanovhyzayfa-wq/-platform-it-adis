@@ -25,9 +25,3 @@ export function connectSocket(): Socket | null {
   currentToken = token
   return socket
 }
-
-export function disconnectSocket(): void {
-  socket?.disconnect()
-  socket = null
-  currentToken = null
-}

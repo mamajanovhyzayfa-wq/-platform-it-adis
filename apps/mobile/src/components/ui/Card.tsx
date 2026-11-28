@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
 import { radius, spacing, useTheme, useThemedStyles, type Palette } from '@/theme'
 
-export interface CardProps {
+interface CardProps {
   children: ReactNode
   style?: StyleProp<ViewStyle>
   /** Карточка-кнопка: реагирует на нажатие и доступна скринридеру. */

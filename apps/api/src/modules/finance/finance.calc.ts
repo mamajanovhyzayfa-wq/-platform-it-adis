@@ -15,13 +15,13 @@ export const MAX_INVOICE_AMOUNT = 100_000_000
 /** Деньги считаются полученными, если платёж подтверждён (в том числе возвращённый позже). */
 const RECEIVED_STATUSES: readonly PaymentStatus[] = ['CONFIRMED', 'REFUNDED']
 
-export interface PaymentLike {
+interface PaymentLike {
   amount: number
   status: PaymentStatus | string
   refunds?: RefundLike[]
 }
 
-export interface RefundLike {
+interface RefundLike {
   amount: number
   status: RefundStatus | string
 }
@@ -37,7 +37,7 @@ export interface InvoiceTotals {
   overpaid: number
 }
 
-export function sumReceived(payments: PaymentLike[]): number {
+function sumReceived(payments: PaymentLike[]): number {
   return payments
     .filter((payment) => RECEIVED_STATUSES.includes(payment.status as PaymentStatus))
     .reduce((total, payment) => total + payment.amount, 0)
@@ -66,7 +66,7 @@ export function invoiceTotals(amount: number, payments: PaymentLike[]): InvoiceT
   }
 }
 
-export interface InvoiceStatusInput {
+interface InvoiceStatusInput {
   stored: InvoiceStatus | string
   amount: number
   received: number

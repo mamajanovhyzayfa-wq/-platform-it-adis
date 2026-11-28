@@ -12,11 +12,8 @@ const pageSchema = z.object({
   search: z.string().trim().max(120).optional(),
 })
 
-export const pageQuerySchema = pageSchema
-export type PageQuery = z.infer<typeof pageSchema>
-
 /** Парсит query-строку и отдаёт 422 в общем формате API. */
-export function parseQuery(options: ReadModelOptions, raw: Record<string, unknown>): Record<string, unknown> {
+function parseQuery(options: ReadModelOptions, raw: Record<string, unknown>): Record<string, unknown> {
   try {
     return pageSchema.extend(options.querySchema?.shape ?? {}).parse(raw)
   } catch (error) {
@@ -54,7 +51,7 @@ function projection(options: ReadModelOptions): Record<string, unknown> {
 }
 
 @Injectable()
-export class ReadModelService {
+class ReadModelService {
   constructor(protected readonly prisma: PrismaService) {}
 
   async list(options: ReadModelOptions, raw: Record<string, unknown>, user: AuthUser) {

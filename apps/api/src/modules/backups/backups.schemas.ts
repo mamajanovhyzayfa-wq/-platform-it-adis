@@ -37,6 +37,4 @@ export const backupApprovalSchema = z.object({
   phrase: z.string().trim().min(1).max(200),
 })
 
-export const backupExecuteSchema = z.object({ confirm: z.literal(true) })
-
 export type BackupSettingsInput = z.infer<typeof backupSettingsSchema>

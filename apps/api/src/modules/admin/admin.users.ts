@@ -1,6 +1,6 @@
 import type { Prisma, RoleName } from '@prisma/client'
 
-export interface UserRoleCounts {
+interface UserRoleCounts {
   students: number
   teachers: number
   admins: number
@@ -8,7 +8,7 @@ export interface UserRoleCounts {
   parents: number
 }
 
-export interface UserRoleSummary extends UserRoleCounts {
+interface UserRoleSummary extends UserRoleCounts {
   total: number
 }
 
@@ -25,7 +25,7 @@ export function summarizeUserRoles(counts: UserRoleCounts): UserRoleSummary {
   }
 }
 
-export interface UpdateUserInput {
+interface UpdateUserInput {
   firstName?: string
   lastName?: string
   role?: RoleName

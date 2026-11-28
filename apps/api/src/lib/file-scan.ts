@@ -5,7 +5,7 @@ import { basename } from 'node:path'
 import { Readable } from 'node:stream'
 import { env } from '../config/env.js'
 
-export interface ScanResult {
+interface ScanResult {
   clean: boolean
   status: 'CLEAN' | 'INFECTED' | 'SIGNATURE' | 'TYPE_MISMATCH' | 'EXTERNAL' | 'ERROR'
   sha256: string

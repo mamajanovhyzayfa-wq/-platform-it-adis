@@ -27,7 +27,7 @@ const MONTHS = [
 ]
 
 /** Локальная полночь — сравнения дней делаются по календарю пользователя. */
-export function startOfDay(date: Date): Date {
+function startOfDay(date: Date): Date {
   const next = new Date(date)
   next.setHours(0, 0, 0, 0)
   return next
@@ -47,14 +47,14 @@ export function addMonths(date: Date, months: number): Date {
 }
 
 /** Неделя начинается с понедельника. */
-export function startOfWeek(date: Date): Date {
+function startOfWeek(date: Date): Date {
   const base = startOfDay(date)
   const weekday = (base.getDay() + 6) % 7
   return addDays(base, -weekday)
 }
 
 /** 42 ячейки сетки месяца: всегда шесть строк, без «прыжков» высоты. */
-export function monthGrid(anchor: Date): Date[] {
+function monthGrid(anchor: Date): Date[] {
   const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
   const start = startOfWeek(first)
   return Array.from({ length: 42 }, (_, index) => addDays(start, index))
@@ -74,7 +74,7 @@ export function calendarRange(mode: CalendarMode, anchor: Date): { from: Date; t
   return { from: grid[0] as Date, to: addDays(grid[grid.length - 1] as Date, 1) }
 }
 
-export function sameDay(left: Date | string, right: Date | string): boolean {
+function sameDay(left: Date | string, right: Date | string): boolean {
   const a = new Date(left)
   const b = new Date(right)
   return (
@@ -102,7 +102,7 @@ const statusLabel: Record<ScheduleItem['status'], string> = {
   RESCHEDULED: 'Перенесено',
 }
 
-export interface ScheduleCalendarProps {
+interface ScheduleCalendarProps {
   items: ScheduleItem[]
   mode: CalendarMode
   anchor: Date
@@ -319,7 +319,7 @@ function MonthGrid({
 }
 
 /** Карточка занятия: время, курс, статус и подключение в окне занятия. */
-export function LessonCard({ item }: { item: ScheduleItem }) {
+function LessonCard({ item }: { item: ScheduleItem }) {
   const styles = useThemedStyles(makeStyles)
   const joinable = item.status !== 'CANCELLED' && canJoin(item.startsAt, item.endsAt)
 

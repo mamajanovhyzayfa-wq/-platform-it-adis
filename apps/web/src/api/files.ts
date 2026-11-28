@@ -20,7 +20,7 @@ export interface StorageFileItem {
   owner: { id: string; name: string } | null
 }
 
-export interface FileHistoryItem {
+interface FileHistoryItem {
   id: string
   action: 'UPLOAD' | 'DOWNLOAD' | 'UPDATE' | 'DELETE'
   fileName: string
@@ -31,7 +31,7 @@ export interface FileHistoryItem {
   user: { id: string; firstName: string; lastName: string } | null
 }
 
-export interface StorageInfo {
+interface StorageInfo {
   driver: 'local' | 's3'
   prefix: string
   maxFileSizeMb: number
@@ -40,7 +40,7 @@ export interface StorageInfo {
   files: number
 }
 
-export interface FileListResponse {
+interface FileListResponse {
   items: StorageFileItem[]
   page: number
   limit: number
@@ -89,7 +89,7 @@ export interface RestoreRequest {
   branch?: { name: string; slug: string }
 }
 
-export interface BranchStorageSettings {
+interface BranchStorageSettings {
   id: string
   name: string
   slug: string
@@ -107,7 +107,7 @@ export interface BranchStorageSettings {
   recentRestores: RestoreRequest[]
 }
 
-export interface BackupOverview {
+interface BackupOverview {
   storageDriver: 'local' | 's3'
   backup: { directory: string; driver: string; command: string }
   branches: BranchStorageSettings[]

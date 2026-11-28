@@ -48,7 +48,7 @@ export function configureNotificationHandler(): void {
 }
 
 /** Стабильный идентификатор установки: привязывает токен к устройству. */
-export async function getDeviceId(): Promise<string> {
+async function getDeviceId(): Promise<string> {
   if (Platform.OS === 'web') return 'web'
   const saved = await SecureStore.getItemAsync(DEVICE_KEY)
   if (saved) return saved
@@ -110,7 +110,7 @@ export async function unregisterPush(): Promise<void> {
 }
 
 /** Переход по нажатию на уведомление. */
-export function openFromNotification(data: Record<string, unknown> | undefined): void {
+function openFromNotification(data: Record<string, unknown> | undefined): void {
   if (!data) return
   const type = typeof data.type === 'string' ? data.type : ''
 

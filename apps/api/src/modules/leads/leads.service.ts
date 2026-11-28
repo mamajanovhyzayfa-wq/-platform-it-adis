@@ -64,7 +64,7 @@ export type LeadCreateInput = z.infer<typeof leadCreateSchema>
 export type LeadsQuery = z.infer<typeof leadsQuerySchema>
 export type LeadUpdateInput = z.infer<typeof leadUpdateSchema>
 
-export interface LeadCard {
+interface LeadCard {
   id: string
   name: string
   phone: string

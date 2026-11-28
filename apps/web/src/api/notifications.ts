@@ -1,6 +1,6 @@
 import { http } from './client'
 
-export type NotificationChannelKey = 'inApp' | 'push' | 'email' | 'sms'
+type NotificationChannelKey = 'inApp' | 'push' | 'email' | 'sms'
 
 export interface NotificationChannels {
   inApp: boolean
@@ -9,7 +9,7 @@ export interface NotificationChannels {
   sms: boolean
 }
 
-export interface NotificationPreferences {
+interface NotificationPreferences {
   settings: Record<string, NotificationChannels>
   digest: 'NONE' | 'DAILY' | 'WEEKLY'
   digestHour: number
@@ -17,7 +17,7 @@ export interface NotificationPreferences {
   defaults?: Record<string, NotificationChannels>
 }
 
-export interface NotificationItem {
+interface NotificationItem {
   id: string
   type: string
   title: string
@@ -26,7 +26,7 @@ export interface NotificationItem {
   createdAt: string
 }
 
-export interface NotificationList {
+interface NotificationList {
   items: NotificationItem[]
   total: number
   unread: number

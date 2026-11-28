@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated'
 import { radius, spacing, typography, useTheme, useThemedStyles, type Palette } from '@/theme'
 
-export interface BottomSheetProps {
+interface BottomSheetProps {
   visible: boolean
   onClose: () => void
   title?: string

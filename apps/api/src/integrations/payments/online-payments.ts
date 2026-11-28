@@ -1,5 +1,4 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import { ServiceUnavailableException } from '@nestjs/common'
 import { z } from 'zod'
 import { env } from '../../config/env.js'
 
@@ -25,7 +24,7 @@ export const ONLINE_PROVIDER_ENV_VARS = [
   'ONLINE_PAYMENTS_WEBHOOK_SECRET',
 ] as const
 
-export interface OnlineProviderStatus {
+interface OnlineProviderStatus {
   configured: boolean
   provider: string | null
   missingEnv: string[]
@@ -85,17 +84,3 @@ export const canonicalWebhookSchema = z
     occurredAt: z.string().datetime().optional(),
   })
   .strict()
-
-export type CanonicalWebhook = z.infer<typeof canonicalWebhookSchema>
-
-/** Единая ошибка «онлайн-оплата не подключена» с перечнем недостающих настроек. */
-export function onlinePaymentsUnavailable(): ServiceUnavailableException {
-  const status = onlineProviderStatus()
-  return new ServiceUnavailableException({
-    code: 'ONLINE_PAYMENTS_NOT_CONFIGURED',
-    message:
-      'Онлайн-оплата не подключена. Настройте платёжного провайдера и его адаптер на сервере; ' +
-      'наличные платежи и банковский перевод доступны.',
-    details: status,
-  })
-}

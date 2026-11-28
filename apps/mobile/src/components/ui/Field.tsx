@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text } from 'react-native'
 import { spacing, typography, useThemedStyles, type Palette } from '@/theme'
 
 /** Подпись поля формы. */

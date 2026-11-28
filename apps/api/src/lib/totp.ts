@@ -6,7 +6,7 @@ import { createHmac, randomBytes } from 'node:crypto'
  */
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 
-export function base32Encode(buffer: Buffer): string {
+function base32Encode(buffer: Buffer): string {
   let bits = 0
   let value = 0
   let output = ''
@@ -22,7 +22,7 @@ export function base32Encode(buffer: Buffer): string {
   return output
 }
 
-export function base32Decode(input: string): Buffer {
+function base32Decode(input: string): Buffer {
   const clean = input.toUpperCase().replace(/=+$/g, '').replace(/\s/g, '')
   let bits = 0
   let value = 0
@@ -44,7 +44,7 @@ export function generateTotpSecret(bytes = 20): string {
   return base32Encode(randomBytes(bytes))
 }
 
-export function generateTotpCode(secret: string, timestamp = Date.now(), stepSeconds = 30, digits = 6): string {
+function generateTotpCode(secret: string, timestamp = Date.now(), stepSeconds = 30, digits = 6): string {
   const counter = Math.floor(timestamp / 1000 / stepSeconds)
   const buffer = Buffer.alloc(8)
   buffer.writeUInt32BE(Math.floor(counter / 2 ** 32), 0)

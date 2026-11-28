@@ -1,12 +1,12 @@
 import { http } from './client'
 
-export type CoinSource =
+type CoinSource =
   | 'HOMEWORK' | 'TEST' | 'ATTENDANCE' | 'ACHIEVEMENT' | 'COURSE' | 'SHOP' | 'MANUAL'
   | 'QUEST' | 'STREAK' | 'SEASON' | 'EVENT' | 'PENALTY' | 'REFUND' | 'REVERSAL' | 'LEVEL' | 'ADJUSTMENT'
 
-export type CoinStatus = 'POSTED' | 'PENDING' | 'REJECTED' | 'REVERSED' | 'APPEALED'
+type CoinStatus = 'POSTED' | 'PENDING' | 'REJECTED' | 'REVERSED' | 'APPEALED'
 
-export interface CoinTransaction {
+interface CoinTransaction {
   id: string
   userId: string
   amount: number
@@ -22,7 +22,7 @@ export interface CoinTransaction {
   appeal?: { id: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; reason: string } | null
 }
 
-export interface EconomyOverview {
+interface EconomyOverview {
   balance: number
   xp: number
   level: number
@@ -53,7 +53,7 @@ export interface QuestItem {
   periodKey: string
 }
 
-export interface Season {
+interface Season {
   id: string
   title: string
   description: string
@@ -65,7 +65,7 @@ export interface Season {
   quests: QuestItem[]
 }
 
-export interface Achievement {
+interface Achievement {
   id: string
   code: string
   title: string
@@ -82,7 +82,7 @@ export interface Achievement {
   level: string
 }
 
-export interface LeaderboardGroup {
+interface LeaderboardGroup {
   courseId: string
   title: string
   members: Array<{ userId: string; name: string; earned: number; balance: number; level: number; rank: number }>
@@ -132,7 +132,7 @@ export interface CoinRules {
   streakBonusCoins: number
 }
 
-export interface ParentEconomy {
+interface ParentEconomy {
   student: { id: string; name: string }
   balance: number
   level: number

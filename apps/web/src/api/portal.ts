@@ -1,6 +1,6 @@
 import { http } from './client'
 
-export interface NotificationItem {
+interface NotificationItem {
   id: string
   type: string
   title: string
@@ -9,7 +9,7 @@ export interface NotificationItem {
   createdAt: string
 }
 
-export interface SearchResult {
+interface SearchResult {
   type: string
   id: string
   title: string
@@ -17,7 +17,7 @@ export interface SearchResult {
   href: string
 }
 
-export interface StudentDashboard {
+interface StudentDashboard {
   courses: Array<{ id: string; title: string; coverUrl: string | null; level: string; progress: number; status: string }>
   upcoming: Array<{ id: string; title: string; course: string; startsAt: string; endsAt: string }>
   homework: Array<{ id: string; title: string; course: string; dueAt: string }>
@@ -29,7 +29,7 @@ export interface StudentDashboard {
   notifications: { unread: number; items: NotificationItem[] }
 }
 
-export interface MentorDashboard {
+interface MentorDashboard {
   groups: Array<{ id: string; title: string; status: string; students: number }>
   students: { total: number; items: Array<{ id: string; name: string }> }
   upcoming: Array<{ id: string; title: string; course: string; startsAt: string }>
@@ -39,7 +39,7 @@ export interface MentorDashboard {
   notifications: { unread: number; items: NotificationItem[] }
 }
 
-export interface ManagerDashboard {
+interface ManagerDashboard {
   metrics: { students: number; teachers: number; activeGroups: number; newLeads: number; attendanceWeek: number }
   studentsList: Array<{ id: string; name: string; email: string }>
   groups: Array<{ id: string; title: string; teacher: string; students: number }>
@@ -49,7 +49,7 @@ export interface ManagerDashboard {
   notifications: { unread: number; items: NotificationItem[] }
 }
 
-export interface ParentDashboard {
+interface ParentDashboard {
   children: Array<{
     id: string
     name: string

@@ -1,13 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { createReadStream, createWriteStream } from 'node:fs'
-import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, rm, stat } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import {
   DeleteObjectCommand,
   GetObjectCommand,
-  HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
@@ -23,7 +22,7 @@ import { env } from '../config/env.js'
  * локальной разработки и одного сервера. Ключи всегда строятся на сервере:
  * клиент не может выбрать путь или выйти за пределы своего филиала.
  */
-export type StorageDriver = 'local' | 's3'
+type StorageDriver = 'local' | 's3'
 
 let s3: S3Client | null = null
 
@@ -103,7 +102,7 @@ export async function saveObject(key: string, sourcePath: string, contentType: s
   await pipeline(createReadStream(sourcePath), createWriteStream(target))
 }
 
-export interface StoredObject {
+interface StoredObject {
   stream: Readable
   size?: number
   contentType?: string
@@ -127,24 +126,6 @@ export async function openObject(key: string): Promise<StoredObject> {
   return { stream: createReadStream(path), size: info.size }
 }
 
-export async function objectExists(key: string): Promise<boolean> {
-  assertSafeKey(key)
-  if (isS3Configured()) {
-    try {
-      await getS3Client().send(new HeadObjectCommand({ Bucket: env.S3_BUCKET!, Key: key }))
-      return true
-    } catch {
-      return false
-    }
-  }
-  try {
-    await stat(localPath(key))
-    return true
-  } catch {
-    return false
-  }
-}
-
 export async function deleteObject(key: string): Promise<void> {
   assertSafeKey(key)
   if (isS3Configured()) {
@@ -154,7 +135,7 @@ export async function deleteObject(key: string): Promise<void> {
   await rm(localPath(key), { force: true })
 }
 
-export interface ObjectInfo {
+interface ObjectInfo {
   key: string
   size: number
 }
@@ -262,10 +243,4 @@ export async function downloadBackupObject(key: string, destination: string): Pr
   if (!result.Body) throw new Error('Резервная копия не найдена в S3')
   await mkdir(dirname(destination), { recursive: true })
   await pipeline(result.Body as Readable, createWriteStream(destination))
-}
-
-/** Записывает строку в локальный файл (используется для .sha256). */
-export async function writeLocalFile(path: string, content: string): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, content, 'utf8')
 }

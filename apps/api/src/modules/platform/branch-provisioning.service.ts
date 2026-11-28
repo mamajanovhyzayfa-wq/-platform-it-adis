@@ -23,7 +23,7 @@ import {
   splitSqlStatements,
 } from '../../lib/branches.util.js'
 
-export interface ProvisionInput {
+interface ProvisionInput {
   name: string
   domain: string
   slug?: string
@@ -47,7 +47,7 @@ interface ProvisionStep {
   detail: string
 }
 
-export interface ProvisionResult {
+interface ProvisionResult {
   branch: ReturnType<typeof toPublicBranch>
   credentials: { email: string; temporaryPassword: string }
   steps: ProvisionStep[]
@@ -373,7 +373,7 @@ export class BranchProvisioningService {
   }
 }
 
-export function toPublicBranch(branch: Branch) {
+function toPublicBranch(branch: Branch) {
   return {
     id: branch.id,
     name: branch.name,

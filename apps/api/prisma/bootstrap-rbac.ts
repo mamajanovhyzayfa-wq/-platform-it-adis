@@ -26,7 +26,7 @@ export const permissionCatalog = [
 ] as const
 
 /** Каталог ролей: код совпадает с `User.role`, поэтому связь не дублируется. */
-export const roleCatalog: Array<{ code: RoleName; name: string; description: string }> = [
+const roleCatalog: Array<{ code: RoleName; name: string; description: string }> = [
   { code: 'ADMIN', name: 'Администратор', description: 'Полный доступ ко всем разделам платформы' },
   { code: 'MANAGER', name: 'Менеджер', description: 'Заявки, ученики, расписание и поддержка клиентов' },
   { code: 'TEACHER', name: 'Преподаватель', description: 'Ведёт курсы, проверяет задания, начисляет изикоины' },

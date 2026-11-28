@@ -11,7 +11,7 @@ export type ConsentType =
   | 'COOKIE_MARKETING'
   | 'GUARDIAN'
 
-export interface ConsentDocument {
+interface ConsentDocument {
   type: ConsentType
   title: string
   version: string
@@ -30,7 +30,7 @@ export interface ConsentRecord {
   createdAt: string
 }
 
-export interface ConsentState {
+interface ConsentState {
   documents: ConsentDocument[]
   latest: ConsentRecord[]
   history: ConsentRecord[]

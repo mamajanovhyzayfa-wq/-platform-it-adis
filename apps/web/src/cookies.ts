@@ -15,7 +15,7 @@ export interface CookiePreferences {
 
 const KEY = 'itadis.cookie.preferences'
 
-export const defaultCookiePreferences: CookiePreferences = {
+const defaultCookiePreferences: CookiePreferences = {
   version: 1,
   necessary: true,
   analytics: false,

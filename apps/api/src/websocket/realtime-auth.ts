@@ -13,13 +13,13 @@ import { getBranchPrisma, tenantUploadsDir, type TenantContext } from '../lib/te
  * пересекаются. Вынесено из realtime.ts, чтобы правила можно было покрыть
  * тестами без поднятия Socket.IO.
  */
-export interface SocketIdentity {
+interface SocketIdentity {
   tenant: TenantContext
   userId: string
   role: string
 }
 
-export interface SocketHandshakeData {
+interface SocketHandshakeData {
   host?: unknown
   token?: unknown
 }

@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common'
-import { env, type Env } from '../../config/env.js'
+import { env } from '../../config/env.js'
 
 /** Токен для внедрения провалидированной конфигурации. */
 export const APP_ENV = Symbol('APP_ENV')
@@ -15,4 +15,3 @@ export const APP_ENV = Symbol('APP_ENV')
 })
 export class AppConfigModule {}
 
-export type { Env }

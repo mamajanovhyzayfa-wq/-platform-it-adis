@@ -12,7 +12,7 @@ export type SubmissionSummary = {
   status: SubmissionStatus
 }
 
-export type SubmissionAvailability = {
+type SubmissionAvailability = {
   attemptsUsed: number
   attemptsLeft: number
   latestStatus: SubmissionStatus | null

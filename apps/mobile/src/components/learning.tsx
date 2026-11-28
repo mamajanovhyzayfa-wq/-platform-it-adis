@@ -106,7 +106,7 @@ export function CourseCard({
   )
 }
 
-export function CourseCardSkeleton() {
+function CourseCardSkeleton() {
   return (
     <Card>
       <View style={{ gap: spacing.sm }}>

@@ -1,19 +1,19 @@
 import { http, type SessionRole } from './client'
 
-export interface RoleRequestItem {
+interface RoleRequestItem {
   id?: string
   role: SessionRole
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
   requestedAt?: string
 }
 
-export interface MyRoles {
+interface MyRoles {
   primary: SessionRole
   roles: SessionRole[]
   requests: RoleRequestItem[]
 }
 
-export interface PendingRoleRequest {
+interface PendingRoleRequest {
   id: string
   role: SessionRole
   reason: string | null
@@ -21,7 +21,7 @@ export interface PendingRoleRequest {
   user: { id: string; firstName: string; lastName: string; email: string; role: SessionRole }
 }
 
-export interface PendingParentLink {
+interface PendingParentLink {
   id: string
   createdAt: string
   parent: { id: string; user: { id: string; firstName: string; lastName: string; email: string } }

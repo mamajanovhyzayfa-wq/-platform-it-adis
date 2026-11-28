@@ -62,7 +62,7 @@ export const lightColors: Palette = {
   black: '#000000',
 }
 
-export const darkColors: Palette = {
+const darkColors: Palette = {
   primary: '#5B6BFF',
   primaryDark: '#3E4CDF',
   primarySoft: '#1C2444',

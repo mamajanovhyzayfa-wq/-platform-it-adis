@@ -11,7 +11,7 @@ import {
 import { radius, spacing, typography, useTheme, useThemedStyles, type Palette } from '@/theme'
 import { IconButton } from './IconButton'
 
-export interface ModalProps {
+interface ModalProps {
   visible: boolean
   onClose: () => void
   title?: string

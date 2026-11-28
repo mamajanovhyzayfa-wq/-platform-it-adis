@@ -10,7 +10,7 @@ const VERIFY_URL = 'https://api.eu.apyhub.com/apyhub/verify-email-validity-and-d
 const REGIONS_URL = 'https://apyhub.com/api/public/regions'
 
 /** Форма заявки ждёт ответа, поэтому таймаут короче фоновых интеграций. */
-export const APYHUB_TIMEOUT_MS = 8_000
+const APYHUB_TIMEOUT_MS = 8_000
 
 /** Токен читается только на сервере; пустая строка считается «не задано». */
 function token(): string | null {

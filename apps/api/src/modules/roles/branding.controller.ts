@@ -5,7 +5,7 @@ import { controlPrisma } from '../../lib/control-prisma.js'
 import { Public } from '../../nest/common/decorators.js'
 
 /** Публичные поля страницы входа филиала. Остальное из Branch.config не отдаётся. */
-export interface BranchBranding {
+interface BranchBranding {
   name: string
   isPrimary: boolean
   /** Адрес главного сайта, если филиал живёт на отдельном домене. */

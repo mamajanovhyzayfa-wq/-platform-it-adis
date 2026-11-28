@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native'
-import { control, radius, spacing, typography, useTheme, useThemedStyles, type Palette } from '@/theme'
+import { control, radius, spacing, useTheme, useThemedStyles, type Palette } from '@/theme'
 import { FieldLabel, FieldMessage } from './Field'
 
-export interface InputProps extends Omit<TextInputProps, 'style'> {
+interface InputProps extends Omit<TextInputProps, 'style'> {
   label?: string
   error?: string
   hint?: string
@@ -79,5 +79,3 @@ const makeStyles = (c: Palette) =>
     readonly: { backgroundColor: c.cardMuted },
     hintSpacing: { marginTop: spacing.xs },
   })
-
-export const inputTypography = typography

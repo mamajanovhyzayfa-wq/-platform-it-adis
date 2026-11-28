@@ -42,7 +42,7 @@ export const localeLabels: Record<Locale, string> = {
 }
 
 /** Коды Intl: даты, числа и денежные суммы форматируются по выбранной локали. */
-export const localeTags: Record<Locale, string> = {
+const localeTags: Record<Locale, string> = {
   ru: 'ru-RU',
   ky: 'ky-KG',
   en: 'en-GB',
@@ -56,7 +56,7 @@ const SECTIONS_KEY = 'itadis.locale.sections'
 /** Текущий язык для чистых функций форматирования (даты, статусы). */
 let activeLocale: Locale = 'ru'
 
-export function normalizeLocale(value: string | null | undefined): Locale | null {
+function normalizeLocale(value: string | null | undefined): Locale | null {
   const tag = value?.trim().toLowerCase()
   if (!tag) return null
   if (tag === 'ky' || tag.startsWith('ky-') || tag.startsWith('ky_')) return 'ky'
@@ -65,7 +65,7 @@ export function normalizeLocale(value: string | null | undefined): Locale | null
   return null
 }
 
-export function detectBrowserLocale(): Locale {
+function detectBrowserLocale(): Locale {
   if (typeof navigator === 'undefined') return 'ru'
   const candidates = [...(navigator.languages ?? []), navigator.language]
   for (const candidate of candidates) {
@@ -125,9 +125,9 @@ export function statusLabel(status: string): string {
   return translate(activeLocale, `status.${status}`)
 }
 
-export type TFunction = (key: MessageKey, params?: Record<string, string | number>) => string
+type TFunction = (key: MessageKey, params?: Record<string, string | number>) => string
 
-export type LocaleSyncState = 'idle' | 'saving' | 'saved' | 'local' | 'error'
+type LocaleSyncState = 'idle' | 'saving' | 'saved' | 'local' | 'error'
 
 interface I18nValue {
   locale: Locale
@@ -283,9 +283,4 @@ export function useI18n(): I18nValue {
   const value = useContext(I18nContext)
   if (!value) throw new Error('useI18n must be used inside I18nProvider')
   return value
-}
-
-/** Язык раздела с возможностью временно переопределить его. */
-export function useSectionI18n(): I18nValue {
-  return useI18n()
 }

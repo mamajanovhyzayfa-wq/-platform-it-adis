@@ -4,7 +4,7 @@ import { createReadController } from '../read-model/read-model.controller.js'
 import { createReadService } from '../read-model/read-model.service.js'
 import type { ReadModelOptions } from '../read-model/read-model.types.js'
 
-export const messagingOptions: ReadModelOptions = {
+const messagingOptions: ReadModelOptions = {
   slug: 'messaging',
   model: 'conversation',
   entity: 'Диалог',

@@ -4,7 +4,7 @@ import { createReadController } from '../read-model/read-model.controller.js'
 import { createReadService } from '../read-model/read-model.service.js'
 import type { ReadModelOptions } from '../read-model/read-model.types.js'
 
-export const auditOptions: ReadModelOptions = {
+const auditOptions: ReadModelOptions = {
   slug: 'audit',
   model: 'auditLog',
   entity: 'Запись аудита',

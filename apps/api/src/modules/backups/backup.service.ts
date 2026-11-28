@@ -367,7 +367,7 @@ export async function runBackup(
   })
 }
 
-export async function runDueBackups(): Promise<void> {
+async function runDueBackups(): Promise<void> {
   const branches = await controlPrisma.branch.findMany({ where: { status: 'ACTIVE', backupEnabled: true } })
   for (const branch of branches) {
     const due =

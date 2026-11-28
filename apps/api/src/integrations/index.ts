@@ -39,16 +39,3 @@ export const integrationRegistry = new IntegrationRegistry([
 ])
 
 export { IntegrationRegistry } from './core/registry.js'
-export { IntegrationError, isTransientError, safeErrorMessage } from './core/errors.js'
-export { retryDelay, withRetry } from './core/retry.js'
-export { isSecretName, maskTail, missingVariables, readSecret, redact, REDACTED } from './core/secrets.js'
-export { recordIntegrationEvent } from './core/event-log.js'
-export { probeHttp, requestJson } from './core/http.js'
-export type {
-  IntegrationAdapter,
-  IntegrationCategory,
-  IntegrationDescriptor,
-  IntegrationHealth,
-  IntegrationHealthStatus,
-  IntegrationProbe,
-} from './core/types.js'

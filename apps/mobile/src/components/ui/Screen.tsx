@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { spacing, typography, useTheme, useThemedStyles, type Palette } from '@/theme'
 
-export interface ScreenProps {
+interface ScreenProps {
   children: ReactNode
   scroll?: boolean
   refreshing?: boolean

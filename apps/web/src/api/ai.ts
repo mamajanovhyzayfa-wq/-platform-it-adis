@@ -16,7 +16,7 @@ export interface AiSource {
   note?: string
 }
 
-export interface AiStatus {
+interface AiStatus {
   configured: boolean
   provider: string
   model: string
@@ -29,7 +29,7 @@ export interface AiStatus {
   disclaimer: string
 }
 
-export interface AiRunResult {
+interface AiRunResult {
   id: string
   answer: string
   sources: AiSource[]
@@ -62,7 +62,7 @@ export interface AiHistoryItem {
   user?: { id: string; firstName: string; lastName: string; role: string } | null
 }
 
-export interface AiErrorReport {
+interface AiErrorReport {
   id: string
   requestId: string | null
   userId: string
@@ -74,7 +74,7 @@ export interface AiErrorReport {
   user?: { id: string; firstName: string; lastName: string; email: string; role: string } | null
 }
 
-export interface AiSettings {
+interface AiSettings {
   setting: {
     enabled: boolean
     provider: string
@@ -106,7 +106,7 @@ export interface AiAutomation {
   lastRunAt: string | null
 }
 
-export interface AiAutomationRun {
+interface AiAutomationRun {
   id: string
   automationId: string
   status: string

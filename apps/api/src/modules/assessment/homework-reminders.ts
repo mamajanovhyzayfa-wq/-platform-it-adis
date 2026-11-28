@@ -23,7 +23,7 @@ function pruneMemory(now: Date): void {
   }
 }
 
-export async function sendHomeworkDueReminders(now = new Date()): Promise<number> {
+async function sendHomeworkDueReminders(now = new Date()): Promise<number> {
   pruneMemory(now)
   const horizon = new Date(now.getTime() + LOOKAHEAD_MS)
   const homework = await prisma.homework.findMany({

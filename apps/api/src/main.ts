@@ -45,15 +45,20 @@ async function bootstrap(): Promise<void> {
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
   app.use(cors({ origin: env.APP_ORIGIN, credentials: true }))
   app.use(metricsMiddleware)
-  // Публичный scrape endpoint для Prometheus; не содержит персональных данных.
-  app.use('/metrics', (req: Request, res: Response, next: NextFunction) => {
-    if (req.method !== 'GET') {
-      next()
-      return
-    }
-    res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
-    res.send(renderMetrics())
-  })
+  // Документация и метрики раскрывают карту API и нагрузку без авторизации,
+  // поэтому в production они не монтируются вовсе.
+  const exposeDiagnostics = env.NODE_ENV !== 'production'
+  if (exposeDiagnostics) {
+    // Scrape endpoint для Prometheus; не содержит персональных данных.
+    app.use('/metrics', (req: Request, res: Response, next: NextFunction) => {
+      if (req.method !== 'GET') {
+        next()
+        return
+      }
+      res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
+      res.send(renderMetrics())
+    })
+  }
   // Филиал выбирается по Host до любых обработчиков: БД, файлы и токены — филиальные.
   app.use(tenantMiddleware)
   app.use('/uploads', tenantUploadsStatic)
@@ -77,8 +82,12 @@ async function bootstrap(): Promise<void> {
   })
   // NUL-байт в любом поле давал 500 от PostgreSQL, а не 400: отклоняем до маршрутов.
   app.use(rejectNulBytes)
-  if (env.NODE_ENV !== 'test') app.use(morgan('tiny'))
-  app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument))
+  if (env.NODE_ENV !== 'test') {
+    // IP клиента обязателен: без него по строке 5xx не понять, чей запрос упал
+    // (за обратным прокси все клиенты выглядели бы адресом контейнера).
+    app.use(morgan(':remote-addr :method :url :status :res[content-length] - :response-time ms'))
+  }
+  if (exposeDiagnostics) app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument))
 
   // Модули, ещё не перенесённые в Nest: тот же сервер, тот же пул БД.
   // Каждый монтируется со своим обработчиком ошибок, чтобы 500 не проваливался в Nest.
@@ -103,7 +112,9 @@ async function bootstrap(): Promise<void> {
   const stopDigests = startNotificationDigestLoop()
   const stopBackups = startBackupScheduler()
 
-  logger.log(`ITadis API: http://localhost:${env.PORT} (Swagger: /docs, health: /healthz)`)
+  logger.log(
+    `ITadis API: http://localhost:${env.PORT} (health: /healthz${exposeDiagnostics ? ', Swagger: /docs' : ''})`,
+  )
 
   const shutdown = async (signal: string): Promise<void> => {
     logger.log(`Получен ${signal}, завершаем работу`)

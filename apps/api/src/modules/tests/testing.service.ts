@@ -1308,6 +1308,3 @@ export class TestingService {
       .catch((error) => console.warn('[testing] событие не записано', error))
   }
 }
-
-// Тип нужен для внутренних сигнатур.
-export type TestingQuestionRow = QuestionRow

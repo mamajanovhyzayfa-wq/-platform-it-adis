@@ -23,23 +23,23 @@ import { bootstrapRbac } from '../../prisma/bootstrap-rbac.js'
  * выше 31 физически невыполнимо. Хеш с cost 32+ отклоняется до обращения к БД,
  * иначе bootstrap «принял» бы хеш, по которому невозможно войти.
  */
-export const BCRYPT_HASH = /^\$2[aby]\$(0[4-9]|[12]\d|3[01])\$[./A-Za-z0-9]{53}$/
+const BCRYPT_HASH = /^\$2[aby]\$(0[4-9]|[12]\d|3[01])\$[./A-Za-z0-9]{53}$/
 
 /** Минимальная длина пароля администратора основной БД. */
 export const MIN_ADMIN_PASSWORD_LENGTH = 12
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export type AdminBootstrapAction = 'created' | 'password-updated' | 'unchanged'
+type AdminBootstrapAction = 'created' | 'password-updated' | 'unchanged'
 
-export interface AdminBootstrapResult {
+interface AdminBootstrapResult {
   id: string
   email: string
   role: 'ADMIN'
   action: AdminBootstrapAction
 }
 
-export interface AdminBootstrapOptions {
+interface AdminBootstrapOptions {
   email: string
   password?: string
   passwordHash?: string

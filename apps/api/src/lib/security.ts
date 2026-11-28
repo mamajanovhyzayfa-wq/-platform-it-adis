@@ -14,7 +14,7 @@ export function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash)
 }
 
-export interface PasswordCheck {
+interface PasswordCheck {
   valid: boolean
   problems: string[]
 }
@@ -29,7 +29,7 @@ export function checkPasswordStrength(password: string): PasswordCheck {
   return { valid: problems.length === 0, problems }
 }
 
-export interface AccessTokenPayload {
+interface AccessTokenPayload {
   sub: string
   role: RoleName
   email: string
@@ -45,7 +45,7 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
   return jwt.verify(token, env.JWT_ACCESS_SECRET) as AccessTokenPayload
 }
 
-export interface PlatformTokenPayload {
+interface PlatformTokenPayload {
   scope: 'platform'
   email: string
 }
@@ -63,7 +63,7 @@ export function verifyPlatformToken(token: string): PlatformTokenPayload {
   return { scope: 'platform', email: payload.email }
 }
 
-export interface StepUpPayload {
+interface StepUpPayload {
   scope: 'step-up'
   sub: string
 }
@@ -84,7 +84,7 @@ export function verifyStepUpToken(token: string): string {
 /** Время жизни подписанной ссылки на вложение. */
 export const FILE_TOKEN_TTL = '15m'
 
-export interface FileTokenPayload {
+interface FileTokenPayload {
   scope: 'file'
   name: string
   /** Владелец файла: ссылка действительна только для его вложения. */

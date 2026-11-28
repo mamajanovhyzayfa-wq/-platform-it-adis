@@ -10,7 +10,7 @@ import type { CoinSource, Prisma } from '@prisma/client'
  * запрос повторится.
  */
 
-export interface AwardCoinsInput {
+interface AwardCoinsInput {
   userId: string
   amount: number
   reason: string
@@ -20,7 +20,7 @@ export interface AwardCoinsInput {
   awardedById?: string | null
 }
 
-export interface AwardCoinsResult {
+interface AwardCoinsResult {
   awarded: boolean
   balance: number
 }

@@ -50,7 +50,7 @@ export const deviceIdSchema = z
 export type PatchMeInput = z.infer<typeof patchMeSchema>
 export type PushTokenInput = z.infer<typeof pushTokenSchema>
 
-export interface ProfileResponse extends PublicUser {
+interface ProfileResponse extends PublicUser {
   profile: {
     bio: string | null
     timezone: string

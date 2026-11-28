@@ -50,5 +50,4 @@ export const certificateRevokeSchema = z
 
 export type CertificateIssueInput = z.infer<typeof certificateIssueSchema>
 export type CertificateQuery = z.infer<typeof certificateQuerySchema>
-export type CertificateRevokeInput = z.infer<typeof certificateRevokeSchema>
 export type CertificateCandidatesQuery = z.infer<typeof certificateCandidatesSchema>

@@ -21,7 +21,7 @@ function minutesLeft(startsAt: Date, now: Date): number {
   return Math.max(1, Math.round((startsAt.getTime() - now.getTime()) / 60_000))
 }
 
-export async function sendLessonReminders(now = new Date()): Promise<number> {
+async function sendLessonReminders(now = new Date()): Promise<number> {
   const horizon = new Date(now.getTime() + LOOKAHEAD_MS)
 
   const lessons = await prisma.schedule.findMany({

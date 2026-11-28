@@ -1,9 +1,9 @@
-export interface EventRankingParticipant {
+interface EventRankingParticipant {
   userId: string
   user: { firstName: string; lastName: string }
 }
 
-export interface EventRankingResult {
+interface EventRankingResult {
   userId: string
   score: number | null
   place: number | null
@@ -11,7 +11,7 @@ export interface EventRankingResult {
   user: { firstName: string; lastName: string }
 }
 
-export interface EventRankingRow {
+interface EventRankingRow {
   userId: string
   name: string
   score: number

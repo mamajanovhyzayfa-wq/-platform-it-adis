@@ -4,7 +4,7 @@ import { Modal } from './Modal'
 import { Button } from './Button'
 import { spacing, typography, useThemedStyles, type Palette } from '@/theme'
 
-export interface ConfirmationDialogProps {
+interface ConfirmationDialogProps {
   visible: boolean
   title: string
   description?: string

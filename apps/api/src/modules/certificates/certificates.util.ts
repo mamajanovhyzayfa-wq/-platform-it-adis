@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto'
 
 /** Символы кода проверки без похожих 0/O и 1/I — код диктуют по телефону. */
 export const CERTIFICATE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-export const CERTIFICATE_CODE_LENGTH = 12
+const CERTIFICATE_CODE_LENGTH = 12
 
 /** Готовый сертификат: только PDF и растровые изображения без прозрачных форматов. */
 export const CERTIFICATE_FILE_MIME_TYPES = [
@@ -12,7 +12,7 @@ export const CERTIFICATE_FILE_MIME_TYPES = [
   'image/webp',
 ] as const
 
-export type CertificateFileMimeType = (typeof CERTIFICATE_FILE_MIME_TYPES)[number]
+type CertificateFileMimeType = (typeof CERTIFICATE_FILE_MIME_TYPES)[number]
 
 export const CERTIFICATE_FILE_MAX_BYTES = 10 * 1024 * 1024
 
@@ -23,7 +23,7 @@ const CERTIFICATE_FILE_EXTENSIONS: Record<CertificateFileMimeType, string> = {
   'image/webp': '.webp',
 }
 
-export function certificateFileExtension(mimeType: string): string | undefined {
+function certificateFileExtension(mimeType: string): string | undefined {
   return CERTIFICATE_FILE_EXTENSIONS[mimeType as CertificateFileMimeType]
 }
 
@@ -76,7 +76,7 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;')
 }
 
-export interface CertificateDocument {
+interface CertificateDocument {
   number: string
   verificationCode: string
   verifyUrl: string

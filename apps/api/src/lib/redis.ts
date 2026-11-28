@@ -15,7 +15,7 @@ let client: Redis | null = null
 let initialized = false
 let unavailableUntil = 0
 
-export function getRedis(): Redis | null {
+function getRedis(): Redis | null {
   if (!env.REDIS_URL) return null
   // Не пытаемся переподключаться на каждом запросе, если Redis недоступен.
   if (Date.now() < unavailableUntil) return null

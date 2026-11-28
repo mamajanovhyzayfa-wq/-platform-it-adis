@@ -12,7 +12,7 @@ import type { IntegrationAdapter, IntegrationProbe } from '../core/types.js'
  * окружения; ключ не хранится в браузере и не пишется в журнал. Повторы и
  * журналирование выполняются общими средствами интеграционного слоя.
  */
-export interface AccountingEntry {
+interface AccountingEntry {
   type: 'invoice' | 'payment' | 'refund' | 'expense'
   /** Номер документа в системе платформы. */
   number: string

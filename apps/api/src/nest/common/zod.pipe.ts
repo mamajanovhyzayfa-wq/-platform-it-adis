@@ -10,7 +10,7 @@ import { AppError } from '../../lib/errors.js'
  * Некорректные данные дают 422 с перечнем полей — формат совпадает с Express-слоем.
  */
 @Injectable()
-export class ZodValidationPipe implements PipeTransform {
+class ZodValidationPipe implements PipeTransform {
   constructor(private readonly schema: z.ZodType) {}
 
   transform(value: unknown): unknown {

@@ -132,10 +132,6 @@ const eventQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
 }).strict()
 
-function isStaff(role: string): boolean {
-  return role === 'ADMIN' || role === 'MANAGER' || role === 'TEACHER'
-}
-
 async function lessonCourse(lessonId: string) {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },

@@ -3,7 +3,7 @@ import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-na
 import { radius, spacing, typography, useTheme, useThemedStyles, type Palette } from '@/theme'
 import { FieldLabel, FieldMessage } from './Field'
 
-export interface TextAreaProps extends Omit<TextInputProps, 'style' | 'multiline'> {
+interface TextAreaProps extends Omit<TextInputProps, 'style' | 'multiline'> {
   label?: string
   error?: string
   hint?: string

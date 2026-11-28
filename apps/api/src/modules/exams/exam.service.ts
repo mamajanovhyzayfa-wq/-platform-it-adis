@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { Prisma, type RoleName } from '@prisma/client'
-import { badRequest, conflict, forbidden, notFound } from '../../lib/errors.js'
+import { badRequest, forbidden, notFound } from '../../lib/errors.js'
 import { writeAudit } from '../../lib/audit.js'
 import { notifyUsers } from '../../lib/notify.js'
 import { PrismaService } from '../../nest/prisma/prisma.service.js'

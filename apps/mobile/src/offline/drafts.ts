@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 /** Черновики решений хранятся локально и переживают закрытие приложения. */
-export interface HomeworkDraft {
+interface HomeworkDraft {
   text: string
   projectUrl: string
   files: Array<{ name: string; url: string }>

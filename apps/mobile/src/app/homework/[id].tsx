@@ -23,7 +23,7 @@ import { enqueue } from '@/offline/queue'
 import { clearHomeworkDraft, loadHomeworkDraft, saveHomeworkDraft } from '@/offline/drafts'
 import { useOffline } from '@/offline/OfflineSyncProvider'
 import { RoleGate } from '@/components/guards'
-import { radius, spacing, typography, useThemedStyles, type Palette } from '@/theme'
+import { spacing, typography, useThemedStyles, type Palette } from '@/theme'
 import { formatFullDate, formatTime } from '@/utils/format'
 
 const urlSchema = z

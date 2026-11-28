@@ -4,16 +4,12 @@ import { sendPushToUsers } from './push.js'
 import { sendMail } from './mailer.js'
 import { sendSms } from './sms.js'
 
-export type NotificationChannel = 'inApp' | 'push' | 'email' | 'sms'
-
-export interface NotificationChannels {
+interface NotificationChannels {
   inApp: boolean
   push: boolean
   email: boolean
   sms: boolean
 }
-
-export const NOTIFICATION_CHANNELS: NotificationChannel[] = ['inApp', 'push', 'email', 'sms']
 
 export const NOTIFICATION_TYPES: NotificationType[] = [
   'LESSON_PUBLISHED',
@@ -67,7 +63,7 @@ function defaultChannels(type: NotificationType): NotificationChannels {
   return type === 'SUSPICIOUS_LOGIN' ? SECURITY_CHANNELS : DEFAULT_NOTIFICATION_CHANNELS
 }
 
-export interface NotificationPayload {
+interface NotificationPayload {
   type: NotificationType
   title: string
   body: string

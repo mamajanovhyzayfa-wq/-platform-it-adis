@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native'
-import { radius, spacing, typography, useTheme, useThemedStyles, type Palette } from '@/theme'
+import { spacing, typography, useTheme, useThemedStyles, type Palette } from '@/theme'
 
-export interface ProgressBarProps {
+interface ProgressBarProps {
   /** Значение в процентах от 0 до 100. */
   value: number
   showLabel?: boolean

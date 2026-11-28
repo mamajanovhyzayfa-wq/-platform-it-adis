@@ -52,7 +52,7 @@ export function getPlatformToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
 
-export function savePlatformToken(token: string) {
+function savePlatformToken(token: string) {
   localStorage.setItem(TOKEN_KEY, token)
 }
 

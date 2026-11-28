@@ -10,11 +10,11 @@ import { redact } from './secrets.js'
  * количество попыток и очищенное сообщение. Секреты и тела запросов с
  * токенами сюда не попадают. Ошибка записи журнала не ломает основной запрос.
  */
-export type IntegrationEventAction = 'health_check' | 'connect' | 'request' | 'webhook' | 'config'
+type IntegrationEventAction = 'health_check' | 'connect' | 'request' | 'webhook' | 'config'
 
-export type IntegrationEventOutcome = 'OK' | 'FAILED' | 'SKIPPED'
+type IntegrationEventOutcome = 'OK' | 'FAILED' | 'SKIPPED'
 
-export interface IntegrationEventInput {
+interface IntegrationEventInput {
   provider: string
   action: IntegrationEventAction
   status: IntegrationEventOutcome

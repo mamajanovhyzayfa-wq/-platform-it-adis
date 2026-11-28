@@ -5,7 +5,7 @@ import { withRetry } from './retry.js'
  * HTTP-обёртки для адаптеров: таймаут, повторные попытки и единый формат ошибок.
  * Заголовки с секретами никогда не попадают в текст ошибки или журнал.
  */
-export interface JsonRequestOptions {
+interface JsonRequestOptions {
   provider: string
   url: string
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'

@@ -3,9 +3,9 @@ import { MAX_INVOICE_AMOUNT } from './finance.calc.js'
 
 /** Схемы запросов финансового модуля: валидация до обращения к базе. */
 
-export const expenseCategories = ['RENT', 'SALARY', 'EQUIPMENT', 'MARKETING', 'UTILITIES', 'SOFTWARE', 'OTHER'] as const
-export const invoiceStatuses = ['DRAFT', 'ISSUED', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'CANCELLED'] as const
-export const paymentMethods = ['CASH', 'BANK_TRANSFER', 'ONLINE'] as const
+const expenseCategories = ['RENT', 'SALARY', 'EQUIPMENT', 'MARKETING', 'UTILITIES', 'SOFTWARE', 'OTHER'] as const
+const invoiceStatuses = ['DRAFT', 'ISSUED', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'CANCELLED'] as const
+const paymentMethods = ['CASH', 'BANK_TRANSFER', 'ONLINE'] as const
 
 const amount = z.number().int().min(1).max(MAX_INVOICE_AMOUNT)
 const isoDate = z.string().datetime()
@@ -145,16 +145,6 @@ export const teacherRateSchema = z
   .object({ lessonRateKgs: z.number().int().min(0).max(MAX_INVOICE_AMOUNT) })
   .strict()
 
-export const analyticsQuerySchema = z
-  .object({
-    from: isoDate.optional(),
-    to: isoDate.optional(),
-    compareFrom: isoDate.optional(),
-    compareTo: isoDate.optional(),
-    courseId: z.string().uuid().optional(),
-  })
-  .strict()
-
 export const overviewQuerySchema = z
   .object({
     from: isoDate.optional(),
@@ -195,7 +185,6 @@ export type InvoiceDiscountInput = z.infer<typeof invoiceDiscountSchema>
 export type PaymentAdjustmentInput = z.infer<typeof paymentAdjustmentSchema>
 export type ProviderAccountInput = z.infer<typeof providerAccountSchema>
 export type TeacherRateInput = z.infer<typeof teacherRateSchema>
-export type AnalyticsQuery = z.infer<typeof analyticsQuerySchema>
 export type OverviewQuery = z.infer<typeof overviewQuerySchema>
 export type PaymentQuery = z.infer<typeof paymentQuerySchema>
 export type LookupQuery = z.infer<typeof lookupQuerySchema>

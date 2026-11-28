@@ -59,7 +59,3 @@ export const accountingEntrySchema = z
     externalId: z.string().uuid().optional(),
   })
   .strict()
-
-export type IntegrationUpdateInput = z.infer<typeof integrationUpdateSchema>
-export type IntegrationEventsQuery = z.infer<typeof integrationEventsQuerySchema>
-export type AccountingEntryInput = z.infer<typeof accountingEntrySchema>

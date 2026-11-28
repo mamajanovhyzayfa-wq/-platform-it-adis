@@ -6,7 +6,7 @@ import { notificationBody } from './copy.js'
 type Condition = { type?: string; value?: number; rewardCoins?: number }
 
 /** Счётчики прогресса: каждый тип условия считается только на сервере. */
-export const achievementCounters: Record<string, (userId: string) => Promise<number>> = {
+const achievementCounters: Record<string, (userId: string) => Promise<number>> = {
   lessons_completed: (userId) =>
     prisma.lessonProgress.count({ where: { studentId: userId, completedAt: { not: null } } }),
   homework_reviewed: (userId) =>

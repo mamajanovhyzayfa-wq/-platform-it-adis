@@ -2,9 +2,9 @@ import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-na
 import { radius, spacing, typography, useThemedStyles, type Palette } from '@/theme'
 
 export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'primary' | 'accent'
-export type BadgeSize = 'sm' | 'md'
+type BadgeSize = 'sm' | 'md'
 
-export interface BadgeProps {
+interface BadgeProps {
   label: string
   tone?: BadgeTone
   size?: BadgeSize

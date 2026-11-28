@@ -5,7 +5,7 @@ export const notificationListQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 })
 
-export const notificationChannelSchema = z
+const notificationChannelSchema = z
   .object({
     inApp: z.boolean(),
     push: z.boolean(),

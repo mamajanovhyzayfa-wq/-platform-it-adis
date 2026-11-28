@@ -17,7 +17,7 @@ export const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', '�
 export const dayFormat = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })
 export const monthFormat = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' })
 
-export function startOfDay(date: Date) {
+function startOfDay(date: Date) {
   const copy = new Date(date)
   copy.setHours(0, 0, 0, 0)
   return copy
@@ -27,17 +27,17 @@ export function addDays(date: Date, days: number) {
   copy.setDate(copy.getDate() + days)
   return copy
 }
-export function addMonths(date: Date, months: number) {
+function addMonths(date: Date, months: number) {
   const copy = new Date(date)
   copy.setMonth(copy.getMonth() + months)
   return copy
 }
-export function startOfWeek(date: Date) {
+function startOfWeek(date: Date) {
   const copy = startOfDay(date)
   copy.setDate(copy.getDate() - ((copy.getDay() + 6) % 7))
   return copy
 }
-export function startOfMonth(date: Date) {
+function startOfMonth(date: Date) {
   const copy = startOfDay(date)
   copy.setDate(1)
   return copy

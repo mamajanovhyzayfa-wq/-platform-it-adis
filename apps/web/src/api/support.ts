@@ -18,7 +18,7 @@ export interface SupportTicket {
   assignedTo: { id: string; firstName: string; lastName: string; email: string } | null
 }
 
-export interface SupportTicketsPage {
+interface SupportTicketsPage {
   data: SupportTicket[]
   page: number
   limit: number

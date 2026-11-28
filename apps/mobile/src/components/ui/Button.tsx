@@ -2,10 +2,10 @@ import type { ReactNode } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
 import { control, radius, spacing, typography, useTheme, useThemedStyles, type Palette } from '@/theme'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success'
-export type ButtonSize = 'sm' | 'md' | 'lg'
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success'
+type ButtonSize = 'sm' | 'md' | 'lg'
 
-export interface ButtonProps {
+interface ButtonProps {
   title: string
   onPress: () => void
   variant?: ButtonVariant

@@ -22,7 +22,7 @@ const en: Record<MessageKey, string> = enJson
 
 const dictionaries: Record<Locale, Record<MessageKey, string>> = { ru, ky, en }
 
-export function translate(locale: Locale, key: MessageKey): string {
+function translate(locale: Locale, key: MessageKey): string {
   return dictionaries[locale]?.[key] ?? dictionaries.ru[key]
 }
 
@@ -35,6 +35,3 @@ export function useI18n() {
 }
 
 export const localeLabels: Record<Locale, string> = { ru: 'Русский', ky: 'Кыргызча', en: 'English' }
-
-/** Код языка для Intl: даты и числа форматируются по выбранной локали. */
-export const localeTags: Record<Locale, string> = { ru: 'ru-RU', ky: 'ky-KG', en: 'en-GB' }

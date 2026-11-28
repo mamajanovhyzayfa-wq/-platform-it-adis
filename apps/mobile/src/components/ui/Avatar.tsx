@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { fontWeight, useTheme, useThemedStyles, type Palette } from '@/theme'
 
-export interface AvatarProps {
+interface AvatarProps {
   firstName?: string
   lastName?: string
   uri?: string | null

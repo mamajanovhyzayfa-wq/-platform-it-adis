@@ -7,7 +7,7 @@ import { useId } from 'react'
  * достаточно лёгких SVG/CSS-визуализаций: меньше зависимостей и предсказуемая сборка.
  */
 
-export interface ChartDatum {
+interface ChartDatum {
   label: string
   value: number
   tone?: 'primary' | 'success' | 'warning' | 'danger' | 'muted'

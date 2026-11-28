@@ -23,15 +23,15 @@ export interface AuthResponse {
   tokens: TokenPair
 }
 
-export interface TwoFactorChallenge {
+interface TwoFactorChallenge {
   twoFactorRequired: true
   challengeToken: string
 }
 
-export type LoginResponse = AuthResponse | TwoFactorChallenge
+type LoginResponse = AuthResponse | TwoFactorChallenge
 
 /** Самостоятельная регистрация создаёт заявку, а не аккаунт. */
-export interface RegistrationApplication {
+interface RegistrationApplication {
   id: string
   status: 'PENDING'
   message: string
@@ -39,7 +39,7 @@ export interface RegistrationApplication {
 
 export type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
 
-export interface CourseCategory {
+interface CourseCategory {
   id: string
   slug: string
   title: string
@@ -72,7 +72,7 @@ export interface CatalogCourse {
   progress: number
 }
 
-export interface CatalogResponse {
+interface CatalogResponse {
   items: CatalogCourse[]
   total: number
   hasMore: boolean
@@ -85,7 +85,7 @@ export interface CatalogResponse {
   }
 }
 
-export interface EnrolledCourse {
+interface EnrolledCourse {
   enrollmentId: string
   enrollmentStatus: string
   progress: number
@@ -106,7 +106,7 @@ export interface EnrolledCourse {
   nextLesson: { id: string; title: string; moduleTitle: string; durationMinutes: number } | null
 }
 
-export interface LearningOverview {
+interface LearningOverview {
   coinBalance: number
   activeCoursesCount: number
   completedCoursesCount: number
@@ -135,7 +135,7 @@ export interface LearningOverview {
   } | null
 }
 
-export interface CourseLessonSummary {
+interface CourseLessonSummary {
   id: string
   title: string
   description: string | null
@@ -147,7 +147,7 @@ export interface CourseLessonSummary {
   locked: boolean
 }
 
-export interface CourseModule {
+interface CourseModule {
   id: string
   title: string
   description: string | null
@@ -157,7 +157,7 @@ export interface CourseModule {
   lessons: CourseLessonSummary[]
 }
 
-export interface CoursePage {
+interface CoursePage {
   id: string
   title: string
   slug: string
@@ -196,7 +196,7 @@ export interface ScheduleItem {
   hasRoom: boolean
 }
 
-export interface ScheduleCreateInput {
+interface ScheduleCreateInput {
   courseId: string
   title: string
   description?: string
@@ -228,7 +228,7 @@ export interface HomeworkSubmission {
   } | null
 }
 
-export interface HomeworkDetail {
+interface HomeworkDetail {
   id: string
   title: string
   description: string
@@ -274,14 +274,14 @@ export interface CoinTransactionItem {
   awardedBy?: { id: string; firstName: string; lastName: string } | null
 }
 
-export interface CoinHistory {
+interface CoinHistory {
   items: CoinTransactionItem[]
   total: number
   balance: number
   totals: { earned: number; spent: number }
 }
 
-export interface QuestItem {
+interface QuestItem {
   id: string
   code: string
   title: string
@@ -296,7 +296,7 @@ export interface QuestItem {
   periodKey: string
 }
 
-export interface EconomyOverview {
+interface EconomyOverview {
   balance: number
   xp: number
   level: number
@@ -338,7 +338,7 @@ export interface NotificationItem {
   createdAt: string
 }
 
-export interface StudentOfTeacher {
+interface StudentOfTeacher {
   id: string
   firstName: string
   lastName: string
@@ -388,7 +388,7 @@ export interface TeacherModule {
   lessons: TeacherLesson[]
 }
 
-export interface TeacherHomework {
+interface TeacherHomework {
   id: string
   title: string
   description: string
@@ -401,11 +401,11 @@ export interface TeacherHomework {
   pendingSubmissions: number
 }
 
-export interface TeacherHomeworkDetail extends TeacherHomework {
+interface TeacherHomeworkDetail extends TeacherHomework {
   course: { id: string; title: string }
 }
 
-export interface TeacherHomeworkInput {
+interface TeacherHomeworkInput {
   title: string
   description: string
   dueAt: string
@@ -414,7 +414,7 @@ export interface TeacherHomeworkInput {
   lessonId?: string
 }
 
-export interface TeacherCourseDetail {
+interface TeacherCourseDetail {
   id: string
   title: string
   description: string
@@ -449,12 +449,12 @@ export interface TeacherSubmission {
   review: { score: number; comment: string | null; returnForRevision: boolean; createdAt: string } | null
 }
 
-export interface TeacherSubmissionDetail extends TeacherSubmission {
+interface TeacherSubmissionDetail extends TeacherSubmission {
   homework: TeacherSubmission['homework'] & { description: string; allowResubmit: boolean }
   review: (TeacherSubmission['review'] & { reviewer: string }) | null
 }
 
-export interface TeacherOverview {
+interface TeacherOverview {
   stats: { courses: number; students: number; pendingReviews: number; avgProgress: number }
   nextClass: {
     id: string
@@ -479,7 +479,7 @@ export interface LessonMaterialItem {
   allowDownload: boolean
 }
 
-export interface LessonPage {
+interface LessonPage {
   id: string
   title: string
   description: string | null
@@ -495,7 +495,7 @@ export interface LessonPage {
   nextLesson: { id: string; title: string } | null
 }
 
-export interface TestListItem {
+interface TestListItem {
   id: string
   title: string
   description: string | null
@@ -521,7 +521,7 @@ export interface TestQuestion {
   options: Array<{ id: string; text: string }>
 }
 
-export interface TestDetail {
+interface TestDetail {
   id: string
   title: string
   description: string | null
@@ -598,7 +598,7 @@ export interface AchievementItem {
   rewardCoins: number
 }
 
-export interface KnowledgeCategory {
+interface KnowledgeCategory {
   id: string
   slug: string
   title: string
@@ -620,13 +620,13 @@ export interface KnowledgeItem {
   isFavorite: boolean
 }
 
-export interface KnowledgeDetail extends KnowledgeItem {
+interface KnowledgeDetail extends KnowledgeItem {
   videoUrl: string | null
   content: string | null
   fileUrl: string | null
 }
 
-export interface ConversationItem {
+interface ConversationItem {
   id: string
   type: 'DIRECT' | 'COURSE'
   title: string
@@ -696,7 +696,7 @@ export interface LeadItem {
   createdAt: string
 }
 
-export interface LeadsPage {
+interface LeadsPage {
   items: LeadItem[]
   total: number
   page: number
@@ -704,7 +704,7 @@ export interface LeadsPage {
   pages: number
 }
 
-export interface ManagerOverview {
+interface ManagerOverview {
   stats: {
     students: number
     teachers: number
@@ -747,14 +747,14 @@ export interface ManagerStudent {
   createdAt: string
 }
 
-export interface AccountDeletionEvent {
+interface AccountDeletionEvent {
   id: string
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
   comment: string | null
   createdAt: string
 }
 
-export interface AccountDeletionRequest {
+interface AccountDeletionRequest {
   id: string
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
   reason: string | null
@@ -765,7 +765,7 @@ export interface AccountDeletionRequest {
   events: AccountDeletionEvent[]
 }
 
-export interface ManagerStudentsPage {
+interface ManagerStudentsPage {
   items: ManagerStudent[]
   total: number
   page: number
@@ -774,7 +774,7 @@ export interface ManagerStudentsPage {
 }
 
 /** Сводка главного администратора из /api/admin/dashboard. */
-export interface AdminDashboard {
+interface AdminDashboard {
   users: { students: number; teachers: number; admins: number; managers: number; parents: number; total: number }
   courses: { active: number; draft: number; completedEnrollments: number }
   upcomingLessons: number
@@ -798,7 +798,7 @@ export interface ParentChild {
   results: Array<{ id: string; title: string; score: number | null; percent: number | null; submittedAt: string | null }>
 }
 
-export interface ParentDashboard {
+interface ParentDashboard {
   children: ParentChild[]
   notifications: { unread: number; items: NotificationItem[] }
 }

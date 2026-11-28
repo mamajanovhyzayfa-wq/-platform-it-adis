@@ -22,7 +22,7 @@ function pruneMemory(now: Date): void {
   }
 }
 
-export async function sendPaymentDueReminders(now = new Date()): Promise<number> {
+async function sendPaymentDueReminders(now = new Date()): Promise<number> {
   pruneMemory(now)
   const invoices = await prisma.invoice.findMany({
     where: {

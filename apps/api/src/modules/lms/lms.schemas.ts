@@ -56,7 +56,7 @@ export const blockSchema = z.object({
   allowDownload: z.boolean().optional(),
 })
 
-export const blocksSchema = z.array(blockSchema).max(200)
+const blocksSchema = z.array(blockSchema).max(200)
 
 export const courseCreateSchema = z.object({
   title: z.string().trim().min(3, 'Название минимум 3 символа').max(200),

@@ -55,7 +55,7 @@ const studentSelect = {
 type CatalogCourse = Prisma.CourseGetPayload<{ select: typeof studentSelect }>
 
 /** Курс, собранный для карточки каталога. */
-export interface CatalogCourseCard {
+interface CatalogCourseCard {
   id: string
   title: string
   slug: string

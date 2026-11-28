@@ -1,7 +1,7 @@
 import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
 import { spacing, typography, useTheme, useThemedStyles, type Palette } from '@/theme'
 
-export interface LoaderProps {
+interface LoaderProps {
   label?: string
   size?: 'small' | 'large'
   /** Встроенный вариант без вертикальных отступов — для кнопок и списков. */

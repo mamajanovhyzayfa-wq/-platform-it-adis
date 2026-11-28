@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native'
 import { control, radius, spacing, useTheme, useThemedStyles, type Palette } from '@/theme'
 
-export interface SearchBarProps {
+interface SearchBarProps {
   value: string
   onChangeText: (value: string) => void
   placeholder?: string

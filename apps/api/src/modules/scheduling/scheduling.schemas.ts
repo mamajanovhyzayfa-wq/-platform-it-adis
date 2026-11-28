@@ -184,24 +184,6 @@ export const courseRecordingSchema = z
     message: 'Укажите хотя бы одну настройку записи',
   })
 
-export const recordingTransferSchema = z
-  .object({
-    force: z.boolean().default(false),
-  })
-  .strict()
-
-export const calendarQuerySchema = z
-  .object({
-    from: z.string().datetime(),
-    to: z.string().datetime(),
-    courseId: z.string().uuid().optional(),
-    teacherId: z.string().uuid().optional(),
-    classroomId: z.string().uuid().optional(),
-    types: z.string().optional(),
-    status: z.enum(['SCHEDULED', 'CANCELLED', 'ALL']).default('SCHEDULED'),
-  })
-  .strict()
-
 export const freeSlotsQuerySchema = z
   .object({
     from: z.string().datetime(),
@@ -212,7 +194,3 @@ export const freeSlotsQuerySchema = z
     courseId: z.string().uuid().optional(),
   })
   .strict()
-
-export const liveDigitalAnalyticsQuerySchema = z.object({
-  scheduleId: z.string().uuid(),
-})

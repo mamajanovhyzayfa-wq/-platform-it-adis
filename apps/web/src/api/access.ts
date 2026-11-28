@@ -1,6 +1,6 @@
 import { http, setStepUpToken, type SessionRole } from './client'
 
-export interface RegistrationItem {
+interface RegistrationItem {
   id: string
   firstName: string
   lastName: string
@@ -19,7 +19,7 @@ export interface RegistrationItem {
   rejectReason: string | null
 }
 
-export interface InvitationItem {
+interface InvitationItem {
   id: string
   token: string
   code: string

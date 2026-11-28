@@ -1,4 +1,4 @@
-import { decryptSensitive, encryptSensitive } from '../../lib/crypto.js'
+
 
 /**
  * Работа с секретами интеграций.
@@ -12,7 +12,7 @@ import { decryptSensitive, encryptSensitive } from '../../lib/crypto.js'
  */
 const SECRET_NAME = /(secret|token|password|passwd|api[_-]?key|apikey|private[_-]?key|credential|cookie|authorization)/i
 
-export const REDACTED = '[redacted]'
+const REDACTED = '[redacted]'
 
 export function isSecretName(name: string): boolean {
   return SECRET_NAME.test(name)
@@ -47,13 +47,4 @@ export function redact<T>(value: T, depth = 0): T {
     return result as T
   }
   return value
-}
-
-/** Секрет, сохранённый на сервере (например, ключ филиала в БД), шифруется перед записью. */
-export function encryptServerSecret(value: string): string {
-  return encryptSensitive(value)
-}
-
-export function decryptServerSecret(value: string | null | undefined): string | null {
-  return decryptSensitive(value)
 }

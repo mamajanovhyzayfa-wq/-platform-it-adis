@@ -14,7 +14,7 @@ import { prisma } from './prisma.js'
 const EXPO_ENDPOINT = 'https://exp.host/--/api/v2/push/send'
 const CHUNK_SIZE = 100
 
-export interface PushPayload {
+interface PushPayload {
   title: string
   body: string
   /** Данные для перехода в нужный экран приложения. */
@@ -109,11 +109,6 @@ export async function sendPushToUsers(userIds: string[], payload: PushPayload): 
   }
 
   return delivered
-}
-
-/** Один получатель — короткая обёртка для обычных сценариев. */
-export async function sendPushToUser(userId: string, payload: PushPayload): Promise<number> {
-  return sendPushToUsers([userId], payload)
 }
 
 /** Регистрирует push-токен устройства; повторный вызов обновляет запись. */

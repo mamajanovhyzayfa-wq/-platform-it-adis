@@ -12,8 +12,6 @@ import { SchedulingSettingsService } from './services/scheduling-settings.servic
 import { SchedulingClassroomsService } from './services/scheduling-classrooms.service.js'
 import {
   attendanceMarkSchema,
-  cancelSchema,
-  changeDecisionSchema,
   changeRequestSchema,
   recurringSchema,
   scheduleCreateSchema,
@@ -27,9 +25,7 @@ import {
   addDays,
   combineLocal,
   formatLocal,
-  localWeekday,
   manualAttendanceTiming,
-  minutesOfDay,
   overlaps,
   parseTime,
   seriesDates,

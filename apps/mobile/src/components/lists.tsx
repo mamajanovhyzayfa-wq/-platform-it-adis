@@ -1,55 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native'
-import { router } from 'expo-router'
-import { Badge, Button, Card, EmptyState } from './ui'
+import { Badge, Card, EmptyState } from './ui'
 import { spacing, typography, useThemedStyles, type Palette } from '@/theme'
-import { formatRange, canJoin } from '@/utils/format'
-import type { HomeworkItem, ScheduleItem } from '@/api/api'
-
-const scheduleTone: Record<ScheduleItem['status'], 'neutral' | 'success' | 'warning' | 'danger' | 'primary'> = {
-  SCHEDULED: 'primary',
-  ONGOING: 'success',
-  COMPLETED: 'neutral',
-  CANCELLED: 'danger',
-  RESCHEDULED: 'warning',
-}
-
-const scheduleLabel: Record<ScheduleItem['status'], string> = {
-  SCHEDULED: 'Запланировано',
-  ONGOING: 'Идёт сейчас',
-  COMPLETED: 'Завершено',
-  CANCELLED: 'Отменено',
-  RESCHEDULED: 'Перенесено',
-}
-
-export function ScheduleList({ items, alwaysEnabled = false }: { items: ScheduleItem[]; alwaysEnabled?: boolean }) {
-  const styles = useThemedStyles(makeStyles)
-
-  if (items.length === 0) return <EmptyState title="В расписании нет занятий" hint="Новые занятия появятся здесь." />
-
-  return (
-    <View style={{ gap: spacing.md }}>
-      {items.map((item) => (
-        <Card key={item.id}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Badge label={scheduleLabel[item.status]} tone={scheduleTone[item.status]} />
-          </View>
-          <Text style={styles.muted}>{item.course.title}</Text>
-          <Text style={styles.muted}>{formatRange(item.startsAt, item.endsAt)}</Text>
-          <Text style={styles.muted}>Преподаватель: {item.teacher}</Text>
-          {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
-          <Button
-            title={alwaysEnabled || canJoin(item.startsAt, item.endsAt) ? 'Присоединиться' : 'Подключение за 15 минут до начала'}
-            variant={alwaysEnabled || canJoin(item.startsAt, item.endsAt) ? 'primary' : 'secondary'}
-            disabled={!alwaysEnabled && !canJoin(item.startsAt, item.endsAt)}
-            onPress={() => router.push({ pathname: '/video/[scheduleId]', params: { scheduleId: item.id } })}
-            style={{ marginTop: spacing.md }}
-          />
-        </Card>
-      ))}
-    </View>
-  )
-}
+import { formatRange } from '@/utils/format'
+import type { HomeworkItem } from '@/api/api'
 
 const homeworkTone = (status?: string) => {
   if (status === 'REVIEWED') return 'success' as const

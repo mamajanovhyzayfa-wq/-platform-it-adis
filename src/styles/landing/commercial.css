@@ -156,10 +156,6 @@
   outline: none;
 }
 
-.modal-sm {
-  max-width: 460px;
-}
-
 .modal-close {
   position: absolute;
   top: 14px;
@@ -201,4 +197,3 @@
   color: var(--text-muted);
   font-size: 14.5px;
 }
-

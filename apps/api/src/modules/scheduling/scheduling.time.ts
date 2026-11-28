@@ -32,17 +32,6 @@ export function startOfLocalDay(date: Date): Date {
   return new Date(shifted.getTime() - BRANCH_OFFSET_MINUTES * 60_000)
 }
 
-export function startOfLocalWeek(date: Date): Date {
-  return addDays(startOfLocalDay(date), -localWeekday(date))
-}
-
-export function startOfLocalMonth(date: Date): Date {
-  const shifted = new Date(date.getTime() + BRANCH_OFFSET_MINUTES * 60_000)
-  shifted.setUTCDate(1)
-  shifted.setUTCHours(0, 0, 0, 0)
-  return new Date(shifted.getTime() - BRANCH_OFFSET_MINUTES * 60_000)
-}
-
 export function parseTime(value: string): { hours: number; minutes: number } {
   const [hours = 0, minutes = 0] = value.split(':').map(Number)
   return { hours, minutes }

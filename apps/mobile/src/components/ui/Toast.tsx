@@ -4,9 +4,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated'
 import { radius, spacing, typography, useTheme, useThemedStyles, type Palette } from '@/theme'
 
-export type ToastTone = 'info' | 'success' | 'error' | 'warning'
+type ToastTone = 'info' | 'success' | 'error' | 'warning'
 
-export interface ToastOptions {
+interface ToastOptions {
   message: string
   tone?: ToastTone
   /** Время показа в миллисекундах. */

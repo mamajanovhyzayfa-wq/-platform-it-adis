@@ -88,7 +88,7 @@ describe('восстановление пароля', () => {
   })
 
   it('отправляет одноразовую ссылку и сбрасывает пароль, отзывая сессии', async () => {
-    const { service, client, updatePassword, revokeSessions, getReset } = setup()
+    const { service, updatePassword, revokeSessions, getReset } = setup()
     await service.forgotPassword(user.email)
 
     expect(mail.sendMail).toHaveBeenCalledTimes(1)

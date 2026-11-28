@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js'
 /** Время жизни кеша прав роли: изменения в БД подхватываются без перезапуска. */
 const CACHE_TTL_MS = 60_000
 
-export interface RoleSummary {
+interface RoleSummary {
   code: RoleName
   name: string
   description: string | null

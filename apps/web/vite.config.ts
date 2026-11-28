@@ -7,6 +7,17 @@ export default defineConfig({
   // @livedigital/client использует Node-совместимый EventEmitter; без полифила Vite
   // заменяет модуль пустым объектом и SDK падает при создании клиента.
   resolve: { alias: { events: 'events/' } },
+  build: {
+    rollupOptions: {
+      output: {
+        // Вендоры меняются реже страниц — держим их в отдельных долгоживущих чанках.
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          query: ['@tanstack/react-query'],
+        },
+      },
+    },
+  },
   server: {
     port: 5174,
     proxy: {

@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { spacing, useTheme } from '@/theme'
 
-export interface ListScreenProps<T> {
+interface ListScreenProps<T> {
   data: T[]
   renderItem: ListRenderItem<T>
   keyExtractor: (item: T, index: number) => string

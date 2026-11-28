@@ -4,7 +4,7 @@ import type { InvoiceWithPayments } from './finance.shared.js'
 
 /** Чистые преобразования моделей в ответы API: без обращений к базе. */
 
-export interface PaymentRowInput {
+interface PaymentRowInput {
   id: string
   amount: number
   method: string

@@ -7,7 +7,7 @@ import { CookiePolicyController } from './cookie-policy.controller.js'
 
 const cookieTypes = ['COOKIES', 'COOKIE_ANALYTICS', 'COOKIE_FUNCTIONAL', 'COOKIE_MARKETING'] as const
 
-export const cookieConsentOptions: ReadModelOptions = {
+const cookieConsentOptions: ReadModelOptions = {
   slug: 'cookie-consents',
   model: 'consentRecord',
   entity: 'Cookie-согласие',

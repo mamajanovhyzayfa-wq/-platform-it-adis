@@ -67,7 +67,7 @@ function InteractiveBlock({ block }: { block: LmsBlock }) {
   )
 }
 
-export function LessonBlockView({
+function LessonBlockView({
   block,
   studentMode = false,
   testIds,

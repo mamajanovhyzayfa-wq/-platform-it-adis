@@ -7,7 +7,7 @@ import { IntegrationError, isTransientError } from './errors.js'
  * временные сбои (сеть, таймаут, 429/5xx): 4xx с неверным ключом повторять
  * бессмысленно, иначе адаптер будет долбить провайдера с плохими реквизитами.
  */
-export interface RetryOptions {
+interface RetryOptions {
   /** Всего попыток, включая первую. */
   attempts?: number
   baseDelayMs?: number
@@ -19,7 +19,7 @@ export interface RetryOptions {
   onAttemptFailed?: (error: unknown, attempt: number, delayMs: number) => void
 }
 
-export const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 export function retryDelay(attempt: number, options: Pick<RetryOptions, 'baseDelayMs' | 'maxDelayMs' | 'random'> = {}): number {
   const base = options.baseDelayMs ?? 250

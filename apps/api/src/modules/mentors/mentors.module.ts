@@ -3,7 +3,7 @@ import { createReadController } from '../read-model/read-model.controller.js'
 import { createReadService } from '../read-model/read-model.service.js'
 import type { ReadModelOptions } from '../read-model/read-model.types.js'
 
-export const mentorsOptions: ReadModelOptions = {
+const mentorsOptions: ReadModelOptions = {
   slug: 'mentors',
   model: 'teacher',
   entity: 'Наставник',

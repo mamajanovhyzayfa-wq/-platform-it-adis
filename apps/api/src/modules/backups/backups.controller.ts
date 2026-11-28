@@ -5,7 +5,6 @@ import { zodBody } from '../../nest/common/zod.pipe.js'
 import { BackupsService } from './backups.service.js'
 import {
   backupApprovalSchema,
-  backupExecuteSchema,
   backupRestoreSchema,
   backupRunSchema,
   backupSettingsSchema,

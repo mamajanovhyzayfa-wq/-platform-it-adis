@@ -18,7 +18,7 @@ export const defaultPrisma = new PrismaClient({
  * а данные филиалов физически остаются в разных базах.
  */
 export const prisma: PrismaClient = new Proxy(defaultPrisma, {
-  get(target, property, receiver) {
+  get(target, property, _receiver) {
     const client = getTenant()?.prisma ?? target
     const value = Reflect.get(client, property, client)
     return typeof value === 'function' ? value.bind(client) : value

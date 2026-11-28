@@ -46,10 +46,6 @@ function safeName(title: string, mimeType: string | null) {
   return `${base || 'material'}${extension}`
 }
 
-export async function getDownloadedMaterial(materialId: string): Promise<DownloadedMaterial | null> {
-  return (await readIndex())[materialId] ?? null
-}
-
 export async function listDownloadedMaterials(): Promise<DownloadedMaterial[]> {
   return Object.values(await readIndex()).sort((a, b) => b.downloadedAt.localeCompare(a.downloadedAt))
 }
@@ -86,16 +82,6 @@ export async function downloadMaterial(material: {
 export async function openDownloadedMaterial(record: DownloadedMaterial) {
   const uri = Platform.OS === 'android' ? await FileSystem.getContentUriAsync(record.uri) : record.uri
   await Linking.openURL(uri)
-}
-
-export async function removeDownloadedMaterial(materialId: string) {
-  const index = await readIndex()
-  const record = index[materialId]
-  if (record) {
-    await FileSystem.deleteAsync(record.uri, { idempotent: true }).catch(() => undefined)
-    delete index[materialId]
-    await AsyncStorage.setItem(INDEX_KEY, JSON.stringify(index))
-  }
 }
 
 /** Освобождает место при выходе из аккаунта, чтобы материалы не достались следующему. */

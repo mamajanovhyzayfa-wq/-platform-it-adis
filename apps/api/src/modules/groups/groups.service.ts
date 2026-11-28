@@ -9,7 +9,7 @@ import { groupsQuerySchema, type GroupsQuery } from './groups.dto.js'
  * активным составом. Группа вычисляется из Course + CourseEnrollment, чтобы
  * не дублировать данные и не ломать существующие записи на курс.
  */
-export interface GroupView {
+interface GroupView {
   id: string
   title: string
   courseId: string

@@ -55,7 +55,7 @@ const storage = {
   },
 }
 
-export type AuthStatus = 'idle' | 'loading' | 'guest' | 'authenticated'
+type AuthStatus = 'idle' | 'loading' | 'guest' | 'authenticated'
 
 interface AuthState {
   status: AuthStatus

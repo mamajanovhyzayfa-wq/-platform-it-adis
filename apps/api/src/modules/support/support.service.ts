@@ -6,7 +6,6 @@ import { AppError, forbidden, notFound } from '../../lib/errors.js'
 import type { AuthUser } from '../../nest/common/decorators.js'
 import { PrismaService } from '../../nest/prisma/prisma.service.js'
 import {
-  supportCreateSchema,
   supportQuerySchema,
   supportUpdateSchema,
   type SupportCreateInput,

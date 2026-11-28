@@ -29,7 +29,7 @@ export interface IntegrationAdapterView {
   lastMessage: string | null
 }
 
-export interface IntegrationList {
+interface IntegrationList {
   checkedAt: string
   total: number
   configured: number
@@ -37,7 +37,7 @@ export interface IntegrationList {
   adapters: IntegrationAdapterView[]
 }
 
-export interface IntegrationHealth {
+interface IntegrationHealth {
   id: string
   name: string
   category: IntegrationCategory
@@ -49,13 +49,13 @@ export interface IntegrationHealth {
   checkedAt: string
 }
 
-export interface IntegrationCheckAll {
+interface IntegrationCheckAll {
   checkedAt: string
   results: IntegrationHealth[]
   summary: { ok: number; degraded: number; notConfigured: number; unreachable: number }
 }
 
-export interface IntegrationEvent {
+interface IntegrationEvent {
   id: string
   provider: string
   action: 'health_check' | 'connect' | 'request' | 'webhook' | 'config' | string
@@ -68,7 +68,7 @@ export interface IntegrationEvent {
   createdAt: string
 }
 
-export interface IntegrationEventsPage {
+interface IntegrationEventsPage {
   items: IntegrationEvent[]
   page: number
   limit: number

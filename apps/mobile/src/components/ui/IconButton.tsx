@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
 import { control, radius, useTheme, useThemedStyles, type Palette } from '@/theme'
 
-export interface IconButtonProps {
+interface IconButtonProps {
   /** Иконка, эмодзи или текстовый глиф. */
   icon: ReactNode
   onPress: () => void

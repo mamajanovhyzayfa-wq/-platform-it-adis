@@ -88,6 +88,4 @@ export const resetPasswordSchema = z
     path: ['passwordRepeat'],
     message: 'Пароли не совпадают',
   })
-
-export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>

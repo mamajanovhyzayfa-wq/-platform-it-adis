@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { Prisma, type CoinSource, type CoinTransactionStatus, type RoleName, type ShopOrderStatus } from '@prisma/client'
 import { randomUUID } from 'node:crypto'
-import { AppError, badRequest, conflict, forbidden, notFound } from '../../lib/errors.js'
+import { badRequest, conflict, forbidden, notFound } from '../../lib/errors.js'
 import { writeAudit } from '../../lib/audit.js'
 import { notifyUsers } from '../../lib/notify.js'
 import { PrismaService } from '../../nest/prisma/prisma.service.js'

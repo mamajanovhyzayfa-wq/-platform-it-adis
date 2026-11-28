@@ -3,7 +3,7 @@ import { useColorScheme, type ViewStyle } from 'react-native'
 import { useThemeStore, type ThemeMode } from '@/store/theme'
 import { palettes, type ColorScheme, type Palette } from './palette'
 
-export interface Theme {
+interface Theme {
   scheme: ColorScheme
   mode: ThemeMode
   colors: Palette
