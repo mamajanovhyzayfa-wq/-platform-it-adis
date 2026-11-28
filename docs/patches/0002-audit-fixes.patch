@@ -1,4 +1,4 @@
-From e758804e9faa09b93ebf6d1eeae74346d2b9f483 Mon Sep 17 00:00:00 2001
+From 3cd08235a796086cff951ca588c03bfb0693b12a Mon Sep 17 00:00:00 2001
 From: huzayfa <majanovhyzayfa@gmail.com>
 Date: Sat, 28 Nov 2026 02:53:59 +0000
 Subject: [PATCH] Close the audit findings and prepare the P0-1 deployment
@@ -236,7 +236,7 @@ API_NOT_CONFIGURED blocker.
  apps/web/vite.config.ts                       |   11 +
  docker-compose.prod.yml                       |   13 +-
  docs/audit/2026-11-27-full-audit.md           |  376 +++
- docs/deployment/P0_fix.md                     |  231 ++
+ docs/deployment/P0_fix.md                     |  265 ++
  docs/patches/0001-hardening-phase-1.patch     | 2168 ++++++++++++++++-
  docs/patches/README.md                        |   54 +
  docs/testing/strategy.md                      |   24 +
@@ -248,7 +248,7 @@ API_NOT_CONFIGURED blocker.
  package.json                                  |    2 -
  src/styles/landing/commercial.css             |    5 -
  src/styles/landing/modals.css                 |    7 -
- 223 files changed, 6108 insertions(+), 5361 deletions(-)
+ 223 files changed, 6142 insertions(+), 5361 deletions(-)
  create mode 100644 .github/workflows/production-health.yml
  create mode 100644 apps/api/prisma/migrations/20261127120000_attachment_owner_and_pending_email/migration.sql
  create mode 100644 apps/api/prisma/migrations/20261127150000_fk_delete_rules_and_indexes/migration.sql
@@ -12204,10 +12204,10 @@ index 0000000..e15936c
 +0 сирот, 1 дубль заявки после теста гонки, `css-audit` — 48 «сиротских» классов (34 динамических).
 diff --git a/docs/deployment/P0_fix.md b/docs/deployment/P0_fix.md
 new file mode 100644
-index 0000000..4b1a2ad
+index 0000000..7187897
 --- /dev/null
 +++ b/docs/deployment/P0_fix.md
-@@ -0,0 +1,231 @@
+@@ -0,0 +1,265 @@
 +# P0-1: сайт отдаёт 503 — как поднять API и связать его с сайтом
 +
 +Статус: **требует владельца**. Код готов, но у агента нет доступа к VPS и к
@@ -12419,6 +12419,39 @@ index 0000000..4b1a2ad
 +| Метрики закрыты | `curl -o /dev/null -w '%{http_code}' https://api-host/metrics` | `404` (в production выключено) |
 +| Swagger закрыт | `curl -o /dev/null -w '%{http_code}' https://api-host/docs` | `404` |
 +
++## 8. Токен GitHub, чтобы открыть PR
++
++Ветку агент пушит, но PR создаётся через API GitHub, а в окружении агента
++нет креденшелов. Нужен личный токен владельца.
++
++1. GitHub → **Settings → Developer settings → Personal access tokens →
++   Fine-grained tokens → Generate new token**.
++2. **Repository access**: *Only select repositories* →
++   `mamajanovhyzayfa-wq/-platform-it-adis`.
++3. **Repository permissions**:
++
++   | Право | Уровень | Зачем |
++   | --- | --- | --- |
++   | Metadata | Read-only (ставится сам) | обязательное |
++   | Contents | **Read and write** | пуш ветки, squash-merge |
++   | Pull requests | **Read and write** | создать PR и смержить |
++   | Actions, Checks | Read-only | следить за CI |
++
++   Organization permissions не нужны.
++4. **Expiration**: 7–30 дней; токен одноразовый по смыслу — после мержа его
++   можно отозвать.
++5. **Generate token** и скопируйте значение: GitHub показывает его один раз.
++6. Freebuff → **Settings → Project settings → Secrets** → добавьте секрет с
++   именем `GH_TOKEN` и значением токена. Не присылайте токен в чат, не
++   записывайте в `.env`, `.env.production` или git — секреты проекта читает
++   только агент.
++7. Напишите агенту «открой PR» — он создаст PR из
++   `audit/full-analysis-2026-11-27` в `main`, дождётся проверок и смержит
++   squash только по явной просьбе.
++
++Классический токен (Personal access tokens → Tokens (classic)) тоже подойдёт:
++достаточно scope `repo`.
++
 +## Если что-то не работает
 +
 +| Симптом | Причина | Что делать |
@@ -12437,8 +12470,9 @@ index 0000000..4b1a2ad
 +`/docs` и `/metrics` в production.
 +
 +Требует владельца: аренда VPS (шаг 1), доступ по SSH (шаги 2–5), переменная
-+`API_ORIGIN` в панели freebuff.site (шаг 6). У агента нет ни доступа к серверу,
-+ни прав на панель, поэтому эти шаги нельзя выполнить автоматически.
++`API_ORIGIN` в панели freebuff.site (шаг 6) и `GH_TOKEN` в секретах проекта
++(шаг 8). У агента нет ни доступа к серверу, ни прав на панель, ни креденшелов
++GitHub, поэтому эти шаги нельзя выполнить автоматически.
 diff --git a/docs/patches/0001-hardening-phase-1.patch b/docs/patches/0001-hardening-phase-1.patch
 index 15086a1..3e8fb61 100644
 --- a/docs/patches/0001-hardening-phase-1.patch
