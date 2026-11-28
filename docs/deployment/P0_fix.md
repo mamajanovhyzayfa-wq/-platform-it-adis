@@ -209,6 +209,39 @@ infrastructure/scripts/smoke.sh https://<PUBLIC_HOSTNAME> \
 | Метрики закрыты | `curl -o /dev/null -w '%{http_code}' https://api-host/metrics` | `404` (в production выключено) |
 | Swagger закрыт | `curl -o /dev/null -w '%{http_code}' https://api-host/docs` | `404` |
 
+## 8. Токен GitHub, чтобы открыть PR
+
+Ветку агент пушит, но PR создаётся через API GitHub, а в окружении агента
+нет креденшелов. Нужен личный токен владельца.
+
+1. GitHub → **Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens → Generate new token**.
+2. **Repository access**: *Only select repositories* →
+   `mamajanovhyzayfa-wq/-platform-it-adis`.
+3. **Repository permissions**:
+
+   | Право | Уровень | Зачем |
+   | --- | --- | --- |
+   | Metadata | Read-only (ставится сам) | обязательное |
+   | Contents | **Read and write** | пуш ветки, squash-merge |
+   | Pull requests | **Read and write** | создать PR и смержить |
+   | Actions, Checks | Read-only | следить за CI |
+
+   Organization permissions не нужны.
+4. **Expiration**: 7–30 дней; токен одноразовый по смыслу — после мержа его
+   можно отозвать.
+5. **Generate token** и скопируйте значение: GitHub показывает его один раз.
+6. Freebuff → **Settings → Project settings → Secrets** → добавьте секрет с
+   именем `GH_TOKEN` и значением токена. Не присылайте токен в чат, не
+   записывайте в `.env`, `.env.production` или git — секреты проекта читает
+   только агент.
+7. Напишите агенту «открой PR» — он создаст PR из
+   `audit/full-analysis-2026-11-27` в `main`, дождётся проверок и смержит
+   squash только по явной просьбе.
+
+Классический токен (Personal access tokens → Tokens (classic)) тоже подойдёт:
+достаточно scope `repo`.
+
 ## Если что-то не работает
 
 | Симптом | Причина | Что делать |
@@ -227,5 +260,6 @@ infrastructure/scripts/smoke.sh https://<PUBLIC_HOSTNAME> \
 `/docs` и `/metrics` в production.
 
 Требует владельца: аренда VPS (шаг 1), доступ по SSH (шаги 2–5), переменная
-`API_ORIGIN` в панели freebuff.site (шаг 6). У агента нет ни доступа к серверу,
-ни прав на панель, поэтому эти шаги нельзя выполнить автоматически.
+`API_ORIGIN` в панели freebuff.site (шаг 6) и `GH_TOKEN` в секретах проекта
+(шаг 8). У агента нет ни доступа к серверу, ни прав на панель, ни креденшелов
+GitHub, поэтому эти шаги нельзя выполнить автоматически.
