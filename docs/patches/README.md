@@ -1,5 +1,25 @@
 # Патчи хардненинга
 
+## `0002-audit-fixes.patch` — весь аудит 2026-11-27
+
+Один коммит со всеми изменениями ветки `audit/full-analysis-2026-11-27`
+(поверх `main`): IDOR на вложениях и короткие file-токены, D-1/D-2 (FK-правила
+`ON DELETE`, 79 индексов, частичный уникальный индекс PENDING), F-2/F-3
+(ссылки на сертификаты, 400 на пустой файл), S-1/S-2/S-5/S-6/S-7/S-8
+(ACL, NUL-байт, санитизация заявок, закрытые `/docs` и `/metrics`, IP в
+access-логе, общий формат ошибки JSON), C-1 (мёртвый код, зависимости, CSS)
+и P-1 (code splitting кабинета).
+
+```bash
+git checkout main
+git am docs/patches/0002-audit-fixes.patch
+```
+
+Проверка перед PR: `git apply --check` не подходит для mbox-патча — используйте
+`git am` в одноразовой ветке, как показано выше.
+
+## `0001-hardening-phase-1.patch`
+
 Изменения Phase 1 собраны в `0001-hardening-phase-1.patch` — его можно
 применить к `main` без доступа к GitHub:
 
